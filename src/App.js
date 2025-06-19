@@ -104,8 +104,6 @@ function App() {
     }
   };
   
-  // FIX: This function now ONLY sets the state to null.
-  // The cleanup of the temporary URL is now handled inside the DocumentViewModal component itself.
   const closeDocumentModal = () => {
     setDocumentModalData(null);
   };

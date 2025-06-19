@@ -36,7 +36,6 @@ function RequestManagementView({ setDocumentModalData }) {
     }
   };
 
-  // FIX: This function correctly fetches the file data and creates a new temporary URL each time it is called.
   const handleViewDocument = async (requestId) => { 
     try {
         setError('');
