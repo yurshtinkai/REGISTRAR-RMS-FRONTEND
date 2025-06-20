@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css'; 
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -18,25 +19,34 @@ import AllStudentsView from './components/admin/AllStudentsView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
-import { getUserRole, getToken } from './utils/api';
+import { getUserRole } from './utils/api'; // Removed unused getToken import
 
+// Admin Layout Component
+const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
+  <div className="admin-layout">
+    <Sidebar onProfileClick={onProfileClick} setStudentToEnroll={setStudentToEnroll} />
+    <main className="main-content">
+      <Outlet /> {/* Child routes will render here */}
+    </main>
+  </div>
+);
 
 function App() {
   const [userRole, setUserRole] = useState(getUserRole());
-  const [adminView, setAdminView] = useState('dashboard'); 
   const [modalImage, setModalImage] = useState(null);
   const [documentModalData, setDocumentModalData] = useState(null);
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
-
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (getToken()) setUserRole(getUserRole());
-    if (!getUserRole()) {
-        document.body.classList.add('login-background');
+    const role = getUserRole();
+    if (role) {
+      setUserRole(role);
     } else {
-        document.body.classList.remove('login-background');
+       document.body.classList.add('login-background');
     }
     return () => {
         document.body.classList.remove('login-background');
@@ -56,7 +66,11 @@ function App() {
 
   const handleLoginSuccess = (role) => {
     setUserRole(role);
-    if (role === 'admin') setAdminView('dashboard');
+    if (role === 'admin') {
+      navigate('/admin/dashboard');
+    } else if (role === 'student') {
+      navigate('/student/dashboard');
+    }
   };
   
   const handleLogout = () => { 
@@ -64,14 +78,9 @@ function App() {
       localStorage.removeItem('userRole');
       localStorage.removeItem('idNumber');
       setUserRole(null); 
-      window.location.reload();
+      navigate('/login');
   };
 
-  const handleEnrollStudent = (student) => {
-      setStudentToEnroll(student);
-      setAdminView('enrollment_new');
-  };
-  
   const handleCompleteEnrollment = (enrolledStudent) => {
     const newStudent = {
       ...enrolledStudent,
@@ -86,32 +95,27 @@ function App() {
     ));
 
     setStudentToEnroll(null);
-    setAdminView('all_students');
+    navigate('/admin/all-students');
     alert('Enrollment Complete! Student has been added to the master list.');
-  };
-
-  const renderAdminContent = () => {
-    switch (adminView) {
-        case 'requests': return <RequestManagementView setDocumentModalData={setDocumentModalData} />;
-        case 'all_registrations': return <AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />;
-        case 'enrollment_unenrolled': return <UnenrolledRegistrationsView registrations={registrations} onEnrollStudent={handleEnrollStudent} />;
-        case 'enrollment_new': return <NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />;
-        case 'all_students': return <AllStudentsView enrolledStudents={enrolledStudents} />;
-        case 'change_password': return <PlaceholderView title="Change Password" />;
-        default: return <PlaceholderView title={adminView.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} />;
-    }
   };
   
   const closeDocumentModal = () => {
     setDocumentModalData(null);
   };
 
+  // A protected route component for authenticated users
+  const ProtectedRoute = ({ children }) => {
+    if (!userRole) {
+      return <Navigate to="/login" replace />;
+    }
+    return children;
+  };
+
   return (
     <div id="app-wrapper">
       <nav className="navbar navbar-expand-lg navbar-dark navbar-custom-gradient shadow-sm fixed-top">
         <div className="container-fluid">
-          {/* REMOVED the navbar-brand link */}
-          <div className="d-flex ms-auto">{/* Added ms-auto to push content to the right */}
+          <div className="d-flex ms-auto">
             {userRole && (
               <>
                 <span className="navbar-text me-3">Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})</span>
@@ -122,12 +126,38 @@ function App() {
         </div>
       </nav>
       <div className="content-wrapper">
-        {!userRole ? <Login onLoginSuccess={handleLoginSuccess} /> : userRole === 'student' ? <StudentRequestForm /> : (
-            <div className="admin-layout">
-                <Sidebar setView={setAdminView} currentView={adminView} onProfileClick={setModalImage} setStudentToEnroll={setStudentToEnroll} />
-                <main className="main-content">{renderAdminContent()}</main>
-            </div>
-        )}
+        <Routes>
+          <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+
+          {/* Student Routes */}
+          <Route path="/student/dashboard" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
+
+          {/* Admin Routes */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminLayout onProfileClick={setModalImage} setStudentToEnroll={setStudentToEnroll} />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<PlaceholderView title="Dashboard" />} />
+            <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
+            <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
+            {/* --- FIX IS HERE --- */}
+            <Route 
+              path="enrollment/unenrolled" 
+              element={<UnenrolledRegistrationsView registrations={registrations} onEnrollStudent={setStudentToEnroll} />} 
+            />
+            {/* --- END OF FIX --- */}
+            <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
+            <Route path="assessment" element={<PlaceholderView title="Assessment" />} />
+            <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
+          </Route>
+
+          {/* Redirect root path to login or dashboard */}
+          <Route path="*" element={<Navigate to={userRole ? (userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard') : '/login'} replace />} />
+        </Routes>
       </div>
       {modalImage && <ImageViewModal imageUrl={modalImage} onClose={() => setModalImage(null)} />}
       {documentModalData && <DocumentViewModal modalData={documentModalData} onClose={closeDocumentModal} />}

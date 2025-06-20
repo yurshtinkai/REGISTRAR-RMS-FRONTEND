@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
-function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
+function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const adminIdNumber = localStorage.getItem('idNumber');
-    const [isEnrollmentOpen, setEnrollmentOpen] = useState(false);
-    const [isRegistrationOpen, setRegistrationOpen] = useState(false);
-    const [isStudentOpen, setStudentOpen] = useState(false);
+    const location = useLocation(); // Hook to get the current URL
+    
+    // State to manage collapsible menus
+    const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
+    const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
+    const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/students'));
+    
     const [profilePic, setProfilePic] = useState(null);
 
     useEffect(() => {
@@ -13,23 +18,21 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
     }, []);
 
     const menuItems = [
-        { name: 'Dashboard', view: 'dashboard', icon: 'fa-tachometer-alt' },
-        { name: 'Students', icon: 'fa-users', subItems: [ { name: 'All Students', view: 'all_students' }, { name: 'New Student', view: 'new_student' }] },
-        { name: 'Registration', icon: 'fa-file-alt', subItems: [ { name: 'All Registrations', view: 'all_registrations' } ] },
+        { name: 'Dashboard', path: '/admin/dashboard', icon: 'fa-tachometer-alt' },
+        { name: 'Students', icon: 'fa-users', subItems: [ { name: 'All Students', path: '/admin/all-students' }, { name: 'New Student', path: '/admin/enrollment/new' }] },
+        { name: 'Registration', icon: 'fa-file-alt', subItems: [ { name: 'All Registrations', path: '/admin/all-registrations' } ] },
         { name: 'Enrollment', icon: 'fa-user-check',
-            subItems: [ { name: 'All Enrollments', view: 'enrollment_all' }, { name: 'Unenrolled Registrations', view: 'enrollment_unenrolled' }, { name: 'New Enrollment', view: 'enrollment_new' } ] },
-        { name: 'Assessment', view: 'assessment', icon: 'fa-clipboard-list' },
-        { name: 'Requests', view: 'requests', icon: 'fa-folder-open' },
+            subItems: [ 
+              { name: 'Unenrolled Registrations', path: '/admin/enrollment/unenrolled' }, 
+              { name: 'New Enrollment', path: '/admin/enrollment/new' } 
+            ] 
+        },
+        { name: 'Assessment', path: '/admin/assessment', icon: 'fa-clipboard-list' },
+        { name: 'Requests', path: '/admin/requests', icon: 'fa-folder-open' },
     ];
-    
+
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0]; if(file){const reader = new FileReader(); reader.onloadend = () => {localStorage.setItem('adminProfilePic', reader.result); setProfilePic(reader.result)}; reader.readAsDataURL(file)}
-    };
-    
-    const handleNewEnrollmentClick = (e) => {
-        e.preventDefault();
-        setStudentToEnroll(null); 
-        setView('enrollment_new');
     };
 
     const handleMenuClick = (e, itemName) => {
@@ -53,14 +56,13 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
                 <p className="text-muted small">{adminIdNumber}</p>
             </div>
             
-            {/* This new div will wrap the navigation and become the scrollable area */}
             <div className="sidebar-nav">
                 <ul className="nav flex-column">
                     {menuItems.map(item => (
                         <li className="nav-item" key={item.name}>
                             {item.subItems ? (
                                 <>
-                                    <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e)=>handleMenuClick(e, item.name)}>
+                                    <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e) => handleMenuClick(e, item.name)}>
                                         <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
                                         <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen))?'rotate-180':''}`}></i>
                                     </a>
@@ -68,20 +70,18 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
                                         <ul className="nav flex-column ps-3">
                                             {item.subItems.map(subItem => (
                                                 <li className="nav-item" key={subItem.name}>
-                                                    <a href="#!" className={`nav-link sub-item ${currentView===subItem.view?'active':''}`} 
-                                                       onClick={(e) => {
-                                                           if (subItem.view === 'enrollment_new') { handleNewEnrollmentClick(e); } 
-                                                           else { e.preventDefault(); setView(subItem.view); }
-                                                       }}>{subItem.name}</a>
+                                                    <Link to={subItem.path} className={`nav-link sub-item ${location.pathname === subItem.path ? 'active' : ''}`} onClick={() => subItem.path === '/admin/enrollment/new' && setStudentToEnroll(null)}>
+                                                        {subItem.name}
+                                                    </Link>
                                                 </li>
                                             ))}
                                         </ul>
                                     </div>
                                 </>
                             ) : (
-                                <a href="#!" className={`nav-link ${currentView===item.view?'active':''}`} onClick={(e)=>{e.preventDefault();setView(item.view);}}>
+                                <Link to={item.path} className={`nav-link ${location.pathname === item.path ? 'active' : ''}`}>
                                     <i className={`fas ${item.icon} me-2`}></i>{item.name}
-                                </a>
+                                </Link>
                             )}
                         </li>
                     ))}
@@ -92,3 +92,4 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
 }
 
 export default Sidebar;
+
