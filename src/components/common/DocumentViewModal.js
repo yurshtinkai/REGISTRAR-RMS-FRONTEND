@@ -1,19 +1,22 @@
 import React, { useEffect } from 'react';
 
 function DocumentViewModal({ modalData, onClose }) {
-    
-    // This useEffect hook is the key to the fix. 
-    // It creates a cleanup function that runs ONLY when the modal is closed (unmounted).
-    // This prevents the URL from being revoked too early.
     useEffect(() => {
-        return () => {
-            if (modalData && modalData.url) {
-                window.URL.revokeObjectURL(modalData.url);
-            }
-        };
-    }, [modalData]); // This effect re-runs if the modalData changes
+      // This effect runs when the component mounts and whenever the modalData.url changes.
+      // It does not need a body, as its only job is to set up the cleanup.
+      
+      // The cleanup function will run when the component unmounts OR before the effect runs again.
+      return () => {
+        // We check for modalData.url to ensure we don't try to revoke a null/undefined value
+        if (modalData && modalData.url) {
+          window.URL.revokeObjectURL(modalData.url);
+        }
+      };
+    }, [modalData]); // By depending on the modalData object, the hook is correctly configured.
 
-    if (!modalData) return null;
+    if (!modalData) {
+        return null;
+    }
 
     return (
         <div className="image-view-modal" onClick={onClose}>
@@ -22,7 +25,6 @@ function DocumentViewModal({ modalData, onClose }) {
                 {modalData.type.startsWith('image/') ? (
                     <img src={modalData.url} alt="Document" className="enlarged-document-image" />
                 ) : (
-                    // Fallback for non-image files like PDFs
                     <iframe src={modalData.url} title="Document" width="100%" height="100%"></iframe>
                 )}
             </div>

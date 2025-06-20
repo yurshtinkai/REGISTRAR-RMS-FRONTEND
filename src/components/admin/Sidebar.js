@@ -5,7 +5,6 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
     const [isEnrollmentOpen, setEnrollmentOpen] = useState(false);
     const [isRegistrationOpen, setRegistrationOpen] = useState(false);
     const [isStudentOpen, setStudentOpen] = useState(false);
-    const [isPrivacyOpen, setPrivacyOpen] = useState(false);
     const [profilePic, setProfilePic] = useState(null);
 
     useEffect(() => {
@@ -21,9 +20,6 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
             subItems: [ { name: 'All Enrollments', view: 'enrollment_all' }, { name: 'Unenrolled Registrations', view: 'enrollment_unenrolled' }, { name: 'New Enrollment', view: 'enrollment_new' } ] },
         { name: 'Assessment', view: 'assessment', icon: 'fa-clipboard-list' },
         { name: 'Requests', view: 'requests', icon: 'fa-folder-open' },
-        { name: 'Privacy', icon: 'fa-user-secret', 
-            subItems: [ { name: 'Change Password', view: 'change_password' }, { name: 'Face Unlock', view: 'face_unlock_registration' } ]
-        },
     ];
     
     const handleProfilePicChange = (e) => {
@@ -41,18 +37,58 @@ function Sidebar({ setView, currentView, onProfileClick, setStudentToEnroll }) {
         if (itemName === 'Students') setStudentOpen(!isStudentOpen);
         if (itemName === 'Registration') setRegistrationOpen(!isRegistrationOpen);
         if (itemName === 'Enrollment') setEnrollmentOpen(!isEnrollmentOpen);
-        if (itemName === 'Privacy') setPrivacyOpen(!isPrivacyOpen);
     };
 
     return (
-        <div className="sidebar"><div className="sidebar-header text-center py-3"><div className="sidebar-profile-container"><div onClick={() => profilePic && onProfileClick(profilePic)}>{profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}</div><label htmlFor="profile-pic-upload" className="profile-pic-edit-button"><i className="fas fa-camera"></i></label><input id="profile-pic-upload" type="file" onChange={handleProfilePicChange} style={{display:'none'}}/></div><h5>Registrar</h5><p className="text-muted small">{adminIdNumber}</p></div>
-            <ul className="nav flex-column">{menuItems.map(item => (<li className="nav-item" key={item.name}>{item.subItems ? (<><a href="#!" className="nav-link d-flex justify-content-between" onClick={(e)=>handleMenuClick(e, item.name)}><span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span><i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Privacy'&&isPrivacyOpen))?'rotate-180':''}`}></i></a><div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Privacy'&&isPrivacyOpen))?'show':''}`}><ul className="nav flex-column ps-3">{item.subItems.map(subItem => (<li className="nav-item" key={subItem.name}>
-                <a href="#!" className={`nav-link sub-item ${currentView===subItem.view?'active':''}`} 
-                   onClick={(e) => {
-                       if (subItem.view === 'enrollment_new') { handleNewEnrollmentClick(e); } 
-                       else { e.preventDefault(); setView(subItem.view); }
-                   }}>{subItem.name}</a></li>))}</ul></div></>) : (<a href="#!" className={`nav-link ${currentView===item.view?'active':''}`} onClick={(e)=>{e.preventDefault();setView(item.view);}}><i className={`fas ${item.icon} me-2`}></i>{item.name}</a>)}</li>))}</ul>
+        <div className="sidebar">
+            <div className="sidebar-header text-center">
+                <div className="sidebar-profile-container">
+                    <div onClick={() => profilePic && onProfileClick(profilePic)}>
+                        {profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}
+                    </div>
+                    <label htmlFor="profile-pic-upload" className="profile-pic-edit-button"><i className="fas fa-camera"></i></label>
+                    <input id="profile-pic-upload" type="file" onChange={handleProfilePicChange} style={{display:'none'}}/>
+                </div>
+                <h5>Registrar</h5>
+                <p className="text-muted small">{adminIdNumber}</p>
+            </div>
+            
+            {/* This new div will wrap the navigation and become the scrollable area */}
+            <div className="sidebar-nav">
+                <ul className="nav flex-column">
+                    {menuItems.map(item => (
+                        <li className="nav-item" key={item.name}>
+                            {item.subItems ? (
+                                <>
+                                    <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e)=>handleMenuClick(e, item.name)}>
+                                        <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
+                                        <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen))?'rotate-180':''}`}></i>
+                                    </a>
+                                    <div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen))?'show':''}`}>
+                                        <ul className="nav flex-column ps-3">
+                                            {item.subItems.map(subItem => (
+                                                <li className="nav-item" key={subItem.name}>
+                                                    <a href="#!" className={`nav-link sub-item ${currentView===subItem.view?'active':''}`} 
+                                                       onClick={(e) => {
+                                                           if (subItem.view === 'enrollment_new') { handleNewEnrollmentClick(e); } 
+                                                           else { e.preventDefault(); setView(subItem.view); }
+                                                       }}>{subItem.name}</a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </>
+                            ) : (
+                                <a href="#!" className={`nav-link ${currentView===item.view?'active':''}`} onClick={(e)=>{e.preventDefault();setView(item.view);}}>
+                                    <i className={`fas ${item.icon} me-2`}></i>{item.name}
+                                </a>
+                            )}
+                        </li>
+                    ))}
+                </ul>
+            </div>
         </div>
     );
 }
+
 export default Sidebar;

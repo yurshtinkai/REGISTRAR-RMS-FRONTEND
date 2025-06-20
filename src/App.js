@@ -15,7 +15,6 @@ import PlaceholderView from './components/admin/PlaceholderView';
 import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
-import FaceUnlockRegistration from './components/admin/FaceUnlockRegistration';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -99,7 +98,6 @@ function App() {
         case 'enrollment_new': return <NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />;
         case 'all_students': return <AllStudentsView enrolledStudents={enrolledStudents} />;
         case 'change_password': return <PlaceholderView title="Change Password" />;
-        case 'face_unlock_registration': return <FaceUnlockRegistration />;
         default: return <PlaceholderView title={adminView.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} />;
     }
   };
@@ -110,8 +108,18 @@ function App() {
 
   return (
     <div id="app-wrapper">
-      <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm fixed-top">
-        <div className="container-fluid"><a className="navbar-brand" href="#!">Registrar RMS</a><div className="d-flex">{userRole && (<><span className="navbar-text me-3">Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})</span><button className="btn btn-outline-light" onClick={handleLogout}>Logout</button></>)}</div></div>
+      <nav className="navbar navbar-expand-lg navbar-dark navbar-custom-gradient shadow-sm fixed-top">
+        <div className="container-fluid">
+          {/* REMOVED the navbar-brand link */}
+          <div className="d-flex ms-auto">{/* Added ms-auto to push content to the right */}
+            {userRole && (
+              <>
+                <span className="navbar-text me-3">Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})</span>
+                <button className="btn btn-outline-light" onClick={handleLogout}>Logout</button>
+              </>
+            )}
+          </div>
+        </div>
       </nav>
       <div className="content-wrapper">
         {!userRole ? <Login onLoginSuccess={handleLoginSuccess} /> : userRole === 'student' ? <StudentRequestForm /> : (
