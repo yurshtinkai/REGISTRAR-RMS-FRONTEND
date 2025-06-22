@@ -16,10 +16,11 @@ import PlaceholderView from './components/admin/PlaceholderView';
 import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
+import DashboardView from './components/admin/DashboardView'; // <-- IMPORT a new component
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
-import { getUserRole } from './utils/api'; // Removed unused getToken import
+import { getUserRole } from './utils/api'; 
 
 // Admin Layout Component
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
@@ -141,15 +142,13 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<PlaceholderView title="Dashboard" />} />
+            <Route path="dashboard" element={<DashboardView enrolledStudents={enrolledStudents} />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
-            {/* --- FIX IS HERE --- */}
             <Route 
               path="enrollment/unenrolled" 
               element={<UnenrolledRegistrationsView registrations={registrations} onEnrollStudent={setStudentToEnroll} />} 
             />
-            {/* --- END OF FIX --- */}
             <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
             <Route path="assessment" element={<PlaceholderView title="Assessment" />} />
             <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
