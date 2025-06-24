@@ -5,6 +5,8 @@ function RequestManagementView({ setDocumentModalData }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const userRole = localStorage.getItem('userRole');
+
 
   const fetchAllRequests = async () => { 
     setLoading(true); setError('');
@@ -20,21 +22,29 @@ function RequestManagementView({ setDocumentModalData }) {
   useEffect(() => { fetchAllRequests(); }, []);
 
   const handleApproveOrReject = async (requestId, newStatus) => {
-    const notes = prompt(`Enter notes for this action (${newStatus}):`);
-    if (notes === null) return; 
+  if (userRole !== 'admin') {
+    return;
+  }
 
-    try {
-      await fetch(`${API_BASE_URL}/requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ status: newStatus, notes }),
-      });
-      fetchAllRequests();
-    } catch (err) { 
-        setError(err.message);
-        alert(`Error updating status: ${err.message}`);
-    }
-  };
+  const notes = prompt(`Enter notes for this action (${newStatus}):`);
+  if (notes === null) return;
+
+  try {
+    await fetch(`${API_BASE_URL}/requests/${requestId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ status: newStatus, notes }),
+    });   
+    fetchAllRequests();
+  } catch (err) {
+    setError(err.message);
+    alert(`Error updating status: ${err.message}`);
+  }
+};
+
 
   const handleViewDocument = async (requestId) => { 
     try {
@@ -107,7 +117,6 @@ function RequestManagementView({ setDocumentModalData }) {
   return (
     <div className="container-fluid">
         <h2 className="mb-4">Request Management</h2>
-        {error && <div className="alert alert-danger">{error}</div>}
         <div className="card shadow-sm">
             <div className="card-body">
                 <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>

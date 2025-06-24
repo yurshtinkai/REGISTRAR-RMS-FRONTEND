@@ -66,11 +66,12 @@ function App() {
 
   const handleLoginSuccess = (role) => {
     setUserRole(role);
-    if (role === 'admin') {
-      navigate('/admin/dashboard');
-    } else if (role === 'student') {
-      navigate('/student/dashboard');
-    }
+    if (role === 'admin' || role === 'accounting') {
+  navigate('/admin/dashboard');
+} else if (role === 'student') {
+  navigate('/student/dashboard');
+}
+
   };
 
   const handleLogout = () => {
@@ -152,10 +153,15 @@ function App() {
             <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
             <Route path="assessment" element={<PlaceholderView title="Assessment" />} />
             <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
+            <Route path="manage/subject-schedules" element={<PlaceholderView title="Subject Schedules" />} />
+            <Route path="manage/school-year-semester" element={<PlaceholderView title="School Year & Semester" />} />
+            <Route path="manage/view-grades" element={<PlaceholderView title="View Grades" />} />
+            <Route path="manage/encode-enrollments" element={<PlaceholderView title="Encode enrollments" />} />
+
           </Route>
 
           {/* Redirect root path to login or dashboard */}
-          <Route path="*" element={<Navigate to={userRole ? (userRole === 'admin' ? '/admin/dashboard' : '/student/dashboard') : '/login'} replace />} />
+          <Route path="*" element={<Navigate to={userRole === 'admin' || userRole === 'accounting'? '/admin/dashboard': userRole === 'student'? '/student/dashboard': '/login'} replace />} />
         </Routes>
       </div>
       {modalImage && <ImageViewModal imageUrl={modalImage} onClose={() => setModalImage(null)} />}

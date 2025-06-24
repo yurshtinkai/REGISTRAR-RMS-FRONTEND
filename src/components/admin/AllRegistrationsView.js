@@ -2,7 +2,18 @@ import React, { useState } from 'react';
 
 function AllRegistrationsView({ registrations, setRegistrations }) {
     const [activeTab, setActiveTab] = useState('pending');
-    const handleUpdateStatus = (id, newStatus) => { setRegistrations(regs => regs.map(reg => reg.id === id ? { ...reg, status: newStatus } : reg)); };
+    const userRole = localStorage.getItem('userRole');
+
+    const handleUpdateStatus = (id, newStatus) => {
+    if (userRole !== 'accounting') {
+        
+        return;
+    }
+    setRegistrations(regs =>
+        regs.map(reg => reg.id === id ? { ...reg, status: newStatus } : reg)
+    );
+};
+
     const filteredRegistrations = registrations.filter(reg => reg.status === activeTab);
     return (
         <div className="container-fluid"><h2 className="mb-4">All Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><div className="d-flex flex-wrap align-items-center"><h4 className="card-title mb-0 me-3">Registration List</h4><ul className="nav nav-pills">
