@@ -59,7 +59,7 @@ function Login({ onLoginSuccess }) {
                   <button type="submit" className="btn btn-primary btn-lg">Login</button>
                 </div>
                 <p className="text-center mt-3 text-muted">
-                  <small>Dummy Accounts: Student (S001/password) | Admin (A001/adminpass)</small>
+                  <small>Dummy Accounts: Student (S001/password) | Admin (A001/adminpass)| Accounting (AC001/accountingpass)</small>
                 </p>
             </form>
           </div>

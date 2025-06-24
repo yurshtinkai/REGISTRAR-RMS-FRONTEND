@@ -4,12 +4,14 @@ import { Link, useLocation } from 'react-router-dom';
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const adminIdNumber = localStorage.getItem('idNumber');
     const location = useLocation(); // Hook to get the current URL
-    
-    // State to manage collapsible menus
-    const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
-    const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
-    const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/students'));
-    
+
+    // FIX: Initialize all menu states to 'false'.
+    // This makes their open/closed status controlled only by user clicks,
+    // so they will remain open when navigating between pages.
+    const [isEnrollmentOpen, setEnrollmentOpen] = useState(false);
+    const [isRegistrationOpen, setRegistrationOpen] = useState(false);
+    const [isStudentOpen, setStudentOpen] = useState(false);
+
     const [profilePic, setProfilePic] = useState(null);
 
     useEffect(() => {
@@ -17,15 +19,28 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         if (savedPic) setProfilePic(savedPic);
     }, []);
 
+    // FIX: This new useEffect hook will open the correct menu when the page loads or reloads
+    // on a specific sub-menu URL, preserving the initial user-friendly behavior.
+    useEffect(() => {
+      if (location.pathname.startsWith('/admin/enrollment')) {
+        setEnrollmentOpen(true);
+      } else if (location.pathname.startsWith('/admin/registration')) {
+        setRegistrationOpen(true);
+      } else if (location.pathname.startsWith('/admin/all-students')) {
+        setStudentOpen(true);
+      }
+    }, [location.pathname]);
+
+
     const menuItems = [
         { name: 'Dashboard', path: '/admin/dashboard', icon: 'fa-tachometer-alt' },
         { name: 'Students', icon: 'fa-users', subItems: [ { name: 'All Students', path: '/admin/all-students' }, { name: 'New Student', path: '/admin/enrollment/new' }] },
         { name: 'Registration', icon: 'fa-file-alt', subItems: [ { name: 'All Registrations', path: '/admin/all-registrations' } ] },
         { name: 'Enrollment', icon: 'fa-user-check',
-            subItems: [ 
-              { name: 'Unenrolled Registrations', path: '/admin/enrollment/unenrolled' }, 
-              { name: 'New Enrollment', path: '/admin/enrollment/new' } 
-            ] 
+            subItems: [
+              { name: 'Unenrolled Registrations', path: '/admin/enrollment/unenrolled' },
+              { name: 'New Enrollment', path: '/admin/enrollment/new' }
+            ]
         },
         { name: 'Assessment', path: '/admin/assessment', icon: 'fa-clipboard-list' },
         { name: 'Requests', path: '/admin/requests', icon: 'fa-folder-open' },
@@ -55,7 +70,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                 <h5>Registrar</h5>
                 <p className="text-muted small">{adminIdNumber}</p>
             </div>
-            
+
             <div className="sidebar-nav">
                 <ul className="nav flex-column">
                     {menuItems.map(item => (
@@ -92,4 +107,3 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
 }
 
 export default Sidebar;
-
