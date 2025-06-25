@@ -6,10 +6,9 @@ function UnenrolledRegistrationsView({ registrations, onEnrollStudent }) {
     const unenrolledStudents = registrations.filter(reg => reg.status === 'approved');
     const userRole = localStorage.getItem('userRole');
 
-
     const handleEnrollClick = (student) => {
   if (userRole !== 'admin') {
-    
+    // onClick={() => handleEnrollClick(reg)}
     return;
   }
   onEnrollStudent(student);

@@ -8,7 +8,7 @@ function AllRegistrationsView({ registrations, setRegistrations }) {
     if (userRole !== 'accounting') {
         
         return;
-    }
+    }   
     setRegistrations(regs =>
         regs.map(reg => reg.id === id ? { ...reg, status: newStatus } : reg)
     );

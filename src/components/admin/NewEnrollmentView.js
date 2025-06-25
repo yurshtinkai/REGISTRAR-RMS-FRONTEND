@@ -5,6 +5,8 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
     const [step, setStep] = useState(1);
     const [enlistedSubjects, setEnlistedSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const userRole = localStorage.getItem('userRole');
+    const isReadOnly = userRole === 'accounting';
 
     // State for the manual creation form
     const [newStudentInfo, setNewStudentInfo] = useState({
@@ -23,16 +25,21 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
     }, [student]);
 
     const handleSearch = () => {
-        if (!searchTerm) return;
-        const foundStudent = registrations.find(
-            reg => reg.regNo === searchTerm && reg.status === 'approved'
-        );
-        if (foundStudent) {
-            setStudentToEnroll(foundStudent);
-        } else {
-            alert('No approved registration found with that number.');
-        }
-    };
+  if (userRole !== 'admin') {
+    alert('Forbidden: Access is restricted to administrators');
+    return;
+  }
+
+  if (!searchTerm) return;
+  const foundStudent = registrations.find(
+    reg => reg.regNo === searchTerm && reg.status === 'approved'
+  );
+  if (foundStudent) {
+    setStudentToEnroll(foundStudent);
+  } else {
+    alert('No approved registration found with that number.');
+  }
+};
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -108,7 +115,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                     <div className="col-md-12 mb-3"><label className="form-label">Course/Major</label><select className="form-select" name="course" value={newStudentInfo.course} onChange={handleInputChange}><option>BSIT</option><option>BSCS</option><option>BSBA-HRDM</option><option>BSED-EN</option><option>BS-ARCH</option></select></div>
                 </div>
                 <div className="d-flex justify-content-end mt-4">
-                    <button type="submit" className="btn btn-success">Create and Enroll Student</button>
+                    <button type="submit" className="btn btn-success" disabled={isReadOnly}>Create and Enroll Student</button>
                 </div>
             </div>
         </form>
@@ -127,7 +134,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button className="btn btn-primary" type="button" onClick={handleSearch}>
+                        <button className="btn btn-primary" type="button" onClick={handleSearch} disabled={isReadOnly}>
                             <i className="fas fa-search"></i>
                         </button>
                     </div>

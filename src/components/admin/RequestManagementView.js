@@ -6,6 +6,7 @@ function RequestManagementView({ setDocumentModalData }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const userRole = localStorage.getItem('userRole');
+  const isReadOnly = userRole === 'accounting';
 
 
   const fetchAllRequests = async () => { 
@@ -140,12 +141,12 @@ function RequestManagementView({ setDocumentModalData }) {
                                           </>
                                         )}
                                         {req.status === 'approved' && (
-                                            <button className="btn btn-sm btn-primary" onClick={() => handlePrint(req)}>
+                                            <button className="btn btn-sm btn-primary" onClick={() => handlePrint(req)} disabled={isReadOnly}>
                                               Print
                                             </button>
                                         )}
                                         {req.status === 'ready for pick-up' && (
-                                            <button className="btn btn-sm btn-secondary" onClick={() => handlePrint(req)}>
+                                            <button className="btn btn-sm btn-secondary" onClick={() => handlePrint(req)} disabled={isReadOnly}>
                                               Reprint
                                             </button>
                                         )}
