@@ -4,38 +4,38 @@ import { API_BASE_URL, getToken } from '../../utils/api';
 
 
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
-    // const adminIdNumber = localStorage.getItem('idNumber');
-    const location = useLocation(); // Hook to get the current URL
+    const location = useLocation();
     const [pendingRequestCount, setPendingRequestCount] = useState(0);
-
     
-    // State to manage collapsible menus
     const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
     const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
     const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/students'));
+    const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
     
     const [profilePic, setProfilePic] = useState(null);
     const userRole = localStorage.getItem('userRole');
-    const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
 
     useEffect(() => {
-    const fetchPendingRequests = async () => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/requests`, {
-                headers: { Authorization: `Bearer ${getToken()}` }
-            });
-            const data = await res.json();
-            const pendingCount = data.filter(req => req.status === 'pending').length;
-            setPendingRequestCount(pendingCount);
-        } catch (err) {
-            console.error('Failed to fetch pending requests:', err);
-        }
-    };
+        const fetchPendingRequests = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/requests`, {
+                    headers: { Authorization: `Bearer ${getToken()}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const pendingCount = data.filter(req => req.status === 'pending').length;
+                    setPendingRequestCount(pendingCount);
+                }
+            } catch (err) {
+                console.error('Failed to fetch pending requests:', err);
+            }
+        };
 
-    fetchPendingRequests();
-    const interval = setInterval(fetchPendingRequests, 10000); // update every 10 seconds
-    return () => clearInterval(interval);
-}, []);
+        fetchPendingRequests();
+        const interval = setInterval(fetchPendingRequests, 10000);
+        return () => clearInterval(interval);
+    }, []);
+
     useEffect(() => {
         const savedPic = localStorage.getItem(`${userRole}ProfilePic`);
         if (savedPic) setProfilePic(savedPic);
@@ -53,35 +53,74 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         },
         { name: 'Assessment', path: '/admin/assessment', icon: 'fa-clipboard-list' },
         { 
-  name: 'Requests', 
-  path: '/admin/requests', 
-  icon: 'fa-folder-open', 
-  badge: pendingRequestCount 
-},
-
-
-        {name: 'Manage',
-  icon: 'fa-cogs',
-  subItems: [
-    { name: 'Subject Schedules', path: '/admin/manage/subject-schedules' },
-    { name: 'School Year & Semester', path: '/admin/manage/school-year-semester' },
-    { name: 'View Grades', path: '/admin/manage/view-grades' },
-    { name: 'Encode Enrollments', path: '/admin/manage/encode-enrollments' }
-  ]
-},
+          name: 'Requests', 
+          path: '/admin/requests', 
+          icon: 'fa-folder-open', 
+          badge: pendingRequestCount 
+        },
+        { name: 'Manage',
+          icon: 'fa-cogs',
+          subItems: [
+            { name: 'Subject Schedules', path: '/admin/manage/subject-schedules' },
+            { name: 'School Year & Semester', path: '/admin/manage/school-year-semester' },
+            { name: 'View Grades', path: '/admin/manage/view-grades' },
+            { name: 'Encode Enrollments', path: '/admin/manage/encode-enrollments' }
+          ]
+        },
     ];
 
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result;
-                localStorage.setItem('adminProfilePic', base64String);
-                setProfilePic(base64String);
-            };
-            reader.readAsDataURL(file);
+        if (!file) {
+            return;
         }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 200;
+                const MAX_HEIGHT = 200;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+                try {
+                    localStorage.setItem(`${userRole}ProfilePic`, dataUrl);
+                    setProfilePic(dataUrl);
+                } catch (error) {
+                    alert("Could not save the profile picture. The image might still be too large or your browser's storage is full.");
+                    console.error("Error saving profile picture to localStorage:", error);
+                }
+            };
+            img.onerror = () => {
+                alert("The selected file couldn't be loaded as an image.");
+            };
+        };
+        reader.onerror = () => {
+            alert("Failed to read the selected file.");
+        };
     };
 
     const handleMenuClick = (e, itemName) => {
@@ -100,10 +139,9 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                         {profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}
                     </div>
                     <label htmlFor="profile-pic-upload" className="profile-pic-edit-button"><i className="fas fa-camera"></i></label>
-                    <input id="profile-pic-upload" type="file" onChange={handleProfilePicChange} style={{display:'none'}}/>
+                    <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
                 </div>
                 <h5>{userRole === 'accounting' ? 'Accounting' : 'Registrar'}</h5>
-                {/* <p className="text-muted small">{adminIdNumber}</p> */}
             </div>
             
             <div className="sidebar-nav">
@@ -112,6 +150,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                         <li className="nav-item" key={item.name}>
                             {item.subItems ? (
                                 <>
+                                    {/* FIX: Changed 'itemName' to 'item.name' to pass the correct value */}
                                     <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e) => handleMenuClick(e, item.name)}>
                                         <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
                                         <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen))?'rotate-180':''}`}></i>
@@ -135,7 +174,6 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                                     <span className="badge bg-danger rounded-pill small-badge">{item.badge}</span>
                                     )}
                                 </Link>
-
                             )}
                         </li>
                     ))}

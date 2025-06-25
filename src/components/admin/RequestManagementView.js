@@ -22,48 +22,35 @@ function RequestManagementView({ setDocumentModalData }) {
   useEffect(() => { fetchAllRequests(); }, []);
 
   const handleApproveOrReject = async (requestId, newStatus) => {
-  if (userRole !== 'admin') {
-    return;
-  }
+    if (userRole !== 'admin') {
+      return;
+    }
 
-  const notes = prompt(`Enter notes for this action (${newStatus}):`);
-  if (notes === null) return;
+    const notes = prompt(`Enter notes for this action (${newStatus}):`);
+    if (notes === null) return;
 
-  try {
-    await fetch(`${API_BASE_URL}/requests/${requestId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getToken()}`
-      },
-      body: JSON.stringify({ status: newStatus, notes }),
-    });   
-    fetchAllRequests();
-  } catch (err) {
-    setError(err.message);
-    alert(`Error updating status: ${err.message}`);
-  }
-};
-
-
-  const handleViewDocument = async (requestId) => { 
     try {
-        setError('');
-        const response = await fetch(`${API_BASE_URL}/requests/${requestId}/document`, {
-            headers: { 'Authorization': `Bearer ${getToken()}` },
-        });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.message || 'Could not view file.');
-        }
-        const blob = await response.blob();
-        const contentType = response.headers.get('content-type');
-        const url = window.URL.createObjectURL(blob);
-        setDocumentModalData({ url, type: contentType });
+      await fetch(`${API_BASE_URL}/requests/${requestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify({ status: newStatus, notes }),
+      });   
+      fetchAllRequests();
     } catch (err) {
-        console.error('Error viewing document:', err);
-        setError(err.message);
+      setError(err.message);
+      alert(`Error updating status: ${err.message}`);
+    }
+  };
+
+  const handleViewDocument = (request) => {
+    if (request.filePath && Array.isArray(request.filePath) && request.filePath.length > 0) {
+      setDocumentModalData({
+        filePaths: request.filePath,
+        requestId: request.id,
+      });
     }
   };
 
@@ -113,6 +100,7 @@ function RequestManagementView({ setDocumentModalData }) {
     };
 
   if (loading) return <p>Loading...</p>;
+  if (error) return <div className="alert alert-danger">Error: {error}</div>;
 
   return (
     <div className="container-fluid">
@@ -130,7 +118,7 @@ function RequestManagementView({ setDocumentModalData }) {
                                     <td>{req.id}</td><td>{req.User?.idNumber || 'N/A'}</td><td>{req.documentType}</td><td>{req.purpose}</td>
                                     <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status.replace(/_/g, ' ')}</span></td>
                                     <td>{req.notes || 'N/A'}</td>
-                                    <td>{req.filePath ? (<button className="btn btn-sm btn-info" onClick={() => handleViewDocument(req.id)}>View</button>) : 'N/A'}</td>
+                                    <td>{req.filePath && req.filePath.length > 0 ? (<button className="btn btn-sm btn-info" onClick={() => handleViewDocument(req)}>View</button>) : 'N/A'}</td>
                                     <td>
                                       <div className="d-flex">
                                         {req.status === 'pending' && (
