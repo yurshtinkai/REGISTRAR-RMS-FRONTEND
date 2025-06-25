@@ -9,14 +9,14 @@ function RequestManagementView({ setDocumentModalData }) {
   const isReadOnly = userRole === 'accounting';
 
 
-  const fetchAllRequests = async () => { 
+  const fetchAllRequests = async () => {
     setLoading(true); setError('');
     try {
       const response = await fetch(`${API_BASE_URL}/requests`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to fetch');
       setRequests(data);
-    } catch (err) { setError(err.message); } 
+    } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 

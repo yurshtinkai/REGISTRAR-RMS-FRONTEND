@@ -20,7 +20,7 @@ function Login({ onLoginSuccess }) {
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('idNumber', data.user.idNumber);
       onLoginSuccess(data.user.role);
-    } catch (err) { 
+    } catch (err) {
       setError(err.message); 
     }
   };
@@ -47,7 +47,7 @@ function Login({ onLoginSuccess }) {
                   <label htmlFor="password">Password</label>
                   <input 
                     type="password" 
-                    className="form-control" 
+                    className="form-control"
                     id="password" 
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)} 
