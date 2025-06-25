@@ -23,7 +23,6 @@ function RequestManagementView({ setDocumentModalData }) {
 
   const handleApproveOrReject = async (requestId, newStatus) => {
   if (userRole !== 'admin') {
-    alert('Forbidden: Access is restricted to administrators');
     return;
   }
 
@@ -118,7 +117,6 @@ function RequestManagementView({ setDocumentModalData }) {
   return (
     <div className="container-fluid">
         <h2 className="mb-4">Request Management</h2>
-        {error && <div className="alert alert-danger">{error}</div>}
         <div className="card shadow-sm">
             <div className="card-body">
                 <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>

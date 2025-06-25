@@ -6,7 +6,7 @@ function AllRegistrationsView({ registrations, setRegistrations }) {
 
     const handleUpdateStatus = (id, newStatus) => {
     if (userRole !== 'accounting') {
-        alert('Forbidden: Access is restricted to accounting');
+        
         return;
     }
     setRegistrations(regs =>

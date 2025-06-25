@@ -146,4 +146,3 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
 }
 
 export default Sidebar;
-

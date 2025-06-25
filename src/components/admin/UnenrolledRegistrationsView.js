@@ -9,7 +9,7 @@ function UnenrolledRegistrationsView({ registrations, onEnrollStudent }) {
 
     const handleEnrollClick = (student) => {
   if (userRole !== 'admin') {
-    alert('Forbidden: Access is restricted to administrators');
+    
     return;
   }
   onEnrollStudent(student);
