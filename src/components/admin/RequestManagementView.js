@@ -5,6 +5,8 @@ function RequestManagementView({ setDocumentModalData }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const userRole = localStorage.getItem('userRole');
+
 
   const fetchAllRequests = async () => { 
     setLoading(true); setError('');
@@ -20,21 +22,30 @@ function RequestManagementView({ setDocumentModalData }) {
   useEffect(() => { fetchAllRequests(); }, []);
 
   const handleApproveOrReject = async (requestId, newStatus) => {
-    const notes = prompt(`Enter notes for this action (${newStatus}):`);
-    if (notes === null) return; 
+  if (userRole !== 'admin') {
+    alert('Forbidden: Access is restricted to administrators');
+    return;
+  }
 
-    try {
-      await fetch(`${API_BASE_URL}/requests/${requestId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-        body: JSON.stringify({ status: newStatus, notes }),
-      });
-      fetchAllRequests();
-    } catch (err) { 
-        setError(err.message);
-        alert(`Error updating status: ${err.message}`);
-    }
-  };
+  const notes = prompt(`Enter notes for this action (${newStatus}):`);
+  if (notes === null) return;
+
+  try {
+    await fetch(`${API_BASE_URL}/requests/${requestId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getToken()}`
+      },
+      body: JSON.stringify({ status: newStatus, notes }),
+    });   
+    fetchAllRequests();
+  } catch (err) {
+    setError(err.message);
+    alert(`Error updating status: ${err.message}`);
+  }
+};
+
 
   const handleViewDocument = async (requestId) => { 
     try {

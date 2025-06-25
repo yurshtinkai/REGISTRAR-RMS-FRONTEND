@@ -4,11 +4,17 @@ import { useNavigate } from 'react-router-dom';
 function UnenrolledRegistrationsView({ registrations, onEnrollStudent }) {
     const navigate = useNavigate();
     const unenrolledStudents = registrations.filter(reg => reg.status === 'approved');
+    const userRole = localStorage.getItem('userRole');
+
 
     const handleEnrollClick = (student) => {
-      onEnrollStudent(student);
-      navigate('/admin/enrollment/new');
-    };
+  if (userRole !== 'admin') {
+    alert('Forbidden: Access is restricted to administrators');
+    return;
+  }
+  onEnrollStudent(student);
+  navigate('/admin/enrollment/new');
+};
 
     return (
         <div className="container-fluid"><h2 className="mb-4">Unenrolled Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><h4 className="card-title mb-0">Registration List</h4></div><div className="card-body">

@@ -301,3 +301,8 @@ body.login-background {
     height: auto;
     object-fit: contain;
 }
+
+.small-badge {
+  font-size: 0.75rem;
+  padding: 0.25em 0.5em;
+}
