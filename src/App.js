@@ -17,6 +17,12 @@ import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
 import DashboardView from './components/admin/DashboardView';
+import SubjectSchedulesView from './components/admin/SubjectSchedulesView';
+import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
+import SchoolYearSemesterView from './components/admin/SchoolYearSemesterView';
+import ViewGradesView from './components/admin/ViewGradesView';
+import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
+
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -67,11 +73,10 @@ function App() {
   const handleLoginSuccess = (role) => {
     setUserRole(role);
     if (role === 'admin' || role === 'accounting') {
-  navigate('/admin/dashboard');
-} else if (role === 'student') {
-  navigate('/student/dashboard');
-}
-
+      navigate('/admin/dashboard');
+    } else if (role === 'student') {
+      navigate('/student/dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -100,11 +105,28 @@ function App() {
     alert('Enrollment Complete! Student has been added to the master list.');
   };
 
+  const handleEncodeStudent = (encodedStudent) => {
+    const newStudent = {
+      ...encodedStudent,
+      idNo: encodedStudent.id,
+      createdAt: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+
+    setEnrolledStudents(prev => {
+        const isAlreadyEnrolled = prev.some(s => s.idNo === newStudent.idNo);
+        if (isAlreadyEnrolled) {
+            alert(`Student ${newStudent.name} is already in the master list.`);
+            return prev;
+        }
+        alert(`Successfully encoded and added ${newStudent.name} to the All Students list.`);
+        return [...prev, newStudent];
+    });
+  };
+
   const closeDocumentModal = () => {
     setDocumentModalData(null);
   };
 
-  // A protected route component for authenticated users
   const ProtectedRoute = ({ children }) => {
     if (!userRole) {
       return <Navigate to="/login" replace />;
@@ -114,7 +136,6 @@ function App() {
 
   return (
     <div id="app-wrapper">
-      {/* FIX: The navbar classes are now conditional. The blue gradient and shadow will only appear if a user is logged in. */}
       <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
         <div className="container-fluid">
           <div className="d-flex ms-auto">
@@ -131,10 +152,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
 
-          {/* Student Routes */}
           <Route path="/student/dashboard" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
 
-          {/* Admin Routes */}
           <Route
             path="/admin"
             element={
@@ -153,14 +172,15 @@ function App() {
             <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
             <Route path="assessment" element={<PlaceholderView title="Assessment" />} />
             <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
-            <Route path="manage/subject-schedules" element={<PlaceholderView title="Subject Schedules" />} />
-            <Route path="manage/school-year-semester" element={<PlaceholderView title="School Year & Semester" />} />
-            <Route path="manage/view-grades" element={<PlaceholderView title="View Grades" />} />
-            <Route path="manage/encode-enrollments" element={<PlaceholderView title="Encode enrollments" />} />
+            
+            <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
+            <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
+            <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
+            <Route path="manage/view-grades" element={<ViewGradesView />} />
+            <Route path="manage/encode-enrollments" element={<EncodeEnrollmentView onEncodeStudent={handleEncodeStudent} />} />
 
           </Route>
 
-          {/* Redirect root path to login or dashboard */}
           <Route path="*" element={<Navigate to={userRole === 'admin' || userRole === 'accounting'? '/admin/dashboard': userRole === 'student'? '/student/dashboard': '/login'} replace />} />
         </Routes>
       </div>
