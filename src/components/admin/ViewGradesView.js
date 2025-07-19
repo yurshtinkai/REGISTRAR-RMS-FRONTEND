@@ -83,7 +83,7 @@ function ViewGradesView() {
                                 // disabled={!selectedTeacherId}
                                 disabled = {!isAdmin}
                             >
-                                <option value="">-- Select Subject --</option>
+                                <option value="">--- Select Subject ---</option>
                                 {subjectsForTeacher.map(subject => (
                                     <option key={subject.id} value={subject.id}>{subject.name}</option>
                                 ))}
