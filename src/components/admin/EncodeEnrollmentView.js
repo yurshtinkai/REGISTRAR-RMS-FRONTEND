@@ -25,6 +25,8 @@ function EncodeEnrollmentView({ onEncodeStudent }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalStudentId, setModalStudentId] = useState('');
     const [modalGrade, setModalGrade] = useState('');
+    const userRole = localStorage.getItem('userRole');
+    const isAdmin = userRole === 'admin';
 
     const subjectDropdown = useSearchableDropdown(allSubjects);
 
@@ -78,7 +80,7 @@ function EncodeEnrollmentView({ onEncodeStudent }) {
                     <div className="row g-3 mb-4 align-items-end">
                         <div className="col-md-4">
                             <label className="form-label">School Year & Semester</label>
-                            <select className="form-select" value={selectedSchoolYear} onChange={e => setSelectedSchoolYear(e.target.value)}>
+                            <select className="form-select" value={selectedSchoolYear} onChange={e => setSelectedSchoolYear(e.target.value)} disabled = {!isAdmin}>
                                 {schoolYears.map(sy => (
                                     <option key={sy.id} value={`${sy.schoolYear} ${sy.semester}`}>{sy.schoolYear} {sy.semester}</option>
                                 ))}
@@ -91,6 +93,7 @@ function EncodeEnrollmentView({ onEncodeStudent }) {
                                     type="text"
                                     className="form-control"
                                     placeholder="Search Subjects..."
+                                    disabled = {!isAdmin}
                                     value={subjectDropdown.searchTerm}
                                     onChange={e => subjectDropdown.setSearchTerm(e.target.value)}
                                     onFocus={() => subjectDropdown.setIsOpen(true)}

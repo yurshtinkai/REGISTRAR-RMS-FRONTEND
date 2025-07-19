@@ -11,6 +11,8 @@ function ViewGradesView() {
     const [subjectsForTeacher, setSubjectsForTeacher] = useState([]);
     const [schedule, setSchedule] = useState('');
     const [students, setStudents] = useState([]);
+    const userRole = localStorage.getItem('userRole');
+    const isAdmin = userRole === 'admin';
 
     // Effect to update subjects when a teacher is selected
     useEffect(() => {
@@ -63,6 +65,8 @@ function ViewGradesView() {
                                 className="form-select" 
                                 value={selectedTeacherId}
                                 onChange={(e) => setSelectedTeacherId(e.target.value)}
+                                // disabled={!selectedTeacherId}
+                                disabled = {!isAdmin}
                             >
                                 <option value="">-- Select Teacher --</option>
                                 {gradingData.map(teacher => (
@@ -76,7 +80,8 @@ function ViewGradesView() {
                                 className="form-select"
                                 value={selectedSubjectId}
                                 onChange={(e) => setSelectedSubjectId(e.target.value)}
-                                disabled={!selectedTeacherId}
+                                // disabled={!selectedTeacherId}
+                                disabled = {!isAdmin}
                             >
                                 <option value="">-- Select Subject --</option>
                                 {subjectsForTeacher.map(subject => (
@@ -86,7 +91,7 @@ function ViewGradesView() {
                         </div>
                         <div className="col-md-4">
                             <label className="form-label">Select a Schedule</label>
-                            <select className="form-select" value={schedule} disabled>
+                            <select className="form-select" value={schedule} disabled = {!isAdmin}>
                                 <option>{schedule || '-- Select Subject First --'}</option>
                             </select>
                         </div>
