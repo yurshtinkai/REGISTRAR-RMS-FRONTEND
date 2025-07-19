@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 function AllRegistrationsView({ registrations, setRegistrations }) {
     const [activeTab, setActiveTab] = useState('pending');
     const userRole = localStorage.getItem('userRole');
+    const isAccounting = userRole === 'accounitng';
 
     const handleUpdateStatus = (id, newStatus) => {
     if (userRole !== 'accounting') {
@@ -21,7 +22,7 @@ function AllRegistrationsView({ registrations, setRegistrations }) {
             <li className="nav-item"><button className={`nav-link ${activeTab === 'approved' ? 'active' : ''}`} onClick={() => setActiveTab('approved')}>Approved ({registrations.filter(r=>r.status==='approved').length})</button></li>
             <li className="nav-item"><button className={`nav-link ${activeTab === 'rejected' ? 'active' : ''}`} onClick={() => setActiveTab('rejected')}>Rejected ({registrations.filter(r=>r.status==='rejected').length})</button></li>
         </ul></div></div><div className="card-body">
-            <div className="row mb-3"><div className="col-md-6"><div className="input-group"><input type="text" className="form-control" placeholder="Search..." /><button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div><div className="col-md-3 ms-auto"><select className="form-select"><option>2024-2025 Summer</option></select></div></div>
+            <div className="row mb-3"><div className="col-md-6"><div className="input-group"><input type="text" className="form-control" placeholder="Search..." disabled={!isAccounting}/><button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div><div className="col-md-3 ms-auto"><select className="form-select" disabled={!isAccounting}><option>2024-2025 Summer</option></select></div></div>
             <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 350px)', overflowY: 'auto' }}><table className="table table-hover">
                 <thead className="table-light sticky-top"><tr><th>Reg. No.</th><th>Name</th><th>Date of Registration</th><th>Actions</th></tr></thead>
                 <tbody>{filteredRegistrations.length > 0 ? filteredRegistrations.map(reg => (<tr key={reg.id}><td>{reg.regNo}</td><td>{reg.name}</td><td>{reg.date}</td><td>

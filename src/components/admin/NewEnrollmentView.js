@@ -6,7 +6,8 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
     const [enlistedSubjects, setEnlistedSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const userRole = localStorage.getItem('userRole');
-    const isReadOnly = userRole === 'accounting';
+    // const isReadOnly = userRole === 'accounting';
+    const isAdmin = userRole === 'admin';
 
     // State for the manual creation form
     const [newStudentInfo, setNewStudentInfo] = useState({
@@ -26,7 +27,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
 
     const handleSearch = () => {
   if (userRole !== 'admin') {
-    alert('Forbidden: Access is restricted to administrators');
+    
     return;
   }
 
@@ -51,7 +52,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         e.preventDefault();
         const { lastName, firstName, middleName, gender, course } = newStudentInfo;
         if (!lastName || !firstName || !course) {
-            alert("Last Name, First Name, and Course are required.");
+            // alert("Last Name, First Name, and Course are required.");
             return;
         }
 
@@ -108,14 +109,14 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
             <div className="card-body">
                 <p className="text-muted">Manually create a new student record. This is for walk-ins, transferees, or other special cases.</p>
                 <div className="row">
-                    <div className="col-md-6 mb-3"><label className="form-label">Last Name</label><input type="text" className="form-control" name="lastName" value={newStudentInfo.lastName} onChange={handleInputChange} required /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">First Name</label><input type="text" className="form-control" name="firstName" value={newStudentInfo.firstName} onChange={handleInputChange} required /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">Middle Name</label><input type="text" className="form-control" name="middleName" value={newStudentInfo.middleName} onChange={handleInputChange} /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">Gender</label><select className="form-select" name="gender" value={newStudentInfo.gender} onChange={handleInputChange}><option>Male</option><option>Female</option></select></div>
-                    <div className="col-md-12 mb-3"><label className="form-label">Course/Major</label><select className="form-select" name="course" value={newStudentInfo.course} onChange={handleInputChange}><option>BSIT</option><option>BSCS</option><option>BSBA-HRDM</option><option>BSED-EN</option><option>BS-ARCH</option></select></div>
+                    <div className="col-md-6 mb-3"><label className="form-label">Last Name</label><input type="text" className="form-control" name="lastName" value={newStudentInfo.lastName} onChange={handleInputChange} required disabled={!isAdmin} /></div>
+                    <div className="col-md-6 mb-3"><label className="form-label">First Name</label><input type="text" className="form-control" name="firstName" value={newStudentInfo.firstName} onChange={handleInputChange} required disabled={!isAdmin} /></div>
+                    <div className="col-md-6 mb-3"><label className="form-label">Middle Name</label><input type="text" className="form-control" name="middleName" value={newStudentInfo.middleName} onChange={handleInputChange} disabled={!isAdmin}/></div>
+                    <div className="col-md-6 mb-3"><label className="form-label">Gender</label><select className="form-select" name="gender" value={newStudentInfo.gender} onChange={handleInputChange} disabled={!isAdmin}><option>Male</option><option>Female</option></select></div>
+                    <div className="col-md-12 mb-3"><label className="form-label">Course/Major</label><select className="form-select" name="course" value={newStudentInfo.course} onChange={handleInputChange} disabled={!isAdmin}><option>BSIT</option><option>BSCS</option><option>BSBA-HRDM</option><option>BSED-EN</option><option>BS-ARCH</option></select></div>
                 </div>
                 <div className="d-flex justify-content-end mt-4">
-                    <button type="submit" className="btn btn-success" disabled={isReadOnly}>Create and Enroll Student</button>
+                    <button type="submit" className="btn btn-success" onClick={handleSearch}>Create and Enroll Student</button>
                 </div>
             </div>
         </form>
@@ -133,8 +134,10 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                             placeholder="Search Approved Registration No. to enroll..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            disabled={!isAdmin}
                         />
-                        <button className="btn btn-primary" type="button" onClick={handleSearch} disabled={isReadOnly}>
+                        
+                        <button className="btn btn-primary" type="button" onClick={handleSearch}>
                             <i className="fas fa-search"></i>
                         </button>
                     </div>
