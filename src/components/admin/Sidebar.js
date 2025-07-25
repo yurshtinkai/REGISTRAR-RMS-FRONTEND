@@ -11,6 +11,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
     const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/students'));
     const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
+    const [isAssessmentOpen, setAssessmentOpen] = useState(location.pathname.startsWith('/admin/assessment'));
     
     const [profilePic, setProfilePic] = useState(null);
     const userRole = localStorage.getItem('userRole');
@@ -51,7 +52,12 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
               { name: 'New Enrollment', path: '/admin/enrollment/new' } 
             ] 
         },
-        { name: 'Assessment', path: '/admin/assessment', icon: 'fa-clipboard-list' },
+        { name: 'Assessment', path: '/admin/assessment', icon: 'fa-clipboard-list', 
+            subItems: [
+                { name : 'Unassessed Student', path: '/admin/assessment/unassessed-student'},
+                { name : 'View Assessment', path: '/admin/assessment/view-assessment'}
+            ]
+        },
         { 
           name: 'Requests', 
           path: '/admin/requests', 
@@ -128,6 +134,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         if (itemName === 'Students') setStudentOpen(!isStudentOpen);
         if (itemName === 'Registration') setRegistrationOpen(!isRegistrationOpen);
         if (itemName === 'Enrollment') setEnrollmentOpen(!isEnrollmentOpen);
+        if (itemName === 'Assessment') setAssessmentOpen(!isAssessmentOpen);
         if (itemName === 'Manage') setManageOpen(!isManageOpen);
     };
 
@@ -153,9 +160,9 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                                     {/* FIX: Changed 'itemName' to 'item.name' to pass the correct value */}
                                     <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e) => handleMenuClick(e, item.name)}>
                                         <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
-                                        <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen))?'rotate-180':''}`}></i>
+                                        <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'rotate-180':''}`}></i>
                                     </a>
-                                    <div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen))?'show':''}`}>
+                                    <div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'show':''}`}>
                                         <ul className="nav flex-column ps-3">
                                             {item.subItems.map(subItem => (
                                                 <li className="nav-item" key={subItem.name}>

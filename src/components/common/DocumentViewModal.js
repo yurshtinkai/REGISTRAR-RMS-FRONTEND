@@ -61,7 +61,7 @@ function DocumentViewModal({ modalData, onClose }) {
     const stopPropagation = (e) => e.stopPropagation();
 
     return (
-        // The main flexbox container now lays out the buttons and content horizontally
+        // The main flexbox container now lays out the buttons and content horizontally YWSSSSSAS
         <div className="image-view-modal" onClick={onClose}>
             <span className="close-modal-button" onClick={onClose}>&times;</span>
             

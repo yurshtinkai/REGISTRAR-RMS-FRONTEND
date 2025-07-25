@@ -68,12 +68,15 @@ body.login-background {
   width: 260px;
   height: calc(100vh - 56px);
   position: fixed;
-  top: 56px;
+  top: 0;
+  height: 100vh;
   left: 0;
   background-color: #ffffff;
   color: #343a40;
   border-right: 1px solid #dee2e6;
   display: flex;
+  z-index: 1051;
+  overflow-y:auto;
   flex-direction: column;
 }
 

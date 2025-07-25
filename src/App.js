@@ -12,7 +12,7 @@ import AllRegistrationsView from './components/admin/AllRegistrationsView';
 import UnenrolledRegistrationsView from './components/admin/UnenrolledRegistrationsView';
 import NewEnrollmentView from './components/admin/NewEnrollmentView';
 import RequestManagementView from './components/admin/RequestManagementView';
-import PlaceholderView from './components/admin/PlaceholderView';
+// import PlaceholderView from './components/admin/PlaceholderView';
 import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
@@ -22,7 +22,8 @@ import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
 import SchoolYearSemesterView from './components/admin/SchoolYearSemesterView';
 import ViewGradesView from './components/admin/ViewGradesView';
 import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
-
+import UnassessedStudentView from './components/admin/UnassessedStudentView';
+import ViewAssessmentView from './components/admin/ViewAssessmentView'
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -44,6 +45,7 @@ function App() {
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [assessment, setAssessment] = useState([])
 
   const navigate = useNavigate();
 
@@ -170,9 +172,12 @@ function App() {
               element={<UnenrolledRegistrationsView registrations={registrations} onEnrollStudent={setStudentToEnroll} />}
             />
             <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
-            <Route path="assessment" element={<PlaceholderView title="Assessment" />} />
+            
             <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
             
+            <Route path="assessment/unassessed-student" element={<UnassessedStudentView assessment={assessment} onAssessedStudent={setAssessment}/>} />
+            <Route path="assessment/view-assessment" element={<ViewAssessmentView/>} />
+
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
