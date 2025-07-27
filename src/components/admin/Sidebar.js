@@ -16,6 +16,27 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const [profilePic, setProfilePic] = useState(null);
     const userRole = localStorage.getItem('userRole');
 
+    const [schoolYears, setSchoolYears] = useState([]);
+    const [selectedSchoolYear, setSelectedSchoolYear] = useState('');
+
+    useEffect(() => {
+        // TODO: Replace this with your actual API call to fetch school years
+        const fetchSchoolYears = async () => {
+            // This is dummy data that mimics an API response.
+            const dummyData = [
+                { id: 1, start_year: 2025, end_year: 2026, semester: '1st Semester' },
+                { id: 2, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
+                { id: 3, start_year: 2024, end_year: 2025, semester: '1st Semester' },
+            ];
+            setSchoolYears(dummyData);
+            // Set the default selected value to the most recent one
+            if (dummyData.length > 0) {
+                setSelectedSchoolYear(dummyData[0].id);
+            }
+        };
+        fetchSchoolYears();
+    }, []);
+
     useEffect(() => {
         const fetchPendingRequests = async () => {
             try {
@@ -138,6 +159,13 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         if (itemName === 'Manage') setManageOpen(!isManageOpen);
     };
 
+     const handleSchoolYearChange = (e) => {
+        setSelectedSchoolYear(e.target.value);
+        // TODO: You might want to update a global state or context here
+        // so other parts of your application know the selected SY has changed.
+        console.log("Selected School Year ID:", e.target.value);
+    };
+
     return (
         <div className="sidebar">
             <div className="sidebar-header text-center">
@@ -149,6 +177,21 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                     <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
                 </div>
                 <h5>{userRole === 'accounting' ? 'Accounting' : 'Registrar'}</h5>
+            </div>
+            
+             {/* --- START: Added School Year Selector --- */}
+            <div className="sidebar-sy-selector">
+                <select 
+                    className="form-select sy-dropdown"
+                    value={selectedSchoolYear}
+                    onChange={handleSchoolYearChange}
+                >
+                    {schoolYears.map(sy => (
+                        <option key={sy.id} value={sy.id}>
+                            SY {sy.start_year} - {sy.end_year} {sy.semester}
+                        </option>
+                    ))}
+                </select>
             </div>
             
             <div className="sidebar-nav">
