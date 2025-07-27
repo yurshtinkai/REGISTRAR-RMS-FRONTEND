@@ -24,6 +24,7 @@ import ViewGradesView from './components/admin/ViewGradesView';
 import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
 import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
+import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -139,17 +140,45 @@ function App() {
   return (
     <div id="app-wrapper">
       <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
-        <div className="container-fluid">
-          <div className="d-flex ms-auto">
-            {userRole && (
-              <>
-                <span className="navbar-text me-3">Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})</span>
-                <button className="btn btn-outline-light" onClick={handleLogout}>Logout</button>
-              </>
-            )}
+  <div className="container-fluid">
+    {userRole && <img src="/bc.png" className="imglogo" alt="bclogo" />}
+
+    <div className="d-flex ms-auto align-items-center">
+      {userRole && (
+        <>
+          <span className="navbar-text me-3">
+            Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})
+          </span>
+
+          {/* Dropdown for Settings */}
+          <div className="dropdown">
+            <button
+              className="btn btn-link dropdown-toggle text-white"
+              type="button"
+              id="settingsDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i className="fa-solid fa-gear fa-lg"></i>
+            </button>
+            <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+              <li>
+                <button className="dropdown-item" onClick={handleLogout}>
+                  <i class="fa-solid fa-sliders fa-sm me-2"></i>
+                  Settings
+                </button>
+                <button className="dropdown-item" onClick={handleLogout}>
+                  <i class="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
+                  Logout
+                </button>
+              </li>
+            </ul>
           </div>
-        </div>
-      </nav>
+        </>
+      )}
+    </div>
+  </div>
+</nav>
       <div className="content-wrapper">
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
@@ -179,6 +208,8 @@ function App() {
             <Route path="assessment/view-assessment" element={<ViewAssessmentView/>} />
 
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
+            <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
+
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />

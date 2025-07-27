@@ -17,10 +17,28 @@ function AllRegistrationsView({ registrations, setRegistrations }) {
 
     const filteredRegistrations = registrations.filter(reg => reg.status === activeTab);
     return (
-        <div className="container-fluid"><h2 className="mb-4">All Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><div className="d-flex flex-wrap align-items-center"><h4 className="card-title mb-0 me-3">Registration List</h4><ul className="nav nav-pills">
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>Pending ({registrations.filter(r=>r.status==='pending').length})</button></li>
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'approved' ? 'active' : ''}`} onClick={() => setActiveTab('approved')}>Approved ({registrations.filter(r=>r.status==='approved').length})</button></li>
-            <li className="nav-item"><button className={`nav-link ${activeTab === 'rejected' ? 'active' : ''}`} onClick={() => setActiveTab('rejected')}>Rejected ({registrations.filter(r=>r.status==='rejected').length})</button></li>
+        <div className="container-fluid"><h2 className="mb-2">All Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><div className="d-flex flex-wrap align-items-center"><h4 className="card-title mb-0 me-3">Registration List</h4><ul className="nav nav-pills">
+            <li className="nav-item">
+                <button
+                    className={`button-link pending-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('pending')}>
+                    Pending ({registrations.filter(r => r.status === 'pending').length})
+                </button>
+            </li>
+            <li className="nav-item">
+                <button
+                    className={`button-link approved-btn ${activeTab === 'approved' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('approved')}>
+                    Approved ({registrations.filter(r => r.status === 'approved').length})
+                </button>
+            </li>
+            <li className="nav-item">
+                <button
+                    className={`button-link rejected-btn ${activeTab === 'rejected' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('rejected')}>
+                    Rejected ({registrations.filter(r => r.status === 'rejected').length})
+                </button>
+            </li>
         </ul></div></div><div className="card-body">
             <div className="row mb-3"><div className="col-md-6"><div className="input-group"><input type="text" className="form-control" placeholder="Search..." disabled={isAdmin}/><button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div><div className="col-md-3 ms-auto"><select className="form-select" disabled={isAdmin}><option>2024-2025 Summer</option></select></div></div>
             <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 350px)', overflowY: 'auto' }}><table className="table table-hover">

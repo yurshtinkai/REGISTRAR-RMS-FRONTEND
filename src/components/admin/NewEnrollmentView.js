@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { dummySubjects } from '../../data/dummyData';
+import { dummySubjects } from '../../data/dummyData'; // Assuming this path is correct
+import { API_BASE_URL, getToken } from '../../utils/api'; // Assuming this path is correct
+import CustomAlert from '../../CustomAlert'; // Corrected import path
 
 function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setStudentToEnroll, onBack }) {
     const [step, setStep] = useState(1);
     const [enlistedSubjects, setEnlistedSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const userRole = localStorage.getItem('userRole');
-    // const isReadOnly = userRole === 'accounting';
     const isAdmin = userRole === 'admin';
 
-    // State for the manual creation form
     const [newStudentInfo, setNewStudentInfo] = useState({
         lastName: '',
         firstName: '',
@@ -17,6 +17,11 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         gender: 'Male',
         course: 'BSIT'
     });
+    
+    // State for the custom modal
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalContent, setModalContent] = useState({ title: '', body: null });
+    const [createdStudentData, setCreatedStudentData] = useState(null);
 
     useEffect(() => {
         if (student) {
@@ -26,55 +31,100 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
     }, [student]);
 
     const handleSearch = () => {
-  if (userRole !== 'admin') {
-    
-    return;
-  }
-
-  if (!searchTerm) return;
-  const foundStudent = registrations.find(
-    reg => reg.regNo === searchTerm && reg.status === 'approved'
-  );
-  if (foundStudent) {
-    setStudentToEnroll(foundStudent);
-  } else {
-    alert('No approved registration found with that number.');
-  }
-};
+        if (!isAdmin || !searchTerm) return;
+        const foundStudent = registrations.find(
+            reg => reg.regNo === searchTerm && reg.status === 'approved'
+        );
+        if (foundStudent) {
+            setStudentToEnroll(foundStudent);
+        } else {
+            // Use custom modal for search errors
+            setModalContent({ title: 'Search Failed', body: <p>No approved registration found with that number.</p> });
+            setIsModalOpen(true);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewStudentInfo(prev => ({ ...prev, [name]: value }));
     };
 
-    // This function handles the creation and enrollment of a manually added student
-    const handleCreateAndEnroll = (e) => {
+    const handleCreateAndEnroll = async (e) => {
         e.preventDefault();
-        const { lastName, firstName, middleName, gender, course } = newStudentInfo;
+        if (!isAdmin) return;
+
+        const { lastName, firstName, course } = newStudentInfo;
         if (!lastName || !firstName || !course) {
-            // alert("Last Name, First Name, and Course are required.");
+            // Use custom modal for validation errors
+            setModalContent({ title: 'Missing Information', body: <p>Last Name, First Name, and Course are required.</p> });
+            setIsModalOpen(true);
             return;
         }
 
-        // Create a new student object from the form data
-        const manuallyCreatedStudent = {
-            id: `manual-${Date.now()}`, // Give it a unique temporary ID
-            regNo: `MANUAL-${Date.now()}`,
-            name: `${lastName}, ${firstName} ${middleName ? middleName + '.' : ''}`,
-            course,
-            gender
-        };
-        
-        // Use the existing completion logic to add them to the master list
-        onCompleteEnrollment(manuallyCreatedStudent);
-        alert(`Successfully created and enrolled student: ${manuallyCreatedStudent.name}`);
+        try {
+            const response = await fetch(`${API_BASE_URL}/students/create-and-enroll`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`
+                },
+                body: JSON.stringify(newStudentInfo)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to create student.');
+            }
+
+            // Save data and set content for the success modal
+            setCreatedStudentData(data.user);
+            setModalContent({
+                title: 'Student Account Created!',
+                body: (
+                    <>
+                        <pre>
+                            {`ID Number: ${data.user.idNumber}\nPassword: ${data.user.password}`}
+                        </pre>
+                        <p>Please provide these credentials to the student.</p>
+                    </>
+                )
+            });
+            setIsModalOpen(true);
+
+        } catch (error) {
+            console.error('Error creating student:', error);
+            // Use custom modal for API errors
+            setModalContent({ title: 'Error', body: <p>{error.message}</p> });
+            setIsModalOpen(true);
+        }
+    };
+
+    // This function runs when the modal's "OK" button is clicked
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+
+        // If a student was successfully created, complete the enrollment process
+        if (createdStudentData) {
+            onCompleteEnrollment({
+                id: createdStudentData.id,
+                idNo: createdStudentData.idNumber,
+                name: createdStudentData.name,
+                gender: createdStudentData.gender,
+                course: createdStudentData.course,
+                createdAt: new Date().toLocaleDateString(),
+            });
+
+            // Reset the form and temporary data
+            setNewStudentInfo({ lastName: '', firstName: '', middleName: '', gender: 'Male', course: 'BSIT' });
+            setCreatedStudentData(null);
+        }
     };
 
     const addSubject = (subject) => { if (!enlistedSubjects.find(s => s.code === subject.code)) { setEnlistedSubjects([...enlistedSubjects, subject]); } };
     const removeSubject = (subjectCode) => { setEnlistedSubjects(enlistedSubjects.filter(s => s.code !== subjectCode)); };
     const totalUnits = enlistedSubjects.reduce((total, s) => total + s.units, 0);
 
-    // This renders the multi-step form for an EXISTING student (from search or unenrolled list)
     const renderEnrollmentSteps = () => {
         switch (step) {
             case 1:
@@ -103,7 +153,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         }
     };
     
-    // This renders the form for CREATING a new student manually
     const renderCreateStudentForm = () => (
         <form onSubmit={handleCreateAndEnroll}>
             <div className="card-body">
@@ -116,7 +165,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                     <div className="col-md-12 mb-3"><label className="form-label">Course/Major</label><select className="form-select" name="course" value={newStudentInfo.course} onChange={handleInputChange} disabled={!isAdmin}><option>BSIT</option><option>BSCS</option><option>BSBA-HRDM</option><option>BSED-EN</option><option>BS-ARCH</option></select></div>
                 </div>
                 <div className="d-flex justify-content-end mt-4">
-                    <button type="submit" className="btn btn-success" onClick={handleSearch}>Create and Enroll Student</button>
+                    <button type="submit" className="btn btn-success">Create and Enroll Student</button>
                 </div>
             </div>
         </form>
@@ -136,7 +185,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                             onChange={(e) => setSearchTerm(e.target.value)}
                             disabled={!isAdmin}
                         />
-                        
                         <button className="btn btn-primary" type="button" onClick={handleSearch}>
                             <i className="fas fa-search"></i>
                         </button>
@@ -153,10 +201,19 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                         </ul>
                     </div>
                 )}
-                {/* Conditionally render either the steps or the creation form */}
                 {student ? renderEnrollmentSteps() : renderCreateStudentForm()}
             </div>
+
+            {/* Render the modal component */}
+            <CustomAlert
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                title={modalContent.title}
+            >
+                {modalContent.body}
+            </CustomAlert>
         </div>
     );
 }
+
 export default NewEnrollmentView;
