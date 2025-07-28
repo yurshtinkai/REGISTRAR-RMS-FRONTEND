@@ -7,6 +7,7 @@ function RequestManagementView({ setDocumentModalData }) {
   const [error, setError] = useState('');
   const userRole = localStorage.getItem('userRole');
   const isReadOnly = userRole === 'accounting';
+  const isAdmin = userRole === 'admin';
 
 
   const fetchAllRequests = async () => {
@@ -119,7 +120,20 @@ function RequestManagementView({ setDocumentModalData }) {
                                     <td>{req.id}</td><td>{req.User?.idNumber || 'N/A'}</td><td>{req.documentType}</td><td>{req.purpose}</td>
                                     <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status.replace(/_/g, ' ')}</span></td>
                                     <td>{req.notes || 'N/A'}</td>
-                                    <td>{req.filePath && req.filePath.length > 0 ? (<button className="btn btn-sm btn-info" onClick={() => handleViewDocument(req)} >View</button>) : 'N/A'}</td>
+                                    <td>{req.filePath && req.filePath.length > 0 ? (
+                                      <button
+                                        className="btn btn-sm btn-info"
+                                        onClick={(e) => {
+                                        // First, check for permissions from handleViewClick
+                                        if (!isAdmin) {
+                                        e.preventDefault();
+                                        return;
+                                        }
+                                        // If permissions are okay, then open the document
+                                        handleViewDocument(req);
+                                      }}
+                                      >View</button>) : 'N/A'}</td>
+
                                     <td>
                                       <div className="d-flex">
                                         {req.status === 'pending' && (

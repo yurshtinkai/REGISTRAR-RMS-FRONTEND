@@ -138,11 +138,18 @@ function App() {
     return children;
   };
 
+  const logoStyle = {
+    width: '49px',
+    height: '49px',
+    // Apply margin ONLY for admin/accounting, not for students
+    marginLeft: (userRole === 'admin' || userRole === 'accounting') ? '19%' : '0'
+  };
+
   return (
     <div id="app-wrapper">
       <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
   <div className="container-fluid">
-    {userRole && <img src="/bc.png" className="imglogo" alt="bclogo" />}
+    {userRole && <img src="/bc.png" style={logoStyle} alt="bclogo" />}
 
     <div className="d-flex ms-auto align-items-center">
       {userRole && (
