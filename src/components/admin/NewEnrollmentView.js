@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { dummySubjects } from '../../data/dummyData'; // Assuming this path is correct
-import { API_BASE_URL, getToken } from '../../utils/api'; // Assuming this path is correct
-import CustomAlert from '../../CustomAlert'; // Corrected import path
+import { getSubjectsForEnrollment } from '../../data/dummyData';
+import { API_BASE_URL, getToken } from '../../utils/api';
+import CustomAlert from '../../CustomAlert';
 
-function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setStudentToEnroll, onBack }) {
+function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setStudentToEnroll }) {
     const [step, setStep] = useState(1);
     const [enlistedSubjects, setEnlistedSubjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +18,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         course: 'BSIT'
     });
     
-    // State for the custom modal
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalContent, setModalContent] = useState({ title: '', body: null });
     const [createdStudentData, setCreatedStudentData] = useState(null);
@@ -26,6 +25,12 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
     useEffect(() => {
         if (student) {
             setStep(1);
+            // Automatically load the prescribed subjects for the student's course
+            // In a real app, you would also pass year level and semester
+            const subjectsToEnlist = getSubjectsForEnrollment(student.course, '1st Year', '1st Semester');
+            setEnlistedSubjects(subjectsToEnlist);
+        } else {
+            // If no student is selected (e.g., walk-in), clear the subjects
             setEnlistedSubjects([]);
         }
     }, [student]);
@@ -38,7 +43,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         if (foundStudent) {
             setStudentToEnroll(foundStudent);
         } else {
-            // Use custom modal for search errors
             setModalContent({ title: 'Search Failed', body: <p>No approved registration found with that number.</p> });
             setIsModalOpen(true);
         }
@@ -55,7 +59,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
 
         const { lastName, firstName, course } = newStudentInfo;
         if (!lastName || !firstName || !course) {
-            // Use custom modal for validation errors
             setModalContent({ title: 'Missing Information', body: <p>Last Name, First Name, and Course are required.</p> });
             setIsModalOpen(true);
             return;
@@ -77,7 +80,6 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                 throw new Error(data.message || 'Failed to create student.');
             }
 
-            // Save data and set content for the success modal
             setCreatedStudentData(data.user);
             setModalContent({
                 title: 'Student Account Created!',
@@ -94,17 +96,13 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
 
         } catch (error) {
             console.error('Error creating student:', error);
-            // Use custom modal for API errors
             setModalContent({ title: 'Error', body: <p>{error.message}</p> });
             setIsModalOpen(true);
         }
     };
-
-    // This function runs when the modal's "OK" button is clicked
+    
     const handleCloseModal = () => {
         setIsModalOpen(false);
-
-        // If a student was successfully created, complete the enrollment process
         if (createdStudentData) {
             onCompleteEnrollment({
                 id: createdStudentData.id,
@@ -114,14 +112,11 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                 course: createdStudentData.course,
                 createdAt: new Date().toLocaleDateString(),
             });
-
-            // Reset the form and temporary data
             setNewStudentInfo({ lastName: '', firstName: '', middleName: '', gender: 'Male', course: 'BSIT' });
             setCreatedStudentData(null);
         }
     };
 
-    const addSubject = (subject) => { if (!enlistedSubjects.find(s => s.code === subject.code)) { setEnlistedSubjects([...enlistedSubjects, subject]); } };
     const removeSubject = (subjectCode) => { setEnlistedSubjects(enlistedSubjects.filter(s => s.code !== subjectCode)); };
     const totalUnits = enlistedSubjects.reduce((total, s) => total + s.units, 0);
 
@@ -129,20 +124,64 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
         switch (step) {
             case 1:
                 return (<div className="card-body"><div className="row">
-                    <div className="col-md-6 mb-3"><label className="form-label">ID</label><input type="text" className="form-control" value={student.regNo} disabled /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">Last Name</label><input type="text" className="form-control" value={student.name.split(',')[0]} disabled /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">First Name</label><input type="text" className="form-control" value={student.name.split(',')[1].trim().split(' ')[0]} disabled /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">Middle Name</label><input type="text" className="form-control" value={student.name.split(' ').pop().replace('.', '')} disabled /></div>
-                    <div className="col-md-6 mb-3"><label className="form-label">Gender</label><input type="text" className="form-control" value={student.gender} disabled /></div>
+                    <div className="col-md-6 mb-3"><label className="form-label">Registration No.</label><input type="text" className="form-control" value={student.regNo} disabled /></div>
                     <div className="col-md-6 mb-3"><label className="form-label">Course/Major</label><input type="text" className="form-control" value={student.course} disabled /></div>
-                </div><div className="d-flex justify-content-end mt-4"><button className="btn btn-primary" onClick={() => setStep(2)}>Confirm</button></div></div>);
+                    <div className="col-md-4 mb-3"><label className="form-label">Last Name</label><input type="text" className="form-control" value={student.name.split(',')[0]} disabled /></div>
+                    <div className="col-md-4 mb-3"><label className="form-label">First Name</label><input type="text" className="form-control" value={student.name.split(',')[1].trim().split(' ')[0]} disabled /></div>
+                    <div className="col-md-4 mb-3"><label className="form-label">Middle Name</label><input type="text" className="form-control" value={student.name.split(' ').pop().replace('.', '')} disabled /></div>
+                </div><div className="d-flex justify-content-end mt-4"><button className="btn btn-primary" onClick={() => setStep(2)}>Confirm and Proceed</button></div></div>);
             case 2:
-                return (<div className="card-body"><div className="row">
-                    <div className="col-md-5"><h6>Available Subjects</h6><div className="list-group" style={{maxHeight: '300px', overflowY: 'auto'}}>{dummySubjects.map(sub => (<div key={sub.code} className="list-group-item d-flex justify-content-between align-items-center">{sub.description}<button className="btn btn-sm btn-success" onClick={() => addSubject(sub)} disabled={enlistedSubjects.some(s => s.code === sub.code)}>+</button></div>))}</div></div>
-                    <div className="col-md-7"><h6>Enlisted Subjects ({totalUnits} units)</h6><div className="table-responsive" style={{maxHeight: '300px', overflowY: 'auto'}}><table className="table table-sm"><thead><tr><th>Code</th><th>Description</th><th>Units</th><th>Action</th></tr></thead><tbody>
-                        {enlistedSubjects.length > 0 ? enlistedSubjects.map(sub => (<tr key={sub.code}><td>{sub.code}</td><td>{sub.description}</td><td>{sub.units}</td><td><button className="btn btn-sm btn-danger" onClick={() => removeSubject(sub.code)}>X</button></td></tr>)) : <tr><td colSpan="4" className="text-center">No subjects added.</td></tr>}
-                    </tbody></table></div></div>
-                </div><div className="d-flex justify-content-between mt-4"><button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button><button className="btn btn-primary" onClick={() => setStep(3)}>Next</button></div></div>);
+                return (
+                    <div className="card-body">
+                        <h5 className="mb-3">Review Enlisted Subjects for <span className="text-primary">{student.name}</span></h5>
+                        <p className="text-muted">Below are the prescribed subjects for {student.course} for this semester. Review and confirm the list before proceeding.</p>
+                        
+                        <div className="table-responsive" style={{maxHeight: '400px', overflowY: 'auto'}}>
+                            <table className="table">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Description</th>
+                                        <th>Schedule</th>
+                                        <th className="text-center">Units</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {enlistedSubjects.length > 0 ? enlistedSubjects.map(sub => (
+                                        <tr key={sub.code}>
+                                            <td>{sub.code}</td>
+                                            <td>{sub.description}</td>
+                                            <td><small>{sub.days} {sub.schedule}</small></td>
+                                            <td className="text-center">{sub.units}</td>
+                                            <td>
+                                                <button className="btn btn-sm btn-outline-danger" onClick={() => removeSubject(sub.code)} title="Remove Subject">
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan="5" className="text-center text-muted py-5">No subjects prescribed for this course. Please check the curriculum setup.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="table-light">
+                                        <td colSpan="3" className="text-end fw-bold">Total Units:</td>
+                                        <td className="text-center fw-bold">{totalUnits}</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div className="d-flex justify-content-between mt-4">
+                            <button className="btn btn-secondary" onClick={() => setStep(1)}>Back</button>
+                            <button className="btn btn-primary" onClick={() => setStep(3)} disabled={enlistedSubjects.length === 0}>Next</button>
+                        </div>
+                    </div>
+                );
             case 3:
                 return (<div className="card-body text-center"><h4 className="mb-3">BENEDICTO COLLEGE</h4><p>{student.name.toUpperCase()}<br/>{student.regNo}<br/>SY 2024-2025, Summer</p><h5>Subject Schedules</h5><table className="table"><thead><tr><th>Code</th><th>Description</th><th>Days</th><th>Time</th><th>Room</th><th>Units</th></tr></thead><tbody>
                     {enlistedSubjects.map(sub => (<tr key={sub.code}><td>{sub.code}</td><td>{sub.description}</td><td>{sub.days}</td><td>{sub.schedule}</td><td>{sub.room}</td><td>{sub.units}</td></tr>))}

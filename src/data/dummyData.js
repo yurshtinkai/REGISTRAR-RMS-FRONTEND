@@ -19,6 +19,48 @@ export const createDummyRegistrations = () => {
     return registrations;
 };
 
+
+// NEW FUNCTION: Provides pre-packaged subjects for enrollment
+export const getSubjectsForEnrollment = (course, yearLevel, semester) => {
+    // In a real app, yearLevel and semester would be used to fetch the correct subjects.
+    // For this mock-up, we'll return a default 1st Year, 1st Semester load for each course.
+    const courseSubjects = {
+        'BSIT': [
+            { code: 'IT101', description: 'Introduction to Computing', units: 3, schedule: '08:00 AM - 09:00 AM', days: 'MWF', room: '301' },
+            { code: 'MATH101', description: 'Mathematics in the Modern World', units: 3, schedule: '09:00 AM - 10:00 AM', days: 'MWF', room: '302' },
+            { code: 'ENG101', description: 'Purposive Communication', units: 3, schedule: '10:30 AM - 12:00 PM', days: 'TTH', room: '210' },
+            { code: 'FIL101', description: 'Kontekstwalisadong Komunikasyon', units: 3, schedule: '01:00 PM - 02:00 PM', days: 'MWF', room: '211' },
+            { code: 'PE101', description: 'Physical Education 1', units: 2, schedule: '02:30 PM - 04:00 PM', days: 'TTH', room: 'GYM' },
+        ],
+        'BSCS': [
+            { code: 'CS101', description: 'Fundamentals of Programming', units: 3, schedule: '08:00 AM - 09:00 AM', days: 'MWF', room: '303' },
+            { code: 'MATH101', description: 'Mathematics in the Modern World', units: 3, schedule: '09:00 AM - 10:00 AM', days: 'MWF', room: '302' },
+            { code: 'ENG101', description: 'Purposive Communication', units: 3, schedule: '10:30 AM - 12:00 PM', days: 'TTH', room: '210' },
+            { code: 'GE101', description: 'Understanding the Self', units: 3, schedule: '01:00 PM - 02:30 PM', days: 'TTH', room: '212' },
+            { code: 'PE101', description: 'Physical Education 1', units: 2, schedule: '02:30 PM - 04:00 PM', days: 'TTH', room: 'GYM' },
+        ],
+        'BSBA-HRDM': [
+            { code: 'BA101', description: 'Principles of Management', units: 3, schedule: '08:00 AM - 09:00 AM', days: 'MWF', room: '401' },
+            { code: 'ECON101', description: 'Basic Economics', units: 3, schedule: '09:00 AM - 10:00 AM', days: 'MWF', room: '402' },
+            { code: 'ACCT101', description: 'Fundamentals of Accounting', units: 3, schedule: '01:00 PM - 02:30 PM', days: 'TTH', room: '403' },
+            { code: 'PE101', description: 'Physical Education 1', units: 2, schedule: '04:00 PM - 05:30 PM', days: 'TTH', room: 'GYM' },
+        ],
+        'BSED-EN': [
+            { code: 'ED101', description: 'The Child and Adolescent Learners', units: 3, schedule: '08:00 AM - 09:30 AM', days: 'TTH', room: '501' },
+            { code: 'EN101', description: 'Introduction to Linguistics', units: 3, schedule: '10:00 AM - 11:30 AM', days: 'TTH', room: '502' },
+            { code: 'PE101', description: 'Physical Education 1', units: 2, schedule: '01:00 PM - 02:30 PM', days: 'MW', room: 'GYM' },
+        ],
+        'BS-ARCH': [
+            { code: 'AR101', description: 'Architectural Design 1', units: 5, schedule: '08:00 AM - 12:00 PM', days: 'MWF', room: 'D-LAB1' },
+            { code: 'AR102', description: 'History of Architecture 1', units: 3, schedule: '01:00 PM - 02:30 PM', days: 'TTH', room: 'D-LAB2' },
+            { code: 'PE101', description: 'Physical Education 1', units: 2, schedule: '02:30 PM - 04:00 PM', days: 'TTH', room: 'GYM' },
+        ]
+    };
+
+    // Return subjects for the course or an empty array if not found
+    return courseSubjects[course] || [];
+};
+
 export const dummySubjects = [
     { code: 'IT223', description: 'Information Management', units: 3, schedule: '08:00 AM - 10:30 AM', days: 'MTWTH', room: '314', prereq: 'IT222' },
     { code: 'FILI1', description: 'The Philippine Society in the IT Era', units: 3, schedule: '10:30 AM - 12:00 PM', days: 'TF', room: '210', prereq: null },
@@ -128,4 +170,34 @@ export const getLegacyStudents = () => {
         { id: '2011-00456', name: 'Bonifacio, Andres C.', gender: 'Male', course: 'BSCS' },
         { id: '2012-00789', name: 'Silang, Gabriela M.', gender: 'Female', course: 'BSBA-MKTG' },
     ];
+};
+
+export const getDummyCurriculum = (course) => {
+    if (course === 'BSIT') {
+        return {
+            '1st Year - 1st Semester': [
+                { code: 'GE 1', description: 'Understanding the Self', units: 3, prerequisite: null },
+                { code: 'IT 111', description: 'Introduction to Computing', units: 3, prerequisite: null },
+                { code: 'IT 112', description: 'Computer Programming 1', units: 3, prerequisite: 'IT 111' },
+                { code: 'NSTP 1', description: 'National Service Training Program 1', units: 3, prerequisite: null },
+            ],
+            '1st Year - 2nd Semester': [
+                { code: 'FIL 2', description: 'Readings in Philippine History', units: 3, prerequisite: null },
+                { code: 'IT 121', description: 'Computer Programming 2', units: 3, prerequisite: 'IT 112' },
+                { code: 'IT 122', description: 'Data Structures and Algorithms', units: 3, prerequisite: 'IT 121' },
+                { code: 'NSTP 2', description: 'National Service Training Program 2', units: 3, prerequisite: 'NSTP 1' },
+            ],
+            '2nd Year - 1st Semester': [
+                { code: 'IT 222', description: 'Database Management Systems 1', units: 3, prerequisite: 'IT 122' },
+                { code: 'IT 223', description: 'Object-Oriented Programming', units: 3, prerequisite: 'IT 121' },
+                { code: 'GE 5', description: 'Purposive Communication', units: 3, prerequisite: null },
+            ],
+            '2nd Year - 2nd Semester': [
+                { code: 'IT 231', description: 'Web Development', units: 3, prerequisite: 'IT 222' },
+                { code: 'IT 232', description: 'Networking 1', units: 3, prerequisite: 'IT 211' },
+            ],
+        };
+    }
+    // Return a default or empty curriculum for other courses
+    return {};
 };

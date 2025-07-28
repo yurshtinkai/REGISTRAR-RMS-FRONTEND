@@ -16,6 +16,7 @@ import RequestManagementView from './components/admin/RequestManagementView';
 import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
+import StudentDetailView from './components/admin/StudentDetailView';
 import DashboardView from './components/admin/DashboardView';
 import SubjectSchedulesView from './components/admin/SubjectSchedulesView';
 import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
@@ -195,6 +196,7 @@ function App() {
           >
             <Route path="dashboard" element={<DashboardView enrolledStudents={enrolledStudents} />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
+            <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"

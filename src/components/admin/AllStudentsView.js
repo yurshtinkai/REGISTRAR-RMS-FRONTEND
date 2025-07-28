@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // <<<--- ADD THIS IMPORT
 
 function AllStudentsView({ enrolledStudents }) {
     const userRole = localStorage.getItem('userRole');
@@ -44,9 +45,11 @@ function AllStudentsView({ enrolledStudents }) {
                                         <td><span className="badge bg-success">Regular</span></td>
                                         <td>{student.createdAt}</td>
                                         <td>
-                                            <button className="btn btn-sm btn-info me-1" title="View">
+                                            {/* START: Updated Button */}
+                                            <Link to={`/admin/students/${student.idNo}`} className="btn btn-sm btn-info me-1" title="View">
                                                 <i className="fas fa-eye"></i>
-                                            </button>
+                                            </Link>
+                                            {/* END: Updated Button */}
                                             <button className="btn btn-sm btn-primary" title="Edit">
                                                 <i className="fas fa-pencil-alt"></i>
                                             </button>

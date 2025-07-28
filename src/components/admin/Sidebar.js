@@ -9,7 +9,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     
     const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
     const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
-    const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/students'));
+    const [isStudentOpen, setStudentOpen] = useState(location.pathname.startsWith('/admin/all-students') || location.pathname.startsWith('/admin/students/'));
     const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
     const [isAssessmentOpen, setAssessmentOpen] = useState(location.pathname.startsWith('/admin/assessment'));
     
@@ -209,7 +209,14 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                                         <ul className="nav flex-column ps-3">
                                             {item.subItems.map(subItem => (
                                                 <li className="nav-item" key={subItem.name}>
-                                                    <Link to={subItem.path} className={`nav-link sub-item ${location.pathname === subItem.path ? 'active' : ''}`} onClick={() => subItem.path === '/admin/enrollment/new' && setStudentToEnroll(null)}>
+                                                    <Link 
+                                                        to={subItem.path} 
+                                                        className={`nav-link sub-item ${
+                                                            (location.pathname === subItem.path || (subItem.path === '/admin/all-students' && location.pathname.startsWith('/admin/students/'))) 
+                                                            ? 'active' 
+                                                            : ''
+                                                        }`} 
+                                                        onClick={() => subItem.path === '/admin/enrollment/new' && setStudentToEnroll(null)}>
                                                         {subItem.name}
                                                     </Link>
                                                 </li>
