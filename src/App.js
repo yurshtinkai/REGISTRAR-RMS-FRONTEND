@@ -26,6 +26,7 @@ import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
 import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
 import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
+import AccountManagementView from './components/admin/AccountManagementView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -218,11 +219,13 @@ function App() {
 
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
-
+            <Route path="accounts" element={<AccountManagementView />} />
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />
             <Route path="manage/encode-enrollments" element={<EncodeEnrollmentView onEncodeStudent={handleEncodeStudent} />} />
+            
+            
 
           </Route>
 

@@ -9,7 +9,6 @@ function RequestManagementView({ setDocumentModalData }) {
   const isReadOnly = userRole === 'accounting';
   const isAdmin = userRole === 'admin';
 
-
   const fetchAllRequests = async () => {
     setLoading(true); setError('');
     try {
@@ -65,8 +64,10 @@ function RequestManagementView({ setDocumentModalData }) {
         });
         await fetchAllRequests();
   
-        const studentName = `[Student Full Name]`; 
-        const studentCourse = `[Student Course]`;
+        const studentName = requestToPrint.User 
+            ? `${requestToPrint.User.lastName}, ${requestToPrint.User.firstName} ${requestToPrint.User.middleName || ''}` 
+            : '[Student Full Name]'; 
+        const studentCourse = requestToPrint.User?.course || '[Student Course]';
         const academicYear = '2024-2025';
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
