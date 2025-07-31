@@ -1,3 +1,4 @@
+
 /* src/App.css */
 /* Default background color for logged-in views */
 body {
@@ -6,14 +7,12 @@ body {
 
 /* Class to apply the background image only to the login screen */
 body.login-background {
-  background-image: url('/public/pic.jpg');
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.90) 100%), url('/public/bclogin.png');
   background-size: cover;
-  background-position: center center;
+  background-position: center;
   background-attachment: fixed;
 }
 
-
-/* Default card style with a frosted glass effect for pages with the background image */
 .card {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.75rem;
@@ -22,10 +21,36 @@ body.login-background {
   -webkit-backdrop-filter: blur(10px); /* For Safari */
 }
 
+
+/* Default card style with a frosted glass effect for pages with the background image */
+.loginCard {
+  border: none;
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #0d1a3a 65%, #1e3c72 100%);
+  color: #fff;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+/* Custom outline and hover for login button (orange) */
+.btn-outline-orange {
+  color: #dd5618;
+  border: 2px solid #dd5618;
+  background: transparent;
+  transition: background 0.3s, color 0.3s;
+}
+.btn-outline-orange:hover, .btn-outline-orange:focus {
+  background: #dd5618;
+  color: #fff;
+  border-color: #dd5618;
+}
+
+
 .btn {
   font-weight: 500;
   padding: 0.75rem 1.5rem;
 }
+
 
 .form-control.rounded-pill {
   border-radius: 50rem;

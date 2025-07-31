@@ -16,7 +16,7 @@ function UnenrolledRegistrationsView({ registrations, onEnrollStudent }) {
 };
 
     return (
-        <div className="container-fluid"><h2 className="mb-4">Unenrolled Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><h4 className="card-title mb-0">Registration List</h4></div><div className="card-body">
+        <div className="container-fluid"><h2 className="mb-2">Unenrolled Registrations</h2><div className="card shadow-sm"><div className="card-header bg-white"><h4 className="card-title mb-0">Registration List</h4></div><div className="card-body">
             <div className="row mb-3"><div className="col-md-6"><div className="input-group"><input type="text" className="form-control" placeholder="Search..." disabled={!isAdmin}/><button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div><div className="col-md-3 ms-auto"><select className="form-select"><option>2024-2025 Summer</option></select></div></div>
             <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
                 <table className="table table-hover">
