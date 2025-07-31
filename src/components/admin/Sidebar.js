@@ -94,6 +94,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             { name: 'Encode Enrollments', path: '/admin/manage/encode-enrollments' }
           ]
         },
+        { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' }
     ];
 
     const handleProfilePicChange = (e) => {
