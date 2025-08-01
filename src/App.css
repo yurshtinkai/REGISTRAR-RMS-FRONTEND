@@ -26,7 +26,8 @@ body.login-background {
 .loginCard {
   border: none;
   border-radius: 1.25rem;
-  background: linear-gradient(135deg, #0d1a3a 65%, #1e3c72 100%);
+  min-height: 320px; /* Adjust as needed for your design */
+  background-color: #f0f2f5;
   color: #fff;
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
   backdrop-filter: blur(8px);
@@ -614,3 +615,47 @@ body.login-background {
   background-color: #e0e0e0; /* light gray */
 }
 
+.imglogo {
+  width: 185px;
+  height: 35px;
+  margin-left: 19%;
+}
+
+.login-error-placeholder {
+  min-height: 22px; /* Height of one line of error text */
+  display: block;
+}
+
+/* Student navbar button designs */
+.student-navbar-btn {
+          font-size: 1rem;
+          color: #ffffff;
+          background: none;
+          border: none;
+          border-radius: 0;
+          min-width: 90px;
+          padding: 8px 18px 8px 18px;
+          position: relative;
+          transition: background 0.15s;
+        }
+        .student-navbar-btn.active, .student-navbar-btn:focus {
+          color: #f1f1f1;
+        }
+        .student-navbar-btn::after {
+          content: '';
+          display: block;
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          bottom: 0;
+          height: 3px;
+          background: transparent;
+          border-radius: 2px;
+          transition: background 0.2s, width 0.2s;
+        }
+        .student-navbar-btn:hover::after {
+          background: #ffffff;
+        }
+        .student-navbar-btn.active::after {
+          background: #ffffff;
+        }

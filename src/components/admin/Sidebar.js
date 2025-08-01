@@ -166,6 +166,11 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         // so other parts of your application know the selected SY has changed.
         console.log("Selected School Year ID:", e.target.value);
     };
+    const visibleMenuItems = userRole === 'accounting'
+        ? menuItems.filter(item => item.name === 'Registration')
+        : userRole === 'admin'
+            ? menuItems.filter(item => item.name !== 'Registration')
+            : menuItems; // Show all for any other case (or default)
 
     return (
         <div className="sidebar">
@@ -197,7 +202,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             
             <div className="sidebar-nav">
                 <ul className="nav flex-column">
-                    {menuItems.map(item => (
+                    {visibleMenuItems.map(item => (
                         <li className="nav-item" key={item.name}>
                             {item.subItems ? (
                                 <>
