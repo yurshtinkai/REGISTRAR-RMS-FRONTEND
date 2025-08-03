@@ -1,0 +1,131 @@
+.notification-bell {
+  position: relative;
+}
+
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 16px;
+  transform: translate(50%, -50%);
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 3px 6px;
+  border-radius: 4px;
+  min-width: 20px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* src/components/common/NotificationBell.css */
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 370px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1055;
+
+  background: #fff; /* White background */
+  border: 1px solid #ccc; /* Border outline */
+  border-radius: 4px; /* Rounded corners */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  overflow: hidden; /* Apply border radius to inner content */
+}
+
+.notification-header {
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+  background-color: #f9f9f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-list {
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.notification-footer {
+  padding: 8px;
+  text-align: center;
+  border-top: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+.notification-footer a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.notification-footer a:hover {
+  text-decoration: underline;
+}
+
+.notification-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fff;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item.unread {
+  background-color: #e7f1ff;
+}
+
+.notification-item p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+.notification-header {
+  padding: 8px 12px;
+  font-weight: bold;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-weight: bold;
+}
+
+.header-icons {
+  display: flex;
+  gap: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.header-icons i {
+  transition: color 0.2s;
+}
+
+.header-icons i:hover {
+  color: #0056b3; /* darker blue on hover */
+}

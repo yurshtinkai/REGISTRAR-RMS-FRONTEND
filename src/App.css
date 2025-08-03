@@ -2,7 +2,7 @@
 /* src/App.css */
 /* Default background color for logged-in views */
 body {
-  background-color: #f0f2f5;
+  background-color: #ffffff;
 }
 
 /* Class to apply the background image only to the login screen */
@@ -101,7 +101,7 @@ body.login-background {
   color: #343a40;
   border-right: 1px solid #dee2e6;
   display: flex;
-  z-index: 1051;
+  z-index: 1050;
   overflow-y:auto;
   flex-direction: column;
 }
