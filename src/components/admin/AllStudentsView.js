@@ -5,6 +5,9 @@ function AllStudentsView({ enrolledStudents }) {
     const userRole = localStorage.getItem('userRole');
     const isAdmin = userRole === 'admin';
 
+    console.log('AllStudentsView - enrolledStudents:', enrolledStudents); // Debug log
+    console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents.length); // Debug log
+
     const handleViewClick = (e) => {
         if (!isAdmin) {
             e.preventDefault();
@@ -51,7 +54,11 @@ function AllStudentsView({ enrolledStudents }) {
                                         <td>{student.name}</td>
                                         <td>{student.gender}</td>
                                         <td>{student.course}</td>
-                                        <td><span className="badge bg-success">Regular</span></td>
+                                        <td>
+                                            <span className={`badge ${student.status === 'Registered' ? 'bg-success' : 'bg-warning'}`}>
+                                                {student.status}
+                                            </span>
+                                        </td>
                                         <td>{student.createdAt}</td>
                                         <td>
                                             {/* START: Updated Button */}

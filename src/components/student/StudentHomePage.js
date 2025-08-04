@@ -10,21 +10,24 @@ function StudentHomePage() {
     useEffect(() => {
         const checkRegistrationStatus = async () => {
             try {
-                console.log('Checking registration status...');
-                // This endpoint will need to be created in your backend
+                // For development: always set as not registered to show the form
+                console.log('Development mode: Setting isRegistered to false to show form');
+                setIsRegistered(false);
+                setIsLoading(false);
+                
+                // Comment out the API call for now
+                /*
                 const response = await fetch(`${API_BASE_URL}/students/registration-status`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
-                console.log('Response received:', response);
                 const data = await response.json();
-                console.log('Registration data:', data);
                 if (response.ok) {
                     setIsRegistered(data.isRegistered);
-                    console.log('Is registered:', data.isRegistered);
                 }
+                */
             } catch (error) {
                 console.error("Failed to check registration status:", error);
-                setIsRegistered(false); // Assume not registered if there's an error
+                setIsRegistered(false);
             } finally {
                 setIsLoading(false);
             }

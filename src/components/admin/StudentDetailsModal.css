@@ -1,0 +1,314 @@
+.student-details-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.student-details-modal {
+    background: white;
+    border-radius: 8px;
+    max-width: 1200px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    text-align: center;
+}
+
+.modal-header h2 {
+    margin: 0 0 5px 0;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    opacity: 0.9;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-body {
+    padding: 30px;
+}
+
+.student-info-section,
+.address-section,
+.family-section,
+.academic-section,
+.academic-history-section {
+    margin-bottom: 30px;
+}
+
+.student-info-section h4,
+.address-section h4,
+.family-section h4,
+.academic-section h4,
+.academic-history-section h4 {
+    color: #2c3e50;
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    padding: 10px 0;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+.family-member h5,
+.education-level h5,
+.additional-academic h5 {
+    color: #34495e;
+    font-size: 16px;
+    font-weight: bold;
+    margin: 20px 0 15px 0;
+    padding-left: 10px;
+    border-left: 3px solid #3498db;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.info-item label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-item span {
+    color: #34495e;
+    font-size: 14px;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #007bff;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.family-member,
+.education-level,
+.additional-academic {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.status-regular {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-irregular {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+.status-probationary {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.status-graduated {
+    color: #17a2b8;
+    font-weight: bold;
+}
+
+.status-dropped {
+    color: #6c757d;
+    font-weight: bold;
+}
+
+.modal-footer {
+    padding: 20px 30px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    border-radius: 0 0 8px 8px;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .student-details-modal {
+        margin: 10px;
+        max-height: 95vh;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .student-details-modal-overlay {
+        position: static;
+        background: none;
+        padding: 0;
+    }
+
+    .student-details-modal {
+        box-shadow: none;
+        border: 1px solid #000;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .modal-header {
+        background: #000 !important;
+        color: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .close-btn,
+    .modal-footer {
+        display: none;
+    }
+
+    .family-member,
+    .education-level,
+    .additional-academic {
+        background: #fff !important;
+        border: 1px solid #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .info-item span {
+        background: #fff !important;
+        border: 1px solid #ccc;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .student-info-section,
+    .address-section,
+    .family-section,
+    .academic-section,
+    .academic-history-section {
+        page-break-inside: avoid;
+    }
+}
+
+/* Scrollbar Styling */
+.student-details-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.student-details-modal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.student-details-modal::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.student-details-modal::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+} 
