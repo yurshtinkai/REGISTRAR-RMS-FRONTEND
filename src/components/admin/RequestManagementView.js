@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getToken } from '../../utils/api';
+import PrintPreviewModal from './PrintPreviewModal'; 
 
 function RequestManagementView({ setDocumentModalData }) {
   const [requests, setRequests] = useState([]);
@@ -8,6 +9,10 @@ function RequestManagementView({ setDocumentModalData }) {
   const userRole = localStorage.getItem('userRole');
   const isReadOnly = userRole === 'accounting';
   const isAdmin = userRole === 'admin';
+
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printModalContent, setPrintModalContent] = useState('');
+  const [printModalStyles, setPrintModalStyles] = useState('');
 
   const fetchAllRequests = async () => {
     setLoading(true); setError('');
@@ -117,9 +122,11 @@ function RequestManagementView({ setDocumentModalData }) {
         };
 
         let printContent = '';
+        let styles = '';
         switch (requestToPrint.documentType.toUpperCase()) {
             case 'GOOD MORAL':
                 printContent = `<div class="print-container"><div class="header"><h1>CERTIFICATE OF GOOD MORAL CHARACTER</h1></div><p class="date">${today}</p><p class="body-text">This is to certify that <b>${studentName}</b>, a student of <b>${studentCourse}</b> for Academic Year ${academicYear}, is of good moral character.</p><p class="body-text">This certification is issued upon the request of the student for <b>${requestToPrint.purpose}</b> purposes only.</p><div class="signature-block"><p><b>[REGISTRAR'S NAME]</b></p><p>School Registrar</p></div></div>`;
+                styles = `body{font-family:serif;margin:40px} ...`; 
                 break;
             case 'TOR':
                 printContent = `
@@ -231,6 +238,7 @@ function RequestManagementView({ setDocumentModalData }) {
                         <p class="footer-note">Not valid without school seal</p>
                     </div>
                 `;
+                styles = `body { font-family: 'Times New Roman', Times, serif; } ...`;
                 break;
 
                 case 'DIPLOMA':
@@ -281,11 +289,15 @@ function RequestManagementView({ setDocumentModalData }) {
                         </div>
                     </div>
                 `;
+                styles = `@import url(...); .diploma-container { ... }`;
                 break;
 
             default:
                 printContent = `<h1>${requestToPrint.documentType}</h1><p>Template for this document is not yet available.</p>`;
         }
+        setPrintModalContent(printContent);
+        setPrintModalStyles(styles);
+        setIsPrintModalOpen(true);
 
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -426,6 +438,13 @@ function RequestManagementView({ setDocumentModalData }) {
                 </div>
             </div>
         </div>
+        {isPrintModalOpen && (
+            <PrintPreviewModal
+                initialContent={printModalContent}
+                styles={printModalStyles}
+                onClose={() => setIsPrintModalOpen(false)}
+            />
+        )}
     </div>
   );
 }

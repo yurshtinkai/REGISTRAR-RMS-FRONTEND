@@ -14,7 +14,6 @@ import AllRegistrationsView from './components/admin/AllRegistrationsView';
 import UnenrolledRegistrationsView from './components/admin/UnenrolledRegistrationsView';
 import NewEnrollmentView from './components/admin/NewEnrollmentView';
 import RequestManagementView from './components/admin/RequestManagementView';
-// import PlaceholderView from './components/admin/PlaceholderView';
 import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
@@ -29,7 +28,7 @@ import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
 import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
 import AccountManagementView from './components/admin/AccountManagementView';
-
+import NotificationBell from './components/common/NotificationBell'; // <<<--- IMPORT THIS
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -80,8 +79,10 @@ function App() {
 
   const handleLoginSuccess = (role) => {
     setUserRole(role);
-    if (role === 'admin' || role === 'accounting') {
+    if (role === 'admin') {
       navigate('/admin/dashboard');
+    } else if (role === 'accounting') {
+        navigate('/admin/all-registrations');
     } else if (role === 'student') {
       navigate('/student/home');
     }
@@ -141,15 +142,13 @@ function App() {
     }
     return children;
   };
-
+  
   const logoStyle = {
     width: '185px',
     height: '35px',
-    // Apply margin ONLY for admin/accounting, not for students
     marginLeft: (userRole === 'admin' || userRole === 'accounting') ? '18%' : '0'
   };
 
-  // ...existing code...
   return (
     <div id="app-wrapper">
       {/* Student Navbar */}
@@ -178,48 +177,10 @@ function App() {
               </li>
             </ul>
             <div className="ms-auto d-flex align-items-center">
-              {/* Notification Bell with Dropdown */}
-              <div className="dropdown me-2">
-                <button
-                  className="btn btn-link position-relative dropdown-toggle text-white"
-                  type="button"
-                  id="notificationDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  style={{ color: '#fff' }}
-                >
-                  <i className="fa-regular fa-bell fa-lg"></i>
-                  {/* Notification count badge */}
-                  {Array.isArray(window.studentNotifications) && window.studentNotifications.length > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '0.7rem' }}>
-                      {window.studentNotifications.length}
-                    </span>
-                  )}
-                </button>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style={{ minWidth: '300px', maxHeight: '350px', overflowY: 'auto' }}>
-                  {Array.isArray(window.studentNotifications) && window.studentNotifications.length > 0 ? (
-                    window.studentNotifications.map((notif, idx) => (
-                      <li key={idx}>
-                        <button
-                          className="dropdown-item d-flex align-items-center"
-                          style={{ whiteSpace: 'normal', fontSize: '0.95rem' }}
-                          onClick={() => {
-                            window.studentNotifications = [];
-                            window.location.pathname = '/student/my-request';
-                          }}
-                        >
-                          <i className={`fa-solid fa-circle me-2 ${notif.status === 'approved' ? 'text-success' : 'text-danger'}`}></i>
-                          <span>
-                            Your request for <b>{notif.documentType}</b> was <b>{notif.status}</b>.
-                          </span>
-                        </button>
-                      </li>
-                    ))
-                  ) : (
-                    <li><span className="dropdown-item text-muted">No new notifications</span></li>
-                  )}
-                </ul>
-              </div>
+              
+              {/* --- Add the NotificationBell here --- */}
+              <NotificationBell />
+              
               {/* Profile Dropdown */}
               <div className="dropdown me-3">
                 <button
@@ -266,7 +227,6 @@ function App() {
               <span className="navbar-text me-3">
                 Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})
               </span>
-              {/* Dropdown for Settings */}
               <div className="dropdown">
                 <button
                   className="btn btn-link dropdown-toggle text-white"
@@ -332,11 +292,15 @@ function App() {
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />
             <Route path="manage/encode-enrollments" element={<EncodeEnrollmentView onEncodeStudent={handleEncodeStudent} />} />
-            
-
           </Route>
 
-          <Route path="*" element={<Navigate to={userRole === 'admin' || userRole === 'accounting'? '/admin/dashboard': userRole === 'student'? '/student/dashboard': '/login'} replace />} />
+          <Route path="*" element={<Navigate to={
+              userRole === 'admin' ? '/admin/dashboard' :
+              userRole === 'accounting' ? '/admin/all-registrations' :
+              userRole === 'student' ? '/student/home' :
+              '/login'
+            } replace />} 
+          />
         </Routes>
       </div>
       {modalImage && <ImageViewModal imageUrl={modalImage} onClose={() => setModalImage(null)} />}
