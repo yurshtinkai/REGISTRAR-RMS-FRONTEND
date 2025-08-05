@@ -19,6 +19,13 @@ function Login({ onLoginSuccess }) {
       localStorage.setItem('token', data.token);
       localStorage.setItem('userRole', data.user.role);
       localStorage.setItem('idNumber', data.user.idNumber);
+
+      if (data.user.role === 'student') {
+        const fullName = `${data.user.firstName} ${data.user.middleName || ''} ${data.user.lastName}`;
+        localStorage.setItem('fullName', fullName.trim());
+        localStorage.setItem('course', data.user.course);
+      }
+
       onLoginSuccess(data.user.role);
     } catch (err) { 
       setError(err.message); 

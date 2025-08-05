@@ -1,24 +1,26 @@
-
 function StudentHomePage() {
-    const firstName = localStorage.getItem('firstName') || 'Student';
+    const fullName = localStorage.getItem('fullName');
+    const course = localStorage.getItem('coure');
 
     return (
-        <div className="container-fluid" style={{ marginTop: '0.5rem' }}>
-            <div className="row justify-content-center" style={{ minHeight: '220px' }}>
-                <div className="col-auto d-flex justify-content-center">
+        <div className="container-fluid mt-3">
+            {/* Welcome Section */}
+            <div className="row align-items-center mb-4">
+                <div className="col-auto">
                     <img 
                         src="/student.png" 
                         className="img-fluid"
                         alt="bcstudent"
-                        style={{ maxWidth: '342px', width: '100%', height: 'auto', display: 'block' }}
+                        style={{ maxWidth: '120px', borderRadius: '50%' }}
                     />
                 </div>
-                <div className="col d-flex flex-column justify-content-start" style={{ minHeight: '220px', paddingLeft: '0' }}>
-                    <div style={{ marginTop: '60px', marginLeft: '30px' }}>
-                        <h2 className="mb-0" style={{ fontWeight: 600 }}>Welcome, {firstName}!</h2>
-                    </div>
+                <div className="col">
+                    <h1 className="mb-1 fw-bold">Welcome, {fullName}!</h1>
+                    <h2 className="mb-1 fw-bold">{course} Course</h2>
+                    <p className="text-muted">Manage your student records and requests easily.</p>
                 </div>
             </div>
+
         </div>
     );
 }

@@ -25,7 +25,7 @@ function StudentRequestTable({ refresh }) {
     }, [refresh]);
 
     return (
-         <div className="container-fluid mt-4">
+         <div className="container-fluid mt-5 position-relative py-2 px-4">
             <div className="row justify-content-center">
                 <div className="col-12 col-md-10 col-lg-8 mb-4">
                     <div className="card shadow-lg p-4 h-100">
