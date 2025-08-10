@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../utils/api'; 
 
 function Login({ onLoginSuccess }) {
@@ -74,6 +75,9 @@ function Login({ onLoginSuccess }) {
                 {error && <div className="alert alert-danger">{error}</div>}
                 <div className="d-grid">
                   <button type="submit" className="btn btn-outline-orange rounded-pill mt-2">Login</button>
+                  <Link to="/register" className="btn btn-outline-secondary">
+                      Register as a New Student
+                    </Link>
                 </div>
                 <p className="text-center mt-3 text-white fs-6">
                   <small>Dummy Accounts: Student (S001/password) | Admin (A001/adminpass)| Accounting (AC001/accountingpass)</small>

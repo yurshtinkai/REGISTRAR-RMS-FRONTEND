@@ -3,6 +3,7 @@ import { Routes, Route, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import { API_BASE_URL, getToken } from './utils/api';
 
 // Import components
 import Login from './components/auth/Login';
@@ -30,6 +31,8 @@ import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetail
 import AccountManagementView from './components/admin/AccountManagementView';
 import NotificationBell from './components/common/NotificationBell'; 
 import StudentProfile  from './components/student/StudentProfile';
+import StudentRegistrationForm from './components/student/StudentRegistrationForm';
+import EditStudentDetailView from './components/admin/EditStudentDetailView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -55,10 +58,63 @@ function App() {
 
   const navigate = useNavigate();
 
+  // Function to fetch students from backend
+  const fetchStudents = async () => {
+    try {
+      console.log('Fetching students from backend...'); // Debug log
+      console.log('API_BASE_URL:', API_BASE_URL); // Debug log
+      console.log('Token:', getToken() ? 'Token exists' : 'No token'); // Debug log
+      
+      const response = await fetch(`${API_BASE_URL}/students`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Response status:', response.status); // Debug log
+      console.log('Response ok:', response.ok); // Debug log
+
+      if (response.ok) {
+        const students = await response.json();
+        console.log('Raw students data from backend:', students); // Debug log
+        console.log('Number of students returned:', students.length); // Debug log
+        
+        // Transform the data to match the frontend format
+        const transformedStudents = students.map(student => ({
+          id: student.id,
+          idNo: student.idNumber,
+          name: student.fullName || `${student.firstName} ${student.lastName}`,
+          gender: student.gender || 'N/A',
+          course: student.course || 'Not registered',
+          status: student.isRegistered ? 'Registered' : 'Not registered',
+          createdAt: new Date(student.createdAt).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          }),
+          academicStatus: student.academicStatus || 'Not registered'
+        }));
+        console.log('Transformed students data:', transformedStudents); // Debug log
+        setEnrolledStudents(transformedStudents);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to fetch students:', response.status, response.statusText);
+        console.error('Error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      console.error('Error details:', error.message);
+    }
+  };
+
   useEffect(() => {
     const role = getUserRole();
     if (role) {
       setUserRole(role);
+      if (role === 'admin' || role === 'accounting') {
+        fetchStudents(); // Fetch students only for admin/accounting
+      }
     } else {
        document.body.classList.add('login-background');
     }
@@ -82,8 +138,10 @@ function App() {
     setUserRole(role);
     if (role === 'admin') {
       navigate('/admin/dashboard');
+      fetchStudents(); // Fetch students when admin logs in
     } else if (role === 'accounting') {
         navigate('/admin/all-registrations');
+        fetchStudents(); // Fetch students when accounting logs in
     } else if (role === 'student') {
       navigate('/student/home');
     }
@@ -113,6 +171,11 @@ function App() {
     setStudentToEnroll(null);
     navigate('/admin/all-students');
     alert('Enrollment Complete! Student has been added to the master list.');
+    
+    // Refresh the students list from backend
+    setTimeout(() => {
+      fetchStudents();
+    }, 1000);
   };
 
   const handleEncodeStudent = (encodedStudent) => {
@@ -131,6 +194,11 @@ function App() {
         alert(`Successfully encoded and added ${newStudent.name} to the All Students list.`);
         return [...prev, newStudent];
     });
+    
+    // Refresh the students list from backend
+    setTimeout(() => {
+      fetchStudents();
+    }, 1000);
   };
 
   const closeDocumentModal = () => {
@@ -263,7 +331,7 @@ function App() {
           <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
           <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-
+          <Route path="/register" element={<StudentRegistrationForm />} />
           <Route
             path="/admin"
             element={
@@ -275,6 +343,7 @@ function App() {
             <Route path="dashboard" element={<DashboardView enrolledStudents={enrolledStudents} />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
+            <Route path="/admin/students/:idNo/edit" element={<EditStudentDetailView />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"
