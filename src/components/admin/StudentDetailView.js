@@ -11,6 +11,7 @@ function StudentDetailView({ enrolledStudents }) {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [documentRequests, setDocumentRequests] = useState([]);
 
   // Fetch student details from backend
   useEffect(() => {
@@ -25,17 +26,27 @@ function StudentDetailView({ enrolledStudents }) {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`
-          }
+        // Fetch the main student details
+        const studentResponse = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
+          headers: { 'Authorization': `Bearer ${getToken()}` }
         });
 
-        if (response.ok) {
-          const studentData = await response.json();
-          console.log('Student data from backend:', studentData); // Debug log
-          console.log('Student details:', studentData.studentDetails); // Debug log for student details
+        if (studentResponse.ok) {
+          const studentData = await studentResponse.json();
           setStudent(studentData);
+
+          // --- START: Fetch the document requests for this student ---
+          const requestsResponse = await fetch(`${API_BASE_URL}/requests/student/${studentData.id}`, {
+              headers: { 'Authorization': `Bearer ${getToken()}` }
+          });
+          if (requestsResponse.ok) {
+              const requestsData = await requestsResponse.json();
+              setDocumentRequests(requestsData);
+          } else {
+              console.error("Failed to fetch student's document requests.");
+          }
+          // --- END: Fetch requests ---
+
         } else {
           setError('Failed to fetch student details');
         }
@@ -173,6 +184,9 @@ function StudentDetailView({ enrolledStudents }) {
             <Link to="/admin/all-students" className="btn btn-outline-secondary">
               <i className="fas fa-arrow-left me-2"></i>Back to List
             </Link>
+            <Link to={`/admin/students/${idNo}/edit`} className="btn btn-primary">
+                <i className="fas fa-pencil-alt me-2"></i>Edit
+              </Link>
           </div>
         </div>
       </div>
@@ -227,8 +241,110 @@ function StudentDetailView({ enrolledStudents }) {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="col-lg-8">
+
+          <div className="card shadow-sm mb-4">
+    <div className="card-header bg-white d-flex justify-content-between align-items-center">
+      <h5 className="mb-0">Document Requests</h5>
+      <button className="btn btn-sm btn-outline-primary">New Request</button>
+    </div>
+    <div className="card-body">
+      <div className="table-responsive">
+        <table className="table table-hover table-sm">
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>Status</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+              {documentRequests.length > 0 ? (
+                documentRequests.map((req) => (
+                  <tr key={req.id}>
+                      <td>{req.documentType}</td>
+                      <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status}</span></td>
+                      <td>1</td>
+                      <td>{new Date(req.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <button className="btn btn-sm btn-info" title="View Details">
+                          <i className="fas fa-eye"></i>
+                        </button>
+                      </td>
+                  </tr>
+                ))
+                ) : (
+                <tr>
+                  <td colSpan="4" className="text-center text-muted">No document requests found for this student.</td>
+                </tr>
+                )}
+                </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div className="card shadow-sm border-0">
+            <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">Enrolled Subjects</h5>
+                <div className="d-flex align-items-center">
+                    <select 
+                        className="form-select form-select-sm me-2" 
+                        style={{width: '200px'}}
+                        value={currentSemester}
+                        onChange={(e) => setCurrentSemester(e.target.value)}
+                    >
+                        {Object.keys(studentDetails.enrolledSubjects).map(semester => (
+                            <option key={semester} value={semester}>{semester}</option>
+                        ))}
+                    </select>
+                    <button onClick={() => setCurriculumModalOpen(true)} className="btn btn-sm btn-outline-secondary">View Student Curriculum Track</button>
+                </div>
+            </div>
+            <div className="card-body">
+              <div className="table-responsive">
+                <table className="table table-hover table-sm">
+                  <thead>
+                    <tr>
+                      <th>Subject</th>
+                      <th className="text-center">Units</th>
+                      <th className="text-center">Final Grade</th>
+                      <th className="text-center">Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentSubjects.length > 0 ? (
+                      currentSubjects.map((sub, index) => (
+                        <tr key={index}>
+                          <td>{sub.subject}</td>
+                          <td className="text-center">{sub.units}</td>
+                          <td className="text-center">{sub.finalGrade}</td>
+                          <td className="text-center"><span className={getSubjectStatusBadge(sub.status)}>{sub.status}</span></td>
+                          <td><button className="btn btn-sm btn-link">More Info</button></td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center text-muted">No subjects found for this semester.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {currentSubjects.length > 0 && (
+                    <tfoot>
+                      <tr className="table-light">
+                        <td colSpan="2" className="text-end fw-bold">Total Units: <span className="fw-normal">{totalUnits}</span></td>
+                        <td colSpan="3" className="text-end fw-bold">Weighted Average: <span className="fw-normal">{weightedAverage}</span></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            </div>
+          </div>
+
           {/* Personal Information */}
           <div className="card shadow-sm border-0 mb-4">
             <div className="card-header bg-info text-white">
@@ -584,4 +700,4 @@ function StudentDetailView({ enrolledStudents }) {
   );
 }
 
-export default StudentDetailView;
+export default StudentDetailView; 

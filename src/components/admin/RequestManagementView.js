@@ -69,10 +69,10 @@ function RequestManagementView({ setDocumentModalData }) {
         });
         await fetchAllRequests();
   
-        const studentName = requestToPrint.User 
-            ? `${requestToPrint.User.lastName}, ${requestToPrint.User.firstName} ${requestToPrint.User.middleName || ''}` 
+        const studentName = requestToPrint.student 
+            ? `${requestToPrint.student.lastName}, ${requestToPrint.student.firstName} ${requestToPrint.student.middleName || ''}` 
             : '[Student Full Name]'; 
-        const studentCourse = requestToPrint.User?.course || '[Student Course]';
+        const studentCourse = requestToPrint.student?.studentDetails?.course?.name || '[Student Course]';
         const academicYear = '2024-2025';
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -128,6 +128,119 @@ function RequestManagementView({ setDocumentModalData }) {
                 printContent = `<div class="print-container"><div class="header"><h1>CERTIFICATE OF GOOD MORAL CHARACTER</h1></div><p class="date">${today}</p><p class="body-text">This is to certify that <b>${studentName}</b>, a student of <b>${studentCourse}</b> for Academic Year ${academicYear}, is of good moral character.</p><p class="body-text">This certification is issued upon the request of the student for <b>${requestToPrint.purpose}</b> purposes only.</p><div class="signature-block"><p><b>[REGISTRAR'S NAME]</b></p><p>School Registrar</p></div></div>`;
                 styles = `body{font-family:serif;margin:40px} ...`; 
                 break;
+
+            case 'GRADE SLIP':
+                // Calculate totals for the first semester as an example
+                const currentSemesterGrades = gradesData[0];
+                let totalUnits = 0;
+                let totalWeight = 0;
+                currentSemesterGrades.subjects.forEach(sub => {
+                    const grade = parseFloat(sub.grade);
+                    if (!isNaN(grade)) {
+                        totalUnits += sub.units;
+                        totalWeight += grade * sub.units;
+                    } else {
+                        // For non-numeric grades like 'P' (Passed), just add units
+                        totalUnits += sub.units;
+                    }
+                });
+                const weightedAverage = totalWeight > 0 ? (totalWeight / totalUnits).toFixed(4) : 'N/A';
+                
+                printContent = `
+                    <div class="gradeslip-container">
+                        <div class="gradeslip-header">
+                            <img src="/bc.png" alt="Logo" class="logo">
+                            <div>
+                                <h2>BENEDICTO COLLEGE</h2>
+                                <p>A.S. Fortuna Street, Mandaue City 6014, Cebu, Philippines</p>
+                                <h3>GRADE SLIP</h3>
+                            </div>
+                        </div>
+
+                        <table class="info-table">
+                            <tr>
+                                <td><strong>STUDENT NAME:</strong></td>
+                                <td>${studentName.toUpperCase()}</td>
+                                <td><strong>STUDENT ID:</strong></td>
+                                <td>${requestToPrint.student?.idNumber || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>COURSE:</strong></td>
+                                <td>${studentCourse}</td>
+                                <td><strong>ACADEMIC YEAR:</strong></td>
+                                <td>${currentSemesterGrades.year}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>SEMESTER:</strong></td>
+                                <td colspan="3">${currentSemesterGrades.semester}</td>
+                            </tr>
+                        </table>
+
+                        <table class="grades-table">
+                            <thead>
+                                <tr>
+                                    <th>SUBJECT CODE</th>
+                                    <th>SUBJECT DESCRIPTION</th>
+                                    <th>UNITS</th>
+                                    <th>FINAL GRADE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${currentSemesterGrades.subjects.map(sub => `
+                                    <tr>
+                                        <td>${sub.code}</td>
+                                        <td>${sub.desc}</td>
+                                        <td class="text-center">${sub.units}</td>
+                                        <td class="text-center">${sub.grade}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr class="summary-row">
+                                    <td colspan="2" class="text-right"><strong>TOTAL UNITS:</strong></td>
+                                    <td class="text-center"><strong>${totalUnits}</strong></td>
+                                    <td></td>
+                                </tr>
+                                <tr class="summary-row">
+                                    <td colspan="2" class="text-right"><strong>WEIGHTED AVERAGE:</strong></td>
+                                    <td colspan="2" class="text-center"><strong>${weightedAverage}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <div class="remarks-section">
+                            <p><strong>REMARKS:</strong> This is an unofficial copy, not valid for transfer.</p>
+                        </div>
+
+                        <div class="signature-section">
+                            <p class="signature-name">WENELITO M. LAYSON</p>
+                            <p class="signature-title">School Registrar</p>
+                        </div>
+                    </div>
+                `;
+                styles = `
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .gradeslip-container { max-width: 800px; margin: auto; padding: 20px; border: 1px solid #ccc; }
+                    .gradeslip-header { display: flex; align-items: center; text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; }
+                    .gradeslip-header .logo { width: 60px; height: 60px; margin-right: 20px; }
+                    .gradeslip-header h2, .gradeslip-header p, .gradeslip-header h3 { margin: 0; line-height: 1.2; }
+                    .info-table { width: 100%; margin-bottom: 20px; border-collapse: collapse; font-size: 11pt; }
+                    .info-table td { padding: 5px; }
+                    .grades-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                    .grades-table th, .grades-table td { border: 1px solid #000; padding: 8px; text-align: left; }
+                    .grades-table thead { background-color: #f2f2f2; }
+                    .grades-table th { text-align: center; }
+                    .grades-table tfoot { font-weight: bold; }
+                    .summary-row td { border: none; }
+                    .text-center { text-align: center; }
+                    .text-right { text-align: right; padding-right: 10px; }
+                    .remarks-section { margin-top: 30px; font-style: italic; font-size: 10pt; }
+                    .signature-section { margin-top: 60px; text-align: center; }
+                    .signature-name { font-weight: bold; }
+                    .signature-title { border-top: 1px solid black; display: inline-block; padding: 5px 20px 0; }
+                `;
+                break;
+
             case 'TOR':
                 printContent = `
                 <div class="tor-container">
@@ -389,24 +502,23 @@ function RequestManagementView({ setDocumentModalData }) {
                 <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
                     <table className="table table-hover">
                         <thead className="table-dark sticky-top">
-                            <tr><th>ID</th><th>Student</th><th>Doc Type</th><th>Purpose</th><th>Status</th><th>Notes</th><th>Document</th><th>Actions</th></tr>
+                            <tr><th>Student ID</th><th>Doc Type</th><th>Purpose</th><th>Status</th><th>Notes</th><th>Date</th><th>Document</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
                             {requests.map((req) => (
                                 <tr key={req.id}>
-                                    <td>{req.id}</td><td>{req.User?.idNumber || 'N/A'}</td><td>{req.documentType}</td><td>{req.purpose}</td>
+                                    <td>{req.student?.idNumber || 'N/A'}</td><td>{req.documentType}</td><td>{req.purpose}</td>
                                     <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status.replace(/_/g, ' ')}</span></td>
                                     <td>{req.notes || 'N/A'}</td>
+                                    <td>{new Date(req.createdAt).toISOString().split('T')[0]}</td>
                                     <td>{req.filePath && req.filePath.length > 0 ? (
                                       <button
                                         className="btn btn-sm btn-info"
-                                        onClick={(e) => {
-                                        // First, check for permissions from handleViewClick
+                                        onClick={(e) => {   
                                         if (!isAdmin) {
                                         e.preventDefault();
                                         return;
                                         }
-                                        // If permissions are okay, then open the document
                                         handleViewDocument(req);
                                       }}
                                       >View</button>) : 'N/A'}</td>

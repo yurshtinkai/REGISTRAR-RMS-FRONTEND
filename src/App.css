@@ -629,33 +629,33 @@ body.login-background {
 /* Student navbar button designs */
 .student-navbar-btn {
           font-size: 1rem;
-          color: #ffffff;
-          background: none;
-          border: none;
-          border-radius: 0;
-          min-width: 90px;
-          padding: 8px 18px 8px 18px;
-          position: relative;
-          transition: background 0.15s;
-        }
-        .student-navbar-btn.active, .student-navbar-btn:focus {
-          color: #f1f1f1;
-        }
-        .student-navbar-btn::after {
-          content: '';
-          display: block;
-          position: absolute;
-          left: 12px;
-          right: 12px;
-          bottom: 0;
-          height: 3px;
-          background: transparent;
-          border-radius: 2px;
-          transition: background 0.2s, width 0.2s;
-        }
-        .student-navbar-btn:hover::after {
-          background: #ffffff;
-        }
-        .student-navbar-btn.active::after {
-          background: #ffffff;
-        }
+  color: #ffffff;
+  background: none;
+  border: none;
+  border-radius: 0;
+  min-width: 90px;
+  padding: 8px 18px 8px 18px;
+  position: relative;
+  transition: background 0.15s;
+}
+.student-navbar-btn.active, .student-navbar-btn:focus {
+  color: #f1f1f1;
+}
+.student-navbar-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.2s, width 0.2s;
+}
+.student-navbar-btn:hover::after {
+  background: #ffffff;
+}
+.student-navbar-btn.active::after {
+  background: #ffffff;
+}

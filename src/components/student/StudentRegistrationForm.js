@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getToken } from '../../utils/api';
 import './StudentRegistrationForm.css';
 
@@ -10,7 +11,10 @@ function StudentRegistrationForm({ onComplete }) {
     
     const [formData, setFormData] = useState({
         // I. PERSONAL DATA
-        fullName: '',
+        firstName: '',
+        lastName: '',
+        middleName: '',
+        
         gender: '',
         maritalStatus: '',
         dateOfBirth: '',
@@ -86,8 +90,11 @@ function StudentRegistrationForm({ onComplete }) {
         lastCollegeAttended: '',
         lastCollegeYearTaken: '',
         lastCollegeCourse: '',
-        lastCollegeMajor: ''
+        lastCollegeMajor: '',
+        password: '',
+        confirmPassword: '',
     });
+    
 
     useEffect(() => {
         fetchCourses();
@@ -95,11 +102,7 @@ function StudentRegistrationForm({ onComplete }) {
 
     const fetchCourses = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/courses`, {
-                headers: {
-                    'Authorization': `Bearer ${getToken()}`
-                }
-            });
+            const response = await fetch(`${API_BASE_URL}/courses`);
 
             if (response.ok) {
                 const data = await response.json();
@@ -127,12 +130,23 @@ function StudentRegistrationForm({ onComplete }) {
         setLoading(true);
         setError('');
 
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match.');
+            return;
+        }
+        if (formData.password.length < 6) {
+            setError('Password must be at least 6 characters long.');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
         try {
             const response = await fetch(`${API_BASE_URL}/students/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
                 },
                 body: JSON.stringify(formData)
             });
@@ -153,7 +167,7 @@ function StudentRegistrationForm({ onComplete }) {
     };
 
     const nextStep = () => {
-        if (currentStep < 4) {
+        if (currentStep < 5) {
             setCurrentStep(currentStep + 1);
         }
     };
@@ -169,14 +183,16 @@ function StudentRegistrationForm({ onComplete }) {
             <h3>I. PERSONAL DATA</h3>
             <div className="form-row">
                 <div className="form-group">
-                    <label>Student's Full Name *</label>
-                    <input
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        required
-                    />
+                    <label>First Name *</label>
+                    <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} required />
+                </div>
+                <div className="form-group">
+                    <label>Middle Name</label>
+                    <input type="text" name="middleName" value={formData.middleName} onChange={handleInputChange} />
+                </div>
+                <div className="form-group">
+                    <label>Last Name *</label>
+                    <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
                 </div>
                 <div className="form-group">
                     <label>Gender *</label>
@@ -914,12 +930,45 @@ function StudentRegistrationForm({ onComplete }) {
         </div>
     );
 
+    const renderStep5 = () => (
+    <div className="registration-step">
+        <h3>V. REGISTER YOUR ACCOUNT FOR REQUEST LOGIN</h3>
+        
+        {/* THIS IS THE CODE YOU'RE LOOKING FOR */}
+        <div className="form-row">
+            <div className="form-group">
+                <label>Student ID Number *</label>
+                <input 
+                    type="text" 
+                    name="idNumber" 
+                    value={formData.idNumber} 
+                    onChange={handleInputChange} 
+                    placeholder="e.g., S001"
+                    required 
+                />
+            </div>
+        </div>
+        
+        <div className="form-row">
+            <div className="form-group">
+                <label>Password *</label>
+                <input type="password" name="password" value={formData.password} onChange={handleInputChange} required />
+            </div>
+            <div className="form-group">
+                <label>Confirm Password *</label>
+                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} required />
+            </div>
+        </div>
+    </div>
+);
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1: return renderStep1();
             case 2: return renderStep2();
             case 3: return renderStep3();
             case 4: return renderStep4();
+            case 5: return renderStep5();
             default: return renderStep1();
         }
     };
@@ -930,7 +979,7 @@ function StudentRegistrationForm({ onComplete }) {
                 <h2>STUDENT PERMANENT RECORDS (SPR)</h2>
                 <h3>BENEDICTO COLLEGE</h3>
                 <div className="step-indicator">
-                    Step {currentStep} of 4
+                    Step {currentStep} of 5
                 </div>
             </div>
 
@@ -946,7 +995,7 @@ function StudentRegistrationForm({ onComplete }) {
                         </button>
                     )}
                     
-                    {currentStep < 4 ? (
+                    {currentStep < 5 ? (
                         <button type="button" onClick={nextStep} className="btn btn-primary">
                             Next
                         </button>

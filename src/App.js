@@ -29,7 +29,10 @@ import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
 import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
 import AccountManagementView from './components/admin/AccountManagementView';
-import NotificationBell from './components/common/NotificationBell'; // <<<--- IMPORT THIS
+import NotificationBell from './components/common/NotificationBell'; 
+import StudentProfile  from './components/student/StudentProfile';
+import StudentRegistrationForm from './components/student/StudentRegistrationForm';
+import EditStudentDetailView from './components/admin/EditStudentDetailView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -320,14 +323,15 @@ function App() {
           </div>
         </nav>
       )}
-      <div className="content-wrapper" style={userRole === 'student' ? { marginTop: '70px' } : {}}>
+      <div className="content-wrapper" style={userRole === 'student' ? { marginTop: '0px' } : {}}>
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
 
           <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
           <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
           <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
-
+          <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+          <Route path="/register" element={<StudentRegistrationForm />} />
           <Route
             path="/admin"
             element={
@@ -339,6 +343,7 @@ function App() {
             <Route path="dashboard" element={<DashboardView enrolledStudents={enrolledStudents} />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
+            <Route path="/admin/students/:idNo/edit" element={<EditStudentDetailView />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"

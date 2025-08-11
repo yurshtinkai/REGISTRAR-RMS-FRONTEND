@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; 
 import { Link } from 'react-router-dom'; // <<<--- ADD THIS IMPORT
 
 function AllStudentsView({ enrolledStudents }) {
@@ -7,6 +7,7 @@ function AllStudentsView({ enrolledStudents }) {
 
     console.log('AllStudentsView - enrolledStudents:', enrolledStudents); // Debug log
     console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents.length); // Debug log
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleViewClick = (e) => {
         if (!isAdmin) {
@@ -16,10 +17,18 @@ function AllStudentsView({ enrolledStudents }) {
         }
     };
 
+    const filteredStudents = enrolledStudents.filter(student => {
+        const searchTermLower = searchTerm.toLowerCase();
+        const nameLower = student.name.toLowerCase();
+        const idNoLower = student.idNo.toLowerCase();
+        
+        return nameLower.includes(searchTermLower) || idNoLower.includes(searchTermLower);
+    });
+
     return (
         <div className="container-fluid">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2 className="m-0">Students</h2>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+                <h2 className="m-0"></h2>
                 <div>
                     <button className="btn btn-outline-secondary me-2">Export</button>
                     <button className="btn btn-primary">+ Add New</button>
@@ -32,7 +41,14 @@ function AllStudentsView({ enrolledStudents }) {
                 </div>
                 <div className="card-body">
                      <div className="row mb-3">
-                        <div className="col-md-6"><div className="input-group"><input type="text" className="form-control" placeholder="Search..." disabled={!isAdmin}/><button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div>
+                        <div className="col-md-6"><div className="input-group">
+                            <input type="text" 
+                            className="form-control" 
+                            placeholder="Search by ID No. or Name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            <button className="btn btn-outline-secondary" type="button"><i className="fas fa-search"></i></button></div></div>
                      </div>
                     <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' }}>
                         <table className="table table-hover">
@@ -48,7 +64,7 @@ function AllStudentsView({ enrolledStudents }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {enrolledStudents.length > 0 ? enrolledStudents.map(student => (
+                                {filteredStudents.length > 0 ? filteredStudents.map(student => (
                                     <tr key={student.id}>
                                         <td>{student.idNo}</td>
                                         <td>{student.name}</td>
@@ -59,7 +75,7 @@ function AllStudentsView({ enrolledStudents }) {
                                                 {student.status}
                                             </span>
                                         </td>
-                                        <td>{student.createdAt}</td>
+                                        <td>{new Date(student.createdAt).toISOString().split('T')[0]}</td>
                                         <td>
                                             {/* START: Updated Button */}
                                             <Link to={`/admin/students/${student.idNo}`} className="btn btn-sm btn-info me-1 " title="View" onClick={handleViewClick}>
