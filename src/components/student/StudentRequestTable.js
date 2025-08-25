@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function StudentRequestTable({ refresh }) {
     const [requests, setRequests] = useState([]);
@@ -7,7 +7,7 @@ function StudentRequestTable({ refresh }) {
 
     const fetchRequests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'X-Session-Token': getSessionToken() } });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to fetch');
             setRequests(data);

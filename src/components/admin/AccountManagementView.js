@@ -1,30 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function AccountManagementView() {
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [debugInfo, setDebugInfo] = useState({});
     
     // This state will now hold the info for the reset password modal
     const [resetInfo, setResetInfo] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        // ... fetchAccounts function remains the same
         const fetchAccounts = async () => {
             setLoading(true);
+            setError('');
+            setDebugInfo({});
+            
             try {
-                const response = await fetch(`${API_BASE_URL}/accounts`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if (!response.ok) {
-                    throw new Error('Failed to fetch accounts. Please log in again.');
+                const sessionToken = getSessionToken();
+                console.log('Session Token:', sessionToken ? 'Exists' : 'Missing');
+                
+                if (!sessionToken) {
+                    throw new Error('No session token found. Please login as admin first.');
                 }
+
+                console.log('Fetching from:', `${API_BASE_URL}/accounts`);
+                
+                const response = await fetch(`${API_BASE_URL}/accounts`, {
+                    headers: { 
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.log('Error response:', errorData);
+                    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Received data:', data);
+                console.log('Data length:', data.length);
+                
                 setAccounts(data);
+                setDebugInfo({
+                    sessionToken: sessionToken ? 'Present' : 'Missing',
+                    apiUrl: `${API_BASE_URL}/accounts`,
+                    responseStatus: response.status,
+                    dataLength: data.length,
+                    sampleData: data[0] || 'No data'
+                });
+                
             } catch (err) {
+                console.error('Fetch error:', err);
                 setError(err.message);
+                setDebugInfo({
+                    error: err.message,
+                    sessionToken: getSessionToken() ? 'Present' : 'Missing',
+                    apiUrl: `${API_BASE_URL}/accounts`
+                });
             } finally {
                 setLoading(false);
             }
@@ -43,7 +82,7 @@ function AccountManagementView() {
         try {
             const response = await fetch(`${API_BASE_URL}/accounts/${account.id}/reset-password`, {
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${getToken()}` },
+                headers: { 'X-Session-Token': getSessionToken() },
             });
 
             if (!response.ok) {
@@ -63,6 +102,7 @@ function AccountManagementView() {
         }
     };
     // --- END: This function now handles resetting the password ---
+    
     const filteredAccounts = accounts.filter(acc => {
         const fullName = `${acc.lastName}, ${acc.firstName} ${acc.middleName || ''}`.toLowerCase();
         const search = searchTerm.toLowerCase();
@@ -70,12 +110,94 @@ function AccountManagementView() {
         return acc.idNumber.toLowerCase().includes(search) || fullName.includes(search);
     });
 
-    if (loading) return <p>Loading accounts...</p>;
-    if (error) return <div className="alert alert-danger">{error}</div>;
+    if (loading) return (
+        <div className="container-fluid">
+            <h2 className="mb-4">Account Management</h2>
+            <div className="alert alert-info">
+                <h4>Loading student data...</h4>
+                <p>Please wait while we fetch student information from the database.</p>
+            </div>
+        </div>
+    );
+    
+    if (error) return (
+        <div className="container-fluid">
+            <h2 className="mb-4">Account Management</h2>
+            <div className="alert alert-danger">
+                <h4>Error Loading Data</h4>
+                <p><strong>Error:</strong> {error}</p>
+                
+                {/* Debug Information */}
+                <div className="mt-3">
+                    <h5>Debug Information:</h5>
+                    <pre className="bg-light p-2 rounded">
+                        {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                </div>
+                
+                <div className="mt-3">
+                    <h5>Possible Solutions:</h5>
+                    <ul>
+                        <li>Make sure you're logged in as admin (A001)</li>
+                        <li>Check if the backend server is running</li>
+                        <li>Verify the database has student data</li>
+                        <li>Check browser console for more details</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="container-fluid">
             <h2 className="mb-4">Account Management</h2>
+            
+            {/* Debug Information */}
+            {process.env.NODE_ENV === 'development' && (
+                <div className="alert alert-info mb-4">
+                    <h5>Debug Info:</h5>
+                    <pre className="mb-0">
+                        {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                </div>
+            )}
+            
+            {/* Registration Statistics */}
+            <div className="row mb-4">
+                <div className="col-md-3">
+                    <div className="card bg-primary text-white">
+                        <div className="card-body">
+                            <h5 className="card-title">Total Students</h5>
+                            <h3>{accounts.length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="card bg-success text-white">
+                        <div className="card-body">
+                            <h5 className="card-title">Fully Enrolled</h5>
+                            <h3>{accounts.filter(acc => acc.isFullyEnrolled).length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="card bg-warning text-white">
+                        <div className="card-body">
+                            <h5 className="card-title">Registered Only</h5>
+                            <h3>{accounts.filter(acc => acc.isRegistered && !acc.isFullyEnrolled).length}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div className="col-md-3">
+                    <div className="card bg-secondary text-white">
+                        <div className="card-body">
+                            <h5 className="card-title">Not Registered</h5>
+                            <h3>{accounts.filter(acc => !acc.isRegistered).length}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div className="card shadow-sm">
                 <div className="card-header bg-white">
                     <h4 className="card-title mb-0">Student Account List</h4>
@@ -104,16 +226,52 @@ function AccountManagementView() {
                                 <tr>
                                     <th>ID Number</th>
                                     <th>Name of Student</th>
-                                    <th>Date Created</th>
+                                    <th>Course</th>
+                                    <th>Year Level</th>
+                                    <th>Semester</th>
+                                    <th>Registration Status</th>
+                                    <th>Enrollment Count</th>
+                                    <th>Total Units</th>
+                                    <th>Registration Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredAccounts.length > 0 ? filteredAccounts.map(acc => (
-                                    <tr key={acc.id}>
+                                    <tr key={acc.id} className={acc.isFullyEnrolled ? 'table-success' : acc.isRegistered ? 'table-warning' : ''}>
                                         <td>{acc.idNumber}</td>
                                         <td>{`${acc.lastName}, ${acc.firstName} ${acc.middleName || ''}`}</td>
-                                        <td>{new Date(acc.createdAt).toLocaleString()}</td>
+                                        <td>{acc.course}</td>
+                                        <td>
+                                            <span className={`badge ${acc.currentYearLevel === 'Not registered' ? 'bg-secondary' : 'bg-primary'}`}>
+                                                {acc.currentYearLevel}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${acc.currentSemester === 'Not registered' ? 'bg-secondary' : 'bg-primary'}`}>
+                                                {acc.currentSemester}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${
+                                                acc.registrationStatus === 'Approved' ? 'bg-success' : 
+                                                acc.registrationStatus === 'Pending' ? 'bg-warning' : 
+                                                acc.registrationStatus === 'Rejected' ? 'bg-danger' : 'bg-secondary'
+                                            }`}>
+                                                {acc.registrationStatus}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${acc.enrollmentCount > 0 ? 'bg-success' : 'bg-secondary'}`}>
+                                                {acc.enrollmentCount} courses
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className="badge bg-info">
+                                                {acc.totalUnits} units
+                                            </span>
+                                        </td>
+                                        <td>{acc.registrationDate || 'Not registered'}</td>
                                         <td>
                                             <button 
                                                 className="btn btn-sm btn-outline-warning"  
@@ -126,7 +284,26 @@ function AccountManagementView() {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="4" className="text-center text-muted">No student accounts found.</td>
+                                        <td colSpan="10" className="text-center text-muted">
+                                            <div className="py-4">
+                                                <h5>No students found</h5>
+                                                <p className="text-muted mb-0">
+                                                    {accounts.length === 0 
+                                                        ? 'No student accounts exist in the database.' 
+                                                        : 'No students match your search criteria.'}
+                                                </p>
+                                                {accounts.length === 0 && (
+                                                    <div className="mt-3">
+                                                        <button 
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={() => window.location.reload()}
+                                                        >
+                                                            Refresh Data
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
                                     </tr>
                                 )}
                             </tbody>

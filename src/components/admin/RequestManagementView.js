@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import PrintPreviewModal from './PrintPreviewModal'; 
 
 function RequestManagementView({ setDocumentModalData }) {
@@ -17,11 +17,23 @@ function RequestManagementView({ setDocumentModalData }) {
   const fetchAllRequests = async () => {
     setLoading(true); setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/requests`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      const sessionToken = getSessionToken();
+      console.log('🔍 Admin - Fetching requests with token:', sessionToken ? 'EXISTS' : 'MISSING');
+      console.log('🔍 Admin - User role:', userRole);
+      
+      const response = await fetch(`${API_BASE_URL}/requests`, { 
+        headers: { 'X-Session-Token': sessionToken } 
+      });
+      
+      console.log('📡 Admin - Response status:', response.status);
+      
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to fetch');
       setRequests(data);
-    } catch (err) { setError(err.message); }
+    } catch (err) { 
+      console.error('❌ Admin - Error fetching requests:', err);
+      setError(err.message); 
+    }
     finally { setLoading(false); }
   };
 
@@ -36,16 +48,20 @@ function RequestManagementView({ setDocumentModalData }) {
     if (notes === null) return;
 
     try {
+      const sessionToken = getSessionToken();
+      console.log('🔍 Admin - Updating request status with token:', sessionToken ? 'EXISTS' : 'MISSING');
+      
       await fetch(`${API_BASE_URL}/requests/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getToken()}`
+          'X-Session-Token': sessionToken
         },
         body: JSON.stringify({ status: newStatus, notes }),
       });   
       fetchAllRequests();
     } catch (err) {
+      console.error('❌ Admin - Error updating request status:', err);
       setError(err.message);
       alert(`Error updating status: ${err.message}`);
     }
@@ -64,7 +80,7 @@ function RequestManagementView({ setDocumentModalData }) {
     try {
         await fetch(`${API_BASE_URL}/requests/${requestToPrint.id}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            headers: { 'Content-Type': 'application/json', 'X-Session-Token': getSessionToken() },
             body: JSON.stringify({ status: 'ready for pick-up', notes: 'Document printed and ready for collection.' }),
         });
         await fetchAllRequests();
@@ -72,7 +88,7 @@ function RequestManagementView({ setDocumentModalData }) {
         const studentName = requestToPrint.student 
             ? `${requestToPrint.student.lastName}, ${requestToPrint.student.firstName} ${requestToPrint.student.middleName || ''}` 
             : '[Student Full Name]'; 
-        const studentCourse = requestToPrint.student?.studentDetails?.course?.name || '[Student Course]';
+        const studentCourse = 'BSIT'; // Default course since we don't have course info in requests
         const academicYear = '2024-2025';
         const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -262,7 +278,7 @@ function RequestManagementView({ setDocumentModalData }) {
                             </tr>
                             <tr>
                                 <td><strong>ID Number:</strong></td>
-                                <td>${requestToPrint.User?.idNumber || 'N/A'}</td>
+                                <td>${requestToPrint.student?.idNumber || 'N/A'}</td>
                                 <td><strong>Civil Status:</strong></td>
                                 <td>${personalInfo.civilStatus}</td>
                             </tr>

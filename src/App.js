@@ -3,7 +3,7 @@ import { Routes, Route, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import { API_BASE_URL, getToken } from './utils/api';
+import { API_BASE_URL, getSessionToken } from './utils/api';
 
 // Import components
 import Login from './components/auth/Login';
@@ -19,7 +19,7 @@ import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
 import StudentDetailView from './components/admin/StudentDetailView';
-import DashboardView from './components/admin/DashboardView';
+import Dashboard from './components/admin/Dashboard';
 import SubjectSchedulesView from './components/admin/SubjectSchedulesView';
 import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
 import SchoolYearSemesterView from './components/admin/SchoolYearSemesterView';
@@ -33,6 +33,8 @@ import NotificationBell from './components/common/NotificationBell';
 import StudentProfile  from './components/student/StudentProfile';
 import StudentRegistrationForm from './components/student/StudentRegistrationForm';
 import EditStudentDetailView from './components/admin/EditStudentDetailView';
+import EnrollmentStatusView from './components/student/EnrollmentStatusView';
+import SubjectScheduleView from './components/student/SubjectScheduleView';
 
 // Import data and utils
 import { createDummyRegistrations } from './data/dummyData';
@@ -63,11 +65,15 @@ function App() {
     try {
       console.log('Fetching students from backend...'); // Debug log
       console.log('API_BASE_URL:', API_BASE_URL); // Debug log
-      console.log('Token:', getToken() ? 'Token exists' : 'No token'); // Debug log
+      console.log('Session Token:', getSessionToken() ? 'Session token exists' : 'No session token'); // Debug log
       
-      const response = await fetch(`${API_BASE_URL}/students`, {
+      // Use /api/accounts for admin users to get comprehensive student data
+      const endpoint = userRole === 'admin' ? '/accounts' : '/students';
+      console.log('Using endpoint:', endpoint); // Debug log
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
-          'Authorization': `Bearer ${getToken()}`,
+          'X-Session-Token': getSessionToken(),
           'Content-Type': 'application/json'
         }
       });
@@ -81,20 +87,48 @@ function App() {
         console.log('Number of students returned:', students.length); // Debug log
         
         // Transform the data to match the frontend format
-        const transformedStudents = students.map(student => ({
-          id: student.id,
-          idNo: student.idNumber,
-          name: student.fullName || `${student.firstName} ${student.lastName}`,
-          gender: student.gender || 'N/A',
-          course: student.course || 'Not registered',
-          status: student.isRegistered ? 'Registered' : 'Not registered',
-          createdAt: new Date(student.createdAt).toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }),
-          academicStatus: student.academicStatus || 'Not registered'
-        }));
+        let transformedStudents;
+        
+        if (userRole === 'admin') {
+          // Transform data from /api/accounts endpoint
+          transformedStudents = students.map(student => ({
+            id: student.id,
+            idNumber: student.idNumber,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            middleName: student.middleName,
+            profilePhoto: student.profilePhoto, // Include profile photo
+            name: `${student.firstName} ${student.lastName}`,
+            gender: student.gender || 'N/A',
+            course: student.course || 'Bachelor of Science in Information Technology',
+            status: student.registrationStatus || 'Not registered',
+            registrationStatus: student.registrationStatus || 'Not registered',
+            registrationDate: student.registrationDate || 'N/A',
+            createdAt: new Date(student.createdAt).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            academicStatus: student.registrationStatus || 'Not registered'
+          }));
+        } else {
+          // Transform data from /api/students endpoint (for accounting role)
+          transformedStudents = students.map(student => ({
+            id: student.id,
+            idNo: student.idNumber,
+            profilePhoto: student.profilePhoto, // Include profile photo
+            name: student.fullName || `${student.firstName} ${student.lastName}`,
+            gender: student.gender || 'N/A',
+            course: student.course || 'Not registered',
+            status: student.isRegistered ? 'Registered' : 'Not registered',
+            createdAt: new Date(student.createdAt).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            academicStatus: student.academicStatus || 'Not registered'
+          }));
+        }
         console.log('Transformed students data:', transformedStudents); // Debug log
         setEnrolledStudents(transformedStudents);
       } else {
@@ -148,9 +182,11 @@ function App() {
   };
 
   const handleLogout = () => {
-      localStorage.removeItem('token');
+      localStorage.removeItem('sessionToken');
       localStorage.removeItem('userRole');
       localStorage.removeItem('idNumber');
+      localStorage.removeItem('fullName');
+      localStorage.removeItem('userInfo');
       setUserRole(null);
       navigate('/login');
   };
@@ -327,11 +363,15 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
 
-          <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
-          <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
-          <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
-          <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-          <Route path="/register" element={<StudentRegistrationForm />} />
+                     <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
+           <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
+           <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
+           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+                      <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
+                      <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />
+           <Route path="/student/grades" element={<ProtectedRoute><div className="text-center py-5"><h3>Grades View</h3><p>This feature is coming soon.</p></div></ProtectedRoute>} />
+           <Route path="/student/requests" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
+           {/* Registration is now handled within the Login component */}
           <Route
             path="/admin"
             element={
@@ -340,10 +380,10 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<DashboardView enrolledStudents={enrolledStudents} />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
-            <Route path="/admin/students/:idNo/edit" element={<EditStudentDetailView />} />
+            <Route path="students/:idNo/edit" element={<EditStudentDetailView />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"

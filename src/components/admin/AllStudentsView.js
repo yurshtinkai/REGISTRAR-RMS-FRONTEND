@@ -19,8 +19,8 @@ function AllStudentsView({ enrolledStudents }) {
 
     const filteredStudents = enrolledStudents.filter(student => {
         const searchTermLower = searchTerm.toLowerCase();
-        const nameLower = student.name.toLowerCase();
-        const idNoLower = student.idNo.toLowerCase();
+        const nameLower = `${student.lastName}, ${student.firstName} ${student.middleName || ''}`.toLowerCase();
+        const idNoLower = student.idNumber.toLowerCase();
         
         return nameLower.includes(searchTermLower) || idNoLower.includes(searchTermLower);
     });
@@ -58,37 +58,37 @@ function AllStudentsView({ enrolledStudents }) {
                                     <th>Name</th>
                                     <th>Gender</th>
                                     <th>Course</th>
-                                    <th>Status</th>
-                                    <th>Created At</th>
+                                    <th>Registration Status</th>
+                                    <th>Registration Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredStudents.length > 0 ? filteredStudents.map(student => (
                                     <tr key={student.id}>
-                                        <td>{student.idNo}</td>
-                                        <td>{student.name}</td>
+                                        <td>{student.idNumber}</td>
+                                        <td>{`${student.lastName}, ${student.firstName} ${student.middleName || ''}`.trim()}</td>
                                         <td>{student.gender}</td>
                                         <td>{student.course}</td>
                                         <td>
-                                            <span className={`badge ${student.status === 'Registered' ? 'bg-success' : 'bg-warning'}`}>
-                                                {student.status}
+                                            <span className={`badge ${student.registrationStatus === 'Approved' ? 'bg-success' : 'bg-warning'}`}>
+                                                {student.registrationStatus}
                                             </span>
                                         </td>
-                                        <td>{new Date(student.createdAt).toISOString().split('T')[0]}</td>
+                                        <td>{student.registrationDate || 'N/A'}</td>
                                         <td>
-                                            {/* START: Updated Button */}
-                                            <Link to={`/admin/students/${student.idNo}`} className="btn btn-sm btn-info me-1 " title="View" onClick={handleViewClick}>
+                                            {/* Eye icon - View student details */}
+                                            <Link to={`/admin/students/${student.idNumber}`} className="btn btn-sm btn-info me-1" title="View Details">
                                                 <i className="fas fa-eye"></i>
                                             </Link>
-                                            {/* END: Updated Button */}
-                                            <button className="btn btn-sm btn-primary" title="Edit" onClick={handleViewClick}>
+                                            {/* Pencil icon - Edit student info */}
+                                            <Link to={`/admin/students/${student.idNumber}/edit`} className="btn btn-sm btn-primary" title="Edit Info">
                                                 <i className="fas fa-pencil-alt"></i>
-                                            </button>
+                                            </Link>
                                         </td>
                                     </tr>
                                 )) : (
-                                    <tr><td colSpan="7" className="text-center text-muted">No students enrolled yet.</td></tr>
+                                    <tr><td colSpan="7" className="text-center text-muted">No students have completed registration yet.</td></tr>
                                 )}
                             </tbody>
                         </table>

@@ -1,37 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, getToken } from '../../utils/api';
 import './StudentRegistrationForm.css';
+import { API_BASE_URL } from '../../utils/api';
 
-function StudentRegistrationForm({ onComplete }) {
+function StudentRegistrationForm() {
     const [currentStep, setCurrentStep] = useState(1);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [courses, setCourses] = useState([]);
-    
     const [formData, setFormData] = useState({
-        // I. PERSONAL DATA
+        // Basic Information
         firstName: '',
-        lastName: '',
         middleName: '',
-        
-        gender: '',
-        maritalStatus: '',
+        lastName: '',
         dateOfBirth: '',
         placeOfBirth: '',
+        gender: '',
+        maritalStatus: '',
+        nationality: 'Filipino',
+        religion: '',
+        
+        // Contact Information
         email: '',
         contactNumber: '',
-        religion: '',
-        citizenship: 'Filipino',
-        country: 'Philippines',
-        acrNumber: '',
         cityAddress: '',
         cityTelNumber: '',
         provincialAddress: '',
         provincialTelNumber: '',
         
-        // II. FAMILY BACKGROUND
-        // Father's Information
+        // Family Background
         fatherName: '',
         fatherAddress: '',
         fatherOccupation: '',
@@ -39,7 +32,6 @@ function StudentRegistrationForm({ onComplete }) {
         fatherContactNumber: '',
         fatherIncome: '',
         
-        // Mother's Information
         motherName: '',
         motherAddress: '',
         motherOccupation: '',
@@ -47,7 +39,6 @@ function StudentRegistrationForm({ onComplete }) {
         motherContactNumber: '',
         motherIncome: '',
         
-        // Guardian's Information
         guardianName: '',
         guardianAddress: '',
         guardianOccupation: '',
@@ -55,67 +46,66 @@ function StudentRegistrationForm({ onComplete }) {
         guardianContactNumber: '',
         guardianIncome: '',
         
-        // III. CURRENT ACADEMIC BACKGROUND
-        courseId: '',
-        major: '',
-        studentType: 'First',
-        semesterEntry: 'First',
-        yearOfEntry: new Date().getFullYear(),
-        estimatedYearOfGraduation: '',
+        // Academic Information
+        yearLevel: '',
+        semester: '1st',
+        schoolYear: '2025-2026',
         applicationType: 'Freshmen',
+        studentType: 'First',
         
-        // IV. ACADEMIC HISTORY
-        // Elementary
+        // Academic Background
         elementarySchool: '',
         elementaryAddress: '',
         elementaryHonor: '',
         elementaryYearGraduated: '',
         
-        // Junior High School
         juniorHighSchool: '',
         juniorHighAddress: '',
         juniorHighHonor: '',
         juniorHighYearGraduated: '',
         
-        // Senior High School
         seniorHighSchool: '',
         seniorHighAddress: '',
         seniorHighStrand: '',
         seniorHighHonor: '',
         seniorHighYearGraduated: '',
         
-        // Additional Academic Information
         ncaeGrade: '',
         specialization: '',
+        
+        // College Background (if applicable)
         lastCollegeAttended: '',
         lastCollegeYearTaken: '',
         lastCollegeCourse: '',
         lastCollegeMajor: '',
-        password: '',
-        confirmPassword: '',
+        
+        // Course Information
+        course: 'Bachelor of Science in Information Technology',
+        major: 'Information Technology'
     });
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     
+    // Get session token from localStorage
+    const sessionToken = localStorage.getItem('sessionToken');
+    
+    // Debug: Log what we found
+    console.log('Session token:', sessionToken);
 
-    useEffect(() => {
-        fetchCourses();
-    }, []);
+    const yearLevels = [
+        { value: '1st', label: '1st Year' },
+        { value: '2nd', label: '2nd Year' },
+        { value: '3rd', label: '3rd Year' },
+        { value: '4th', label: '4th Year' }
+    ];
 
-    const fetchCourses = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/courses`);
-
-            if (response.ok) {
-                const data = await response.json();
-                setCourses(data);
-            } else {
-                console.error('Failed to fetch courses:', response.statusText);
-                setError('Failed to load courses. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error fetching courses:', error);
-            setError('Failed to load courses. Please try again.');
-        }
-    };
+    const semesters = [
+        { value: '1st', label: '1st Semester' },
+        { value: '2nd', label: '2nd Semester' },
+        { value: 'Summer', label: 'Summer' }
+    ];
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -129,85 +119,168 @@ function StudentRegistrationForm({ onComplete }) {
         e.preventDefault();
         setLoading(true);
         setError('');
-
-        if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match.');
-            return;
-        }
-        if (formData.password.length < 6) {
-            setError('Password must be at least 6 characters long.');
-            return;
-        }
-
-        setLoading(true);
-        setError('');
+        setSuccess('');
 
         try {
-            const response = await fetch(`${API_BASE_URL}/students/register`, {
+            // Check if user is authenticated
+            if (!sessionToken) {
+                setError('User not authenticated. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            // Validate required fields
+            if (!formData.firstName || !formData.lastName || !formData.yearLevel) {
+                setError('Please fill in all required fields');
+                setLoading(false);
+                return;
+            }
+
+            // Submit form data
+            const response = await fetch(`${API_BASE_URL}/students/complete-registration`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Session-Token': sessionToken
                 },
                 body: JSON.stringify(formData)
             });
 
             if (response.ok) {
-                const result = await response.json();
-                alert('Student registration completed successfully!');
-                if (onComplete) onComplete(result);
+                setSuccess('Registration completed successfully! Your schedule and subjects have been loaded.');
+                // Reset form after successful submission
+                setTimeout(() => {
+                    setFormData({
+                        firstName: '', middleName: '', lastName: '', dateOfBirth: '', placeOfBirth: '',
+                        gender: '', maritalStatus: '', nationality: 'Filipino', religion: '',
+                        email: '', contactNumber: '', cityAddress: '', cityTelNumber: '',
+                        provincialAddress: '', provincialTelNumber: '', fatherName: '', fatherAddress: '',
+                        fatherOccupation: '', fatherCompany: '', fatherContactNumber: '', fatherIncome: '',
+                        motherName: '', motherAddress: '', motherOccupation: '', motherCompany: '',
+                        motherContactNumber: '', motherIncome: '', guardianName: '', guardianAddress: '',
+                        guardianOccupation: '', guardianCompany: '', guardianContactNumber: '', guardianIncome: '',
+                        yearLevel: '', semester: '1st', schoolYear: '2025-2026', applicationType: 'Freshmen',
+                        studentType: 'First', elementarySchool: '', elementaryAddress: '', elementaryHonor: '',
+                        elementaryYearGraduated: '', juniorHighSchool: '', juniorHighAddress: '', juniorHighHonor: '',
+                        juniorHighYearGraduated: '', seniorHighSchool: '', seniorHighAddress: '', seniorHighStrand: '',
+                        seniorHighHonor: '', seniorHighYearGraduated: '', ncaeGrade: '', specialization: '',
+                        lastCollegeAttended: '', lastCollegeYearTaken: '', lastCollegeCourse: '', lastCollegeMajor: '',
+                        course: 'Bachelor of Science in Information Technology', major: 'Information Technology'
+                    });
+                    setCurrentStep(1);
+                }, 3000);
             } else {
                 const errorData = await response.json();
-                setError(errorData.message || 'Registration failed');
+                setError(errorData.message || 'Registration failed. Please try again.');
             }
-        } catch (error) {
-            setError('Network error. Please try again.');
+        } catch (err) {
+            setError('Network error. Please check your connection and try again.');
         } finally {
             setLoading(false);
         }
     };
 
     const nextStep = () => {
-        if (currentStep < 5) {
-            setCurrentStep(currentStep + 1);
-        }
+        if (currentStep < 4) setCurrentStep(currentStep + 1);
     };
 
     const prevStep = () => {
-        if (currentStep > 1) {
-            setCurrentStep(currentStep - 1);
-        }
+        if (currentStep > 1) setCurrentStep(currentStep - 1);
     };
 
-    const renderStep1 = () => (
-        <div className="registration-step">
-            <h3>I. PERSONAL DATA</h3>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>First Name *</label>
-                    <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} required />
+    const renderStepIndicator = () => (
+        <div className="step-indicator">
+            {[1, 2, 3, 4].map(step => (
+                <div key={step} className={`step ${currentStep >= step ? 'active' : ''}`}>
+                    <span className="step-number">{step}</span>
+                    <span className="step-label">
+                        {step === 1 && 'Basic Info'}
+                        {step === 2 && 'Contact & Family'}
+                        {step === 3 && 'Academic Background'}
+                        {step === 4 && 'Review & Submit'}
+                    </span>
                 </div>
-                <div className="form-group">
-                    <label>Middle Name</label>
-                    <input type="text" name="middleName" value={formData.middleName} onChange={handleInputChange} />
+            ))}
+        </div>
+    );
+
+    const renderBasicInfo = () => (
+        <div className="form-section">
+            <h3>Basic Information</h3>
+            <div className="row g-3">
+                <div className="col-md-4">
+                    <label className="form-label">First Name *</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleInputChange}
+                        required
+                    />
                 </div>
-                <div className="form-group">
-                    <label>Last Name *</label>
-                    <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} required />
+                <div className="col-md-4">
+                    <label className="form-label">Middle Name</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="middleName"
+                        value={formData.middleName}
+                        onChange={handleInputChange}
+                    />
                 </div>
-                <div className="form-group">
-                    <label>Gender *</label>
-                    <select name="gender" value={formData.gender} onChange={handleInputChange} required>
+                <div className="col-md-4">
+                    <label className="form-label">Last Name *</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        required
+                    />
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Date of Birth</label>
+                    <input
+                        type="date"
+                        className="form-control"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Place of Birth</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="placeOfBirth"
+                        value={formData.placeOfBirth}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Gender</label>
+                    <select
+                        className="form-select"
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleInputChange}
+                    >
                         <option value="">Select Gender</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
                 </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Marital Status *</label>
-                    <select name="maritalStatus" value={formData.maritalStatus} onChange={handleInputChange} required>
+                <div className="col-md-6">
+                    <label className="form-label">Marital Status</label>
+                    <select
+                        className="form-select"
+                        name="maritalStatus"
+                        value={formData.maritalStatus}
+                        onChange={handleInputChange}
+                    >
                         <option value="">Select Status</option>
                         <option value="Single">Single</option>
                         <option value="Married">Married</option>
@@ -215,797 +288,348 @@ function StudentRegistrationForm({ onComplete }) {
                         <option value="Divorced">Divorced</option>
                     </select>
                 </div>
-                <div className="form-group">
-                    <label>Birth Date *</label>
-                    <input
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Place of Birth *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Nationality</label>
                     <input
                         type="text"
-                        name="placeOfBirth"
-                        value={formData.placeOfBirth}
+                        className="form-control"
+                        name="nationality"
+                        value={formData.nationality}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>E-mail/Gmail Address *</label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Contact Number *</label>
-                    <input
-                        type="tel"
-                        name="contactNumber"
-                        value={formData.contactNumber}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Religion *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Religion</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="religion"
                         value={formData.religion}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
             </div>
+        </div>
+    );
 
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Citizenship *</label>
+    const renderContactFamily = () => (
+        <div className="form-section">
+            <h3>Contact Information & Family Background</h3>
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <label className="form-label">Email Address</label>
                     <input
-                        type="text"
-                        name="citizenship"
-                        value={formData.citizenship}
+                        type="email"
+                        className="form-control"
+                        name="email"
+                        value={formData.email}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>Country *</label>
-                    <input
-                        type="text"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-group">
-                <label>ACR Number (for foreign students)</label>
-                <input
-                    type="text"
-                    name="acrNumber"
-                    value={formData.acrNumber}
-                    onChange={handleInputChange}
-                />
-            </div>
-
-            <div className="form-group">
-                <label>City Address *</label>
-                <textarea
-                    name="cityAddress"
-                    value={formData.cityAddress}
-                    onChange={handleInputChange}
-                    required
-                />
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>City Tel Number</label>
+                <div className="col-md-6">
+                    <label className="form-label">Contact Number</label>
                     <input
                         type="tel"
-                        name="cityTelNumber"
-                        value={formData.cityTelNumber}
+                        className="form-control"
+                        name="contactNumber"
+                        value={formData.contactNumber}
                         onChange={handleInputChange}
                     />
                 </div>
-                <div className="form-group">
-                    <label>Provincial Address *</label>
+                <div className="col-md-6">
+                    <label className="form-label">City Address</label>
                     <textarea
+                        className="form-control"
+                        name="cityAddress"
+                        value={formData.cityAddress}
+                        onChange={handleInputChange}
+                        rows="3"
+                    />
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Provincial Address</label>
+                    <textarea
+                        className="form-control"
                         name="provincialAddress"
                         value={formData.provincialAddress}
                         onChange={handleInputChange}
-                        required
+                        rows="3"
                     />
                 </div>
-            </div>
-
-            <div className="form-group">
-                <label>Provincial Tel Number</label>
-                <input
-                    type="tel"
-                    name="provincialTelNumber"
-                    value={formData.provincialTelNumber}
-                    onChange={handleInputChange}
-                />
-            </div>
-        </div>
-    );
-
-    const renderStep2 = () => (
-        <div className="registration-step">
-            <h3>II. FAMILY BACKGROUND</h3>
-            
-            <h4>Father's Information</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Father's Name *</label>
+                
+                {/* Father's Information */}
+                <div className="col-12">
+                    <h5 className="section-subtitle">Father's Information</h5>
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Father's Name</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="fatherName"
                         value={formData.fatherName}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>Address *</label>
-                    <textarea
-                        name="fatherAddress"
-                        value={formData.fatherAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Occupation *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Father's Occupation</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="fatherOccupation"
                         value={formData.fatherOccupation}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>Name & Address of Company</label>
+                
+                {/* Mother's Information */}
+                <div className="col-12">
+                    <h5 className="section-subtitle">Mother's Information</h5>
+                </div>
+                <div className="col-md-6">
+                    <label className="form-label">Mother's Name</label>
                     <input
                         type="text"
-                        name="fatherCompany"
-                        value={formData.fatherCompany}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Tel./Cel. Number *</label>
-                    <input
-                        type="tel"
-                        name="fatherContactNumber"
-                        value={formData.fatherContactNumber}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Income</label>
-                    <input
-                        type="text"
-                        name="fatherIncome"
-                        value={formData.fatherIncome}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <h4>Mother's Information</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Mother's Name *</label>
-                    <input
-                        type="text"
+                        className="form-control"
                         name="motherName"
                         value={formData.motherName}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>Address *</label>
-                    <textarea
-                        name="motherAddress"
-                        value={formData.motherAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Occupation *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Mother's Occupation</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="motherOccupation"
                         value={formData.motherOccupation}
                         onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Name & Address of Company</label>
-                    <input
-                        type="text"
-                        name="motherCompany"
-                        value={formData.motherCompany}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Tel./Cel. Number *</label>
-                    <input
-                        type="tel"
-                        name="motherContactNumber"
-                        value={formData.motherContactNumber}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Income</label>
-                    <input
-                        type="text"
-                        name="motherIncome"
-                        value={formData.motherIncome}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <h4>Guardian's Information</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Guardian's Name *</label>
-                    <input
-                        type="text"
-                        name="guardianName"
-                        value={formData.guardianName}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Address *</label>
-                    <textarea
-                        name="guardianAddress"
-                        value={formData.guardianAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Occupation *</label>
-                    <input
-                        type="text"
-                        name="guardianOccupation"
-                        value={formData.guardianOccupation}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Name & Address of Company</label>
-                    <input
-                        type="text"
-                        name="guardianCompany"
-                        value={formData.guardianCompany}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Tel./Cel. Number *</label>
-                    <input
-                        type="tel"
-                        name="guardianContactNumber"
-                        value={formData.guardianContactNumber}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Income</label>
-                    <input
-                        type="text"
-                        name="guardianIncome"
-                        value={formData.guardianIncome}
-                        onChange={handleInputChange}
                     />
                 </div>
             </div>
         </div>
     );
 
-    const renderStep3 = () => (
-        <div className="registration-step">
-            <h3>III. CURRENT ACADEMIC BACKGROUND</h3>
-            
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Course (Optional)</label>
-                    <select name="courseId" value={formData.courseId} onChange={handleInputChange}>
-                        <option value="">Select Course (Optional)</option>
-                        {courses.map(course => (
-                            <option key={course.id} value={course.id}>
-                                {course.name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Major in</label>
+    const renderAcademicBackground = () => (
+        <div className="form-section">
+            <h3>Academic Background</h3>
+            <div className="row g-3">
+                <div className="col-md-6">
+                    <label className="form-label">Elementary School</label>
                     <input
                         type="text"
-                        name="major"
-                        value={formData.major}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Student Type *</label>
-                    <div className="radio-group">
-                        <label>
-                            <input
-                                type="radio"
-                                name="studentType"
-                                value="First"
-                                checked={formData.studentType === 'First'}
-                                onChange={handleInputChange}
-                            />
-                            First
-                        </label>
-                        <label>
-                            <input
-                                type="radio"
-                                name="studentType"
-                                value="Second"
-                                checked={formData.studentType === 'Second'}
-                                onChange={handleInputChange}
-                            />
-                            Second
-                        </label>
-                        <label>
-                            <input
-                                type="radio"
-                                name="studentType"
-                                value="Summer"
-                                checked={formData.studentType === 'Summer'}
-                                onChange={handleInputChange}
-                            />
-                            Summer
-                        </label>
-                    </div>
-                </div>
-                <div className="form-group">
-                    <label>Semester/Entry *</label>
-                    <div className="radio-group">
-                        <label>
-                            <input
-                                type="radio"
-                                name="semesterEntry"
-                                value="First"
-                                checked={formData.semesterEntry === 'First'}
-                                onChange={handleInputChange}
-                            />
-                            First
-                        </label>
-                        <label>
-                            <input
-                                type="radio"
-                                name="semesterEntry"
-                                value="Second"
-                                checked={formData.semesterEntry === 'Second'}
-                                onChange={handleInputChange}
-                            />
-                            Second
-                        </label>
-                        <label>
-                            <input
-                                type="radio"
-                                name="semesterEntry"
-                                value="Summer"
-                                checked={formData.semesterEntry === 'Summer'}
-                                onChange={handleInputChange}
-                            />
-                            Summer
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Year of Entry *</label>
-                    <input
-                        type="number"
-                        name="yearOfEntry"
-                        value={formData.yearOfEntry}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Estimated Year of Graduation</label>
-                    <input
-                        type="number"
-                        name="estimatedYearOfGraduation"
-                        value={formData.estimatedYearOfGraduation}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-group">
-                <label>Type of Application *</label>
-                <div className="radio-group">
-                    <label>
-                        <input
-                            type="radio"
-                            name="applicationType"
-                            value="Freshmen"
-                            checked={formData.applicationType === 'Freshmen'}
-                            onChange={handleInputChange}
-                        />
-                        Freshmen
-                    </label>
-                    <label>
-                        <input
-                            type="radio"
-                            name="applicationType"
-                            value="Transferee"
-                            checked={formData.applicationType === 'Transferee'}
-                            onChange={handleInputChange}
-                        />
-                        Transferee
-                    </label>
-                    <label>
-                        <input
-                            type="radio"
-                            name="applicationType"
-                            value="Cross Enrollee"
-                            checked={formData.applicationType === 'Cross Enrollee'}
-                            onChange={handleInputChange}
-                        />
-                        Cross Enrollee
-                    </label>
-                </div>
-            </div>
-        </div>
-    );
-
-    const renderStep4 = () => (
-        <div className="registration-step">
-            <h3>IV. ACADEMIC HISTORY</h3>
-            
-            <h4>Elementary</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Elementary School *</label>
-                    <input
-                        type="text"
+                        className="form-control"
                         name="elementarySchool"
                         value={formData.elementarySchool}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>School Address *</label>
-                    <textarea
-                        name="elementaryAddress"
-                        value={formData.elementaryAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Honor Received</label>
-                    <input
-                        type="text"
-                        name="elementaryHonor"
-                        value={formData.elementaryHonor}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Year of Graduation *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Elementary Year Graduated</label>
                     <input
                         type="number"
+                        className="form-control"
                         name="elementaryYearGraduated"
                         value={formData.elementaryYearGraduated}
                         onChange={handleInputChange}
-                        required
+                        min="1980"
+                        max="2030"
                     />
                 </div>
-            </div>
-
-            <h4>Junior High School (JHS)</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Secondary School (JHS) *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Junior High School</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="juniorHighSchool"
                         value={formData.juniorHighSchool}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>School Address *</label>
-                    <textarea
-                        name="juniorHighAddress"
-                        value={formData.juniorHighAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Honor Received</label>
-                    <input
-                        type="text"
-                        name="juniorHighHonor"
-                        value={formData.juniorHighHonor}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Year of Graduation *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Junior High Year Graduated</label>
                     <input
                         type="number"
+                        className="form-control"
                         name="juniorHighYearGraduated"
                         value={formData.juniorHighYearGraduated}
                         onChange={handleInputChange}
-                        required
+                        min="1980"
+                        max="2030"
                     />
                 </div>
-            </div>
-
-            <h4>Senior High School (SHS)</h4>
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Secondary School (SHS) *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Senior High School</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="seniorHighSchool"
                         value={formData.seniorHighSchool}
                         onChange={handleInputChange}
-                        required
                     />
                 </div>
-                <div className="form-group">
-                    <label>School Address *</label>
-                    <textarea
-                        name="seniorHighAddress"
-                        value={formData.seniorHighAddress}
-                        onChange={handleInputChange}
-                        required
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Strand</label>
+                <div className="col-md-6">
+                    <label className="form-label">Senior High Strand</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="seniorHighStrand"
                         value={formData.seniorHighStrand}
                         onChange={handleInputChange}
+                        placeholder="e.g., STEM, ABM, HUMSS"
                     />
                 </div>
-                <div className="form-group">
-                    <label>Honor Received</label>
-                    <input
-                        type="text"
-                        name="seniorHighHonor"
-                        value={formData.seniorHighHonor}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Year of Graduation *</label>
+                <div className="col-md-6">
+                    <label className="form-label">Senior High Year Graduated</label>
                     <input
                         type="number"
+                        className="form-control"
                         name="seniorHighYearGraduated"
                         value={formData.seniorHighYearGraduated}
                         onChange={handleInputChange}
-                        required
+                        min="1980"
+                        max="2030"
                     />
                 </div>
-                <div className="form-group">
-                    <label>NCAE Grade</label>
+                <div className="col-md-6">
+                    <label className="form-label">NCAE Grade</label>
                     <input
                         type="text"
+                        className="form-control"
                         name="ncaeGrade"
                         value={formData.ncaeGrade}
                         onChange={handleInputChange}
+                        placeholder="e.g., 95.5"
                     />
                 </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Specialization</label>
-                    <input
-                        type="text"
-                        name="specialization"
-                        value={formData.specialization}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Last College School Attended</label>
-                    <input
-                        type="text"
-                        name="lastCollegeAttended"
-                        value={formData.lastCollegeAttended}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-row">
-                <div className="form-group">
-                    <label>Year Taken</label>
-                    <input
-                        type="number"
-                        name="lastCollegeYearTaken"
-                        value={formData.lastCollegeYearTaken}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div className="form-group">
-                    <label>Course</label>
-                    <input
-                        type="text"
-                        name="lastCollegeCourse"
-                        value={formData.lastCollegeCourse}
-                        onChange={handleInputChange}
-                    />
-                </div>
-            </div>
-
-            <div className="form-group">
-                <label>Major</label>
-                <input
-                    type="text"
-                    name="lastCollegeMajor"
-                    value={formData.lastCollegeMajor}
-                    onChange={handleInputChange}
-                />
             </div>
         </div>
     );
 
-    const renderStep5 = () => (
-    <div className="registration-step">
-        <h3>V. REGISTER YOUR ACCOUNT FOR REQUEST LOGIN</h3>
-        
-        {/* THIS IS THE CODE YOU'RE LOOKING FOR */}
-        <div className="form-row">
-            <div className="form-group">
-                <label>Student ID Number *</label>
-                <input 
-                    type="text" 
-                    name="idNumber" 
-                    value={formData.idNumber} 
-                    onChange={handleInputChange} 
-                    placeholder="e.g., S001"
-                    required 
-                />
+    const renderReviewSubmit = () => (
+        <div className="form-section">
+            <h3>Review & Submit</h3>
+            <div className="review-container">
+                <div className="row g-3">
+                    <div className="col-md-6">
+                        <label className="form-label">Year Level *</label>
+                        <select
+                            className="form-select"
+                            name="yearLevel"
+                            value={formData.yearLevel}
+                            onChange={handleInputChange}
+                            required
+                        >
+                            <option value="">Select Year Level</option>
+                            {yearLevels.map(level => (
+                                <option key={level.value} value={level.value}>
+                                    {level.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="col-md-6">
+                        <label className="form-label">Semester</label>
+                        <select
+                            className="form-select"
+                            name="semester"
+                            value={formData.semester}
+                            onChange={handleInputChange}
+                        >
+                            {semesters.map(sem => (
+                                <option key={sem.value} value={sem.value}>
+                                    {sem.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                
+                <div className="review-summary">
+                    <h5>Registration Summary</h5>
+                    <p><strong>Name:</strong> {formData.firstName} {formData.middleName} {formData.lastName}</p>
+                    <p><strong>Course:</strong> {formData.course}</p>
+                    <p><strong>Year Level:</strong> {formData.yearLevel || 'Not selected'}</p>
+                    <p><strong>Semester:</strong> {formData.semester}</p>
+                    <p><strong>School Year:</strong> {formData.schoolYear}</p>
+                </div>
             </div>
         </div>
-        
-        <div className="form-row">
-            <div className="form-group">
-                <label>Password *</label>
-                <input type="password" name="password" value={formData.password} onChange={handleInputChange} required />
-            </div>
-            <div className="form-group">
-                <label>Confirm Password *</label>
-                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} required />
-            </div>
-        </div>
-    </div>
-);
+    );
 
-    const renderStepContent = () => {
+    const renderCurrentStep = () => {
         switch (currentStep) {
-            case 1: return renderStep1();
-            case 2: return renderStep2();
-            case 3: return renderStep3();
-            case 4: return renderStep4();
-            case 5: return renderStep5();
-            default: return renderStep1();
+            case 1: return renderBasicInfo();
+            case 2: return renderContactFamily();
+            case 3: return renderAcademicBackground();
+            case 4: return renderReviewSubmit();
+            default: return renderBasicInfo();
         }
     };
 
     return (
         <div className="student-registration-form">
-            <div className="form-header">
-                <h2>STUDENT PERMANENT RECORDS (SPR)</h2>
-                <h3>BENEDICTO COLLEGE</h3>
-                <div className="step-indicator">
-                    Step {currentStep} of 5
+            {/* Header */}
+            <div className="registration-header">
+                <div className="welcome-banner">
+                    <h1>🎓 Welcome to Bachelor of Science in Information Technology</h1>
+                    <p>Complete your permanent student data registration to access your academic schedule and subjects</p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit}>
-                {renderStepContent()}
+            {/* Step Indicator */}
+            {renderStepIndicator()}
 
-                {error && <div className="error-message">{error}</div>}
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="registration-form">
+                {renderCurrentStep()}
 
+                {/* Navigation Buttons */}
                 <div className="form-navigation">
                     {currentStep > 1 && (
-                        <button type="button" onClick={prevStep} className="btn btn-secondary">
-                            Previous
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={prevStep}
+                            disabled={loading}
+                        >
+                            ← Previous
                         </button>
                     )}
                     
-                    {currentStep < 5 ? (
-                        <button type="button" onClick={nextStep} className="btn btn-primary">
-                            Next
+                    {currentStep < 4 ? (
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={nextStep}
+                            disabled={loading}
+                        >
+                            Next →
                         </button>
                     ) : (
-                        <button type="submit" disabled={loading} className="btn btn-success">
+                        <button
+                            type="submit"
+                            className="btn btn-success"
+                            disabled={loading}
+                        >
                             {loading ? 'Submitting...' : 'Submit Registration'}
                         </button>
                     )}
                 </div>
             </form>
+
+            {/* Messages */}
+            {error && (
+                <div className="alert alert-danger mt-3">
+                    {error}
+                </div>
+            )}
+            
+            {success && (
+                <div className="alert alert-success mt-3">
+                    {success}
+                </div>
+            )}
         </div>
     );
 }

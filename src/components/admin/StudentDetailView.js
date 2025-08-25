@@ -1,24 +1,30 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getDummyCurriculum } from '../../data/dummyData';
-import CurriculumTrackModal from './CurriculumTrackModal';
+import BsitProspectusModal from './BsitProspectusModal';
 import './StudentDetailView.css';
-import './CurriculumTrackModal.css';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function StudentDetailView({ enrolledStudents }) {
   const { idNo } = useParams();
   const [student, setStudent] = useState(null);
+  const [studentRegistration, setStudentRegistration] = useState(null);
+  const [enrolledSubjects, setEnrolledSubjects] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [documentRequests, setDocumentRequests] = useState([]);
+  const [photoUploadModalOpen, setPhotoUploadModalOpen] = useState(false);
+  const [photoPreviewModalOpen, setPhotoPreviewModalOpen] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Fetch student details from backend
   useEffect(() => {
     const fetchStudentDetails = async () => {
       try {
         setLoading(true);
-        const enrolledStudent = enrolledStudents.find(s => s.idNo === idNo);
+        const enrolledStudent = enrolledStudents.find(s => s.idNumber === idNo);
         
         if (!enrolledStudent) {
           setError('Student not found');
@@ -26,18 +32,81 @@ function StudentDetailView({ enrolledStudents }) {
           return;
         }
 
-        // Fetch the main student details
-        const studentResponse = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
-          headers: { 'Authorization': `Bearer ${getToken()}` }
-        });
+        // Use the data we already have from enrolledStudents
+        setStudent(enrolledStudent);
 
-        if (studentResponse.ok) {
-          const studentData = await studentResponse.json();
-          setStudent(studentData);
+        // Fetch user data with profile photo if not already present
+        if (!enrolledStudent.profilePhoto) {
+          try {
+            const userResponse = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
+              headers: { 'X-Session-Token': getSessionToken() }
+            });
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              if (userData.profilePhoto) {
+                setStudent(prev => ({
+                  ...prev,
+                  profilePhoto: userData.profilePhoto
+                }));
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching user photo:", error);
+          }
+        }
 
-          // --- START: Fetch the document requests for this student ---
-          const requestsResponse = await fetch(`${API_BASE_URL}/requests/student/${studentData.id}`, {
-              headers: { 'Authorization': `Bearer ${getToken()}` }
+        // --- START: Fetch student registration data for personal details ---
+        try {
+          console.log('🔍 Fetching registration data for student ID:', enrolledStudent.id);
+          console.log('🔗 API URL:', `${API_BASE_URL}/students/registration/${enrolledStudent.id}`);
+          console.log('🔑 Session Token:', getSessionToken() ? 'EXISTS' : 'MISSING');
+          
+          const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${enrolledStudent.id}`, {
+              headers: { 'X-Session-Token': getSessionToken() }
+          });
+          
+          console.log('📡 Registration Response Status:', registrationResponse.status);
+          console.log('📡 Registration Response OK:', registrationResponse.ok);
+          
+          if (registrationResponse.ok) {
+              const registrationData = await registrationResponse.json();
+              console.log('📋 Registration Data Received:', registrationData);
+              setStudentRegistration(registrationData);
+          } else {
+              const errorText = await registrationResponse.text();
+              console.error("Failed to fetch student registration data. Status:", registrationResponse.status);
+              console.error("Error response:", errorText);
+          }
+        } catch (error) {
+          console.error("Error fetching student registration:", error);
+        }
+        // --- END: Fetch registration data ---
+
+        // --- START: Fetch enrolled subjects for this student ---
+        try {
+          console.log('📚 Fetching enrolled subjects for student ID:', enrolledStudent.id);
+          const subjectsResponse = await fetch(`${API_BASE_URL}/students/enrolled-subjects/${enrolledStudent.id}`, {
+              headers: { 'X-Session-Token': getSessionToken() }
+          });
+          
+          if (subjectsResponse.ok) {
+              const subjectsData = await subjectsResponse.json();
+              console.log('📋 Enrolled Subjects Data:', subjectsData);
+              // Set the entire subjects data (includes yearLevel, semester, totalUnits, subjects array)
+              setEnrolledSubjects(subjectsData);
+          } else {
+              console.error("Failed to fetch enrolled subjects. Status:", subjectsResponse.status);
+          }
+        } catch (error) {
+          console.error("Error fetching enrolled subjects:", error);
+        }
+        // --- END: Fetch enrolled subjects ---
+
+        // --- START: Fetch the document requests for this student ---
+        try {
+          const requestsResponse = await fetch(`${API_BASE_URL}/requests/student/${enrolledStudent.id}`, {
+              headers: { 'X-Session-Token': getSessionToken() }
           });
           if (requestsResponse.ok) {
               const requestsData = await requestsResponse.json();
@@ -45,11 +114,10 @@ function StudentDetailView({ enrolledStudents }) {
           } else {
               console.error("Failed to fetch student's document requests.");
           }
-          // --- END: Fetch requests ---
-
-        } else {
-          setError('Failed to fetch student details');
+        } catch (error) {
+          console.error("Error fetching document requests:", error);
         }
+        // --- END: Fetch requests ---
       } catch (error) {
         console.error('Error fetching student details:', error);
         setError('Error fetching student details');
@@ -60,6 +128,12 @@ function StudentDetailView({ enrolledStudents }) {
 
     fetchStudentDetails();
   }, [idNo, enrolledStudents]);
+
+  // Debug: Monitor student state changes
+  useEffect(() => {
+    console.log('🔍 Student state changed:', student);
+    console.log('🔍 Student profilePhoto:', student?.profilePhoto);
+  }, [student]);
 
   // Helper function for ordinal suffixes
   const getOrdinalSuffix = (num) => {
@@ -79,35 +153,18 @@ function StudentDetailView({ enrolledStudents }) {
       documentRequests: [],
       enrolledSubjects: {},
       allTakenSubjects: [],
-      curriculum: getDummyCurriculum(student.studentDetails?.course?.name || student.course),
+      curriculum: getDummyCurriculum(student.course || 'Bachelor of Science in Information Technology'),
       academicInfo: {
-        status: student.studentDetails?.academicStatus || 'Not registered',
-        semester: `${student.studentDetails?.currentSemester || 1}${getOrdinalSuffix(student.studentDetails?.currentSemester || 1)} Semester`,
-        yearOfEntry: student.studentDetails?.yearOfEntry || 'N/A',
-        yearOfGraduation: student.studentDetails?.estimatedYearOfGraduation || 'N/A'
+        status: studentRegistration?.registrationStatus || student.registrationStatus || 'Not registered',
+        semester: studentRegistration?.semester || `${student.currentSemester || 1}${getOrdinalSuffix(student.currentSemester || 1)} Semester`,
+        yearOfEntry: student.createdAt || 'N/A',
+        yearOfGraduation: 'N/A'
       }
     };
-  }, [student]);
+  }, [student, studentRegistration]);
 
   const [currentSemester, setCurrentSemester] = useState('');
   const [isCurriculumModalOpen, setCurriculumModalOpen] = useState(false);
-
-  // FIX: Memoize currentSubjects to satisfy the exhaustive-deps rule
-  const currentSubjects = useMemo(() => studentDetails?.enrolledSubjects?.[currentSemester] || [], [studentDetails?.enrolledSubjects, currentSemester]);
-   
-  const { totalUnits, weightedAverage } = useMemo(() => {
-    let totalUnits = 0;
-    let totalWeight = 0;
-    currentSubjects.forEach(sub => {
-      const grade = parseFloat(sub.finalGrade);
-      if (!isNaN(grade)) {
-        totalUnits += sub.units;
-        totalWeight += grade * sub.units;
-      }
-    });
-    const weightedAverage = totalUnits > 0 ? (totalWeight / totalUnits).toFixed(4) : 'N/A';
-    return { totalUnits, weightedAverage };
-  }, [currentSubjects]);
 
   if (loading) {
     return (
@@ -159,13 +216,137 @@ function StudentDetailView({ enrolledStudents }) {
         return 'bg-secondary';
     }
   };
-  
-  const getSubjectStatusBadge = (status) => {
-    return status.toLowerCase() === 'taken' ? 'badge bg-primary' : 'badge bg-info';
+
+  // Photo upload functions
+  const handlePhotoSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (JPEG, PNG, GIF)');
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
+      setSelectedPhoto(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
+  const handlePhotoUpload = async () => {
+    if (!selectedPhoto) return;
+
+    try {
+      setUploadingPhoto(true);
+      
+      const formData = new FormData();
+      formData.append('photo', selectedPhoto);
+
+      const response = await fetch(`${API_BASE_URL}/photos/upload/${student.id}`, {
+        method: 'POST',
+        headers: { 'X-Session-Token': getSessionToken() },
+        body: formData
+      });
+
+             if (response.ok) {
+         const result = await response.json();
+         
+         console.log('📸 Photo upload successful:', result);
+         console.log('📸 New photo URL:', result.photoUrl);
+         
+                   // Update the user object with new photo URL
+          setStudent(prev => {
+            const updated = {
+              ...prev,
+              profilePhoto: result.photoUrl
+            };
+            console.log('📸 Updated student object:', updated);
+            console.log('📸 New profilePhoto value:', updated.profilePhoto);
+            return updated;
+          });
+         
+         // Also update the enrolledStudents array in the parent component
+         // This ensures the photo persists when navigating back to the list
+         if (window.updateEnrolledStudents) {
+           window.updateEnrolledStudents(prev => 
+             prev.map(s => 
+               s.id === student.id 
+                 ? { ...s, profilePhoto: result.photoUrl }
+                 : s
+             )
+           );
+         }
+         
+         // Close modal and reset states
+         setPhotoUploadModalOpen(false);
+         setSelectedPhoto(null);
+         setPhotoPreview(null);
+         
+         // Show success message
+         alert('Photo uploaded successfully!');
+       } else {
+        const error = await response.json();
+        alert(`Upload failed: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!student.profilePhoto) return;
+
+    if (window.confirm('Are you sure you want to delete this photo?')) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/photos/${student.id}`, {
+          method: 'DELETE',
+          headers: { 'X-Session-Token': getSessionToken() }
+        });
+
+        if (response.ok) {
+          // Update the user object to remove photo
+          setStudent(prev => ({
+            ...prev,
+            profilePhoto: null
+          }));
+          
+          alert('Photo deleted successfully!');
+        } else {
+          const error = await response.json();
+          alert(`Delete failed: ${error.message}`);
+        }
+      } catch (error) {
+        console.error('Error deleting photo:', error);
+        alert('Delete failed. Please try again.');
+      }
+    }
+  };
+
+  // Function to handle photo preview
+  const handlePhotoPreview = () => {
+    if (student.profilePhoto) {
+      setPhotoPreviewModalOpen(true);
+    }
+  };
+  
+
+
   // Extract student details for easier access
-  const details = student.studentDetails || {};
+  const details = student || {};
   const user = student;
 
   return (
@@ -181,12 +362,9 @@ function StudentDetailView({ enrolledStudents }) {
               </h2>
               <p className="text-muted mb-0">Complete student profile and academic records</p>
             </div>
-            <Link to="/admin/all-students" className="btn btn-outline-secondary">
+            <Link to="/admin/all-students" className="btn btn-primary">
               <i className="fas fa-arrow-left me-2"></i>Back to List
             </Link>
-            <Link to={`/admin/students/${idNo}/edit`} className="btn btn-primary">
-                <i className="fas fa-pencil-alt me-2"></i>Edit
-              </Link>
           </div>
         </div>
       </div>
@@ -202,19 +380,57 @@ function StudentDetailView({ enrolledStudents }) {
               </h5>
             </div>
             <div className="card-body text-center">
-              <div className="profile-pic-wrapper mb-3">
-                <div className="profile-avatar">
-                  <i className="fas fa-user-circle fa-4x text-white"></i>
-                </div>
-              </div>
-              <h4 className="mb-1">{details.fullName || `${user.firstName} ${user.lastName}`}</h4>
-              <p className="text-muted mb-2">Student No. {details.studentNumber || user.idNumber}</p>
-              <p className="text-muted mb-3">{details.course?.name || user.course || 'Not registered'}</p>
+                             <div className="profile-pic-wrapper mb-3">
+                 {console.log('🔍 Rendering profile photo section, student.profilePhoto:', student.profilePhoto)}
+                                   <div 
+                    className="profile-avatar clickable-photo"
+                    title="Click photo to view, click camera to upload"
+                  >
+                                       {student.profilePhoto ? (
+                      <>
+                        {console.log('🔍 Constructing photo URL:', `http://localhost:5000${student.profilePhoto}`)}
+                        <img 
+                          src={`http://localhost:5000${student.profilePhoto}`} 
+                          alt="Student Photo" 
+                          className="profile-photo"
+                          onClick={handlePhotoPreview}
+                          title="Click to view photo in full screen"
+                          onError={(e) => {
+                            console.log('❌ Photo failed to load:', e.target.src);
+                            console.log('❌ Error details:', e);
+                            // If photo fails to load, show the user icon instead
+                            e.target.style.display = 'none';
+                          }}
+                          onLoad={(e) => {
+                            console.log('✅ Photo loaded successfully:', e.target.src);
+                            console.log('✅ Photo element:', e.target);
+                          }}
+                        />
+                        {/* Fallback user icon that shows if photo fails to load */}
+                        <i className="fas fa-user-circle fa-4x text-white" style={{ display: 'none' }}></i>
+                      </>
+                    ) : (
+                      <i className="fas fa-user-circle fa-4x text-white"></i>
+                    )}
+                    <div 
+                      className="photo-upload-overlay"
+                      onClick={() => setPhotoUploadModalOpen(true)}
+                      style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+                      title="Click to upload/change photo"
+                    >
+                      <i className="fas fa-camera fa-2x"></i>
+                      <span>Upload Photo</span>
+                    </div>
+                 </div>
+               </div>
+              <h4 className="mb-1">{`${user.lastName}, ${user.firstName} ${user.middleName || ''}`.trim()}</h4>
+              <p className="text-muted mb-2">Student No. {user.idNumber}</p>
+              <p className="text-muted mb-3">{user.course || 'Bachelor of Science in Information Technology'}</p>
               
               {/* Academic Status Badge */}
               <div className="mb-3">
-                <span className={`badge ${details.academicStatus === 'Regular' ? 'bg-success' : 'bg-warning'} fs-6`}>
-                  {details.academicStatus || 'Not registered'}
+                <span className={`badge ${(studentRegistration?.registrationStatus || user.registrationStatus) === 'Approved' ? 'bg-success' : 'bg-warning'} fs-6`}>
+                  {studentRegistration?.registrationStatus || user.registrationStatus || 'Not registered'}
                 </span>
               </div>
 
@@ -222,19 +438,23 @@ function StudentDetailView({ enrolledStudents }) {
               <div className="row text-start">
                 <div className="col-6">
                   <small className="text-muted">Gender</small>
-                  <p className="mb-2">{details.gender || 'N/A'}</p>
+                  <p className="mb-2">{studentRegistration?.gender || user.gender || 'N/A'}</p>
                 </div>
                 <div className="col-6">
-                  <small className="text-muted">Birth Date</small>
-                  <p className="mb-2">{details.dateOfBirth ? new Date(details.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                  <small className="text-muted">Registration Date</small>
+                  <p className="mb-2">{studentRegistration?.createdAt ? new Date(studentRegistration.createdAt).toISOString().split('T')[0] : 'N/A'}</p>
                 </div>
-                <div className="col-12">
-                  <small className="text-muted">Contact</small>
-                  <p className="mb-2">{details.contactNumber || user.phoneNumber || 'N/A'}</p>
+                <div className="col-6">
+                  <small className="text-muted">Year Level</small>
+                  <p className="mb-2">{studentRegistration?.yearLevel || user.currentYearLevel || 'N/A'}</p>
+                </div>
+                <div className="col-6">
+                  <small className="text-muted">Semester</small>
+                  <p className="mb-2">{studentRegistration?.semester || user.currentSemester || 'N/A'}</p>
                 </div>
                 <div className="col-12">
                   <small className="text-muted">Email</small>
-                  <p className="mb-0">{details.email || user.email || 'N/A'}</p>
+                  <p className="mb-0">{studentRegistration?.email || user.email || 'N/A'}</p>
                 </div>
               </div>
             </div>
@@ -246,7 +466,7 @@ function StudentDetailView({ enrolledStudents }) {
           <div className="card shadow-sm mb-4">
     <div className="card-header bg-white d-flex justify-content-between align-items-center">
       <h5 className="mb-0">Document Requests</h5>
-      <button className="btn btn-sm btn-outline-primary">New Request</button>
+      <button className="btn btn-sm btn-success">New Request</button>
     </div>
     <div className="card-body">
       <div className="table-responsive">
@@ -269,7 +489,7 @@ function StudentDetailView({ enrolledStudents }) {
                       <td>1</td>
                       <td>{new Date(req.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <button className="btn btn-sm btn-info" title="View Details">
+                        <button className="btn btn-sm btn-primary" title="View Details">
                           <i className="fas fa-eye"></i>
                         </button>
                       </td>
@@ -290,56 +510,79 @@ function StudentDetailView({ enrolledStudents }) {
             <div className="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 className="mb-0">Enrolled Subjects</h5>
                 <div className="d-flex align-items-center">
-                    <select 
-                        className="form-select form-select-sm me-2" 
-                        style={{width: '200px'}}
-                        value={currentSemester}
-                        onChange={(e) => setCurrentSemester(e.target.value)}
-                    >
-                        {Object.keys(studentDetails.enrolledSubjects).map(semester => (
-                            <option key={semester} value={semester}>{semester}</option>
-                        ))}
-                    </select>
-                    <button onClick={() => setCurriculumModalOpen(true)} className="btn btn-sm btn-outline-secondary">View Student Curriculum Track</button>
+                                         <select 
+                         className="form-select form-select-sm me-2" 
+                         style={{width: '200px'}}
+                         value={currentSemester}
+                         onChange={(e) => setCurrentSemester(e.target.value)}
+                     >
+                         <option value="">Select Semester</option>
+                         {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 ? (
+                             <option value="current">{enrolledSubjects.yearLevel} Year - {enrolledSubjects.semester} Semester</option>
+                         ) : (
+                             <option value="no-subjects">No subjects available</option>
+                         )}
+                     </select>
+                                         <button onClick={() => setCurriculumModalOpen(true)} className="btn btn-sm btn-info">View BSIT Prospectus</button>
                 </div>
             </div>
             <div className="card-body">
               <div className="table-responsive">
                 <table className="table table-hover table-sm">
-                  <thead>
-                    <tr>
-                      <th>Subject</th>
-                      <th className="text-center">Units</th>
-                      <th className="text-center">Final Grade</th>
-                      <th className="text-center">Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
+                                     <thead>
+                     <tr>
+                       <th>Course Code & Title</th>
+                       <th className="text-center">Units</th>
+                       <th className="text-center">Final Grade</th>
+                       <th className="text-center">Status</th>
+                       <th>Action</th>
+                     </tr>
+                   </thead>
                   <tbody>
-                    {currentSubjects.length > 0 ? (
-                      currentSubjects.map((sub, index) => (
-                        <tr key={index}>
-                          <td>{sub.subject}</td>
-                          <td className="text-center">{sub.units}</td>
-                          <td className="text-center">{sub.finalGrade}</td>
-                          <td className="text-center"><span className={getSubjectStatusBadge(sub.status)}>{sub.status}</span></td>
-                          <td><button className="btn btn-sm btn-link">More Info</button></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center text-muted">No subjects found for this semester.</td>
-                      </tr>
-                    )}
+                                         {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 ? (
+                       enrolledSubjects.subjects.map((subject, index) => (
+                         <tr key={subject.id}>
+                           <td>
+                             <div>
+                               <strong>{subject.courseCode}</strong>
+                               <br />
+                               <small className="text-muted">{subject.courseTitle}</small>
+                             </div>
+                           </td>
+                           <td className="text-center">{subject.units}</td>
+                           <td className="text-center">{subject.finalGrade}</td>
+                           <td className="text-center">
+                             <span className={`badge ${subject.isEnrolled ? 'bg-success' : 'bg-secondary'}`}>
+                               {subject.status}
+                             </span>
+                           </td>
+                           <td>
+                                                           <button className="btn btn-sm btn-warning" title="View Course Details">
+                                <i className="fas fa-info-circle"></i>
+                              </button>
+                           </td>
+                         </tr>
+                       ))
+                     ) : (
+                       <tr>
+                         <td colSpan="5" className="text-center text-muted">
+                           {enrolledSubjects ? 'No subjects available for current semester' : 'Loading subjects...'}
+                         </td>
+                       </tr>
+                     )}
                   </tbody>
-                  {currentSubjects.length > 0 && (
-                    <tfoot>
-                      <tr className="table-light">
-                        <td colSpan="2" className="text-end fw-bold">Total Units: <span className="fw-normal">{totalUnits}</span></td>
-                        <td colSpan="3" className="text-end fw-bold">Weighted Average: <span className="fw-normal">{weightedAverage}</span></td>
-                      </tr>
-                    </tfoot>
-                  )}
+                                     {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 && (
+                     <tfoot>
+                       <tr className="table-light">
+                         <td colSpan="2" className="text-end fw-bold">
+                           Total Units: <span className="fw-normal">{enrolledSubjects.totalUnits}</span>
+                         </td>
+                         <td colSpan="3" className="text-end fw-bold">
+                           Semester: <span className="fw-normal">{enrolledSubjects.yearLevel} Year - {enrolledSubjects.semester} Semester</span>
+                         </td>
+                       </tr>
+                     </tfoot>
+                   )}
                 </table>
               </div>
             </div>
@@ -357,57 +600,57 @@ function StudentDetailView({ enrolledStudents }) {
               <div className="row">
                 <div className="col-md-6">
                   <h6 className="text-primary mb-3">Personal Data</h6>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Full Name:</strong></div>
-                    <div className="col-8">{details.fullName || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Gender:</strong></div>
-                    <div className="col-8">{details.gender || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Marital Status:</strong></div>
-                    <div className="col-8">{details.maritalStatus || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Birth Date:</strong></div>
-                    <div className="col-8">{details.dateOfBirth ? new Date(details.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Place of Birth:</strong></div>
-                    <div className="col-8">{details.placeOfBirth || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Religion:</strong></div>
-                    <div className="col-8">{details.religion || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Citizenship:</strong></div>
-                    <div className="col-8">{details.citizenship || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Country:</strong></div>
-                    <div className="col-8">{details.country || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-4"><strong>Full Name:</strong></div>
+                     <div className="col-8">{studentRegistration ? `${studentRegistration.firstName} ${studentRegistration.middleName || ''} ${studentRegistration.lastName}`.trim() : 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Gender:</strong></div>
+                     <div className="col-8">{studentRegistration?.gender || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Marital Status:</strong></div>
+                     <div className="col-8">{studentRegistration?.maritalStatus || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Birth Date:</strong></div>
+                     <div className="col-8">{studentRegistration?.dateOfBirth ? new Date(studentRegistration.dateOfBirth).toLocaleDateString() : 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Place of Birth:</strong></div>
+                     <div className="col-8">{studentRegistration?.placeOfBirth || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Religion:</strong></div>
+                     <div className="col-8">{studentRegistration?.religion || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Citizenship:</strong></div>
+                     <div className="col-8">{studentRegistration?.nationality || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Country:</strong></div>
+                     <div className="col-8">{studentRegistration?.country || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-6">
                   <h6 className="text-primary mb-3">Contact Information</h6>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Email:</strong></div>
-                    <div className="col-8">{details.email || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Contact:</strong></div>
-                    <div className="col-8">{details.contactNumber || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>City Address:</strong></div>
-                    <div className="col-8">{details.cityAddress || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Provincial Address:</strong></div>
-                    <div className="col-8">{details.provincialAddress || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-4"><strong>Email:</strong></div>
+                     <div className="col-8">{studentRegistration?.email || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Contact:</strong></div>
+                     <div className="col-8">{studentRegistration?.contactNumber || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>City Address:</strong></div>
+                     <div className="col-8">{studentRegistration?.cityAddress || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Provincial Address:</strong></div>
+                     <div className="col-8">{studentRegistration?.provincialAddress || 'N/A'}</div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -425,72 +668,72 @@ function StudentDetailView({ enrolledStudents }) {
               <div className="row">
                 <div className="col-md-4">
                   <h6 className="text-warning mb-3">Father's Information</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Name:</strong></div>
-                    <div className="col-7">{details.fatherName || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Occupation:</strong></div>
-                    <div className="col-7">{details.fatherOccupation || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Company:</strong></div>
-                    <div className="col-7">{details.fatherCompany || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Contact:</strong></div>
-                    <div className="col-7">{details.fatherContactNumber || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Income:</strong></div>
-                    <div className="col-7">{details.fatherIncome || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>Name:</strong></div>
+                     <div className="col-7">{studentRegistration?.fatherName || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Occupation:</strong></div>
+                     <div className="col-7">{studentRegistration?.fatherOccupation || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Company:</strong></div>
+                     <div className="col-7">{studentRegistration?.fatherCompany || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Contact:</strong></div>
+                     <div className="col-7">{studentRegistration?.fatherContactNumber || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Income:</strong></div>
+                     <div className="col-7">{studentRegistration?.fatherIncome || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="text-warning mb-3">Mother's Information</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Name:</strong></div>
-                    <div className="col-7">{details.motherName || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Occupation:</strong></div>
-                    <div className="col-7">{details.motherOccupation || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Company:</strong></div>
-                    <div className="col-7">{details.motherCompany || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Contact:</strong></div>
-                    <div className="col-7">{details.motherContactNumber || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Income:</strong></div>
-                    <div className="col-7">{details.motherIncome || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>Name:</strong></div>
+                     <div className="col-7">{studentRegistration?.motherName || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Occupation:</strong></div>
+                     <div className="col-7">{studentRegistration?.motherOccupation || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Company:</strong></div>
+                     <div className="col-7">{studentRegistration?.motherCompany || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Contact:</strong></div>
+                     <div className="col-7">{studentRegistration?.motherContactNumber || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Income:</strong></div>
+                     <div className="col-7">{studentRegistration?.motherIncome || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="text-warning mb-3">Guardian's Information</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Name:</strong></div>
-                    <div className="col-7">{details.guardianName || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Occupation:</strong></div>
-                    <div className="col-7">{details.guardianOccupation || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Company:</strong></div>
-                    <div className="col-7">{details.guardianCompany || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Contact:</strong></div>
-                    <div className="col-7">{details.guardianContactNumber || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Income:</strong></div>
-                    <div className="col-7">{details.guardianIncome || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>Name:</strong></div>
+                     <div className="col-7">{studentRegistration?.guardianName || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Occupation:</strong></div>
+                     <div className="col-7">{studentRegistration?.guardianOccupation || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Company:</strong></div>
+                     <div className="col-7">{studentRegistration?.guardianCompany || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Contact:</strong></div>
+                     <div className="col-7">{studentRegistration?.guardianContactNumber || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Income:</strong></div>
+                     <div className="col-7">{studentRegistration?.guardianIncome || 'N/A'}</div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -508,57 +751,57 @@ function StudentDetailView({ enrolledStudents }) {
               <div className="row">
                 <div className="col-md-6">
                   <h6 className="text-success mb-3">Current Academic Information</h6>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Course:</strong></div>
-                    <div className="col-8">{details.course?.name || 'Not selected'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Major:</strong></div>
-                    <div className="col-8">{details.major || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Student Type:</strong></div>
-                    <div className="col-8">{details.studentType || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Semester Entry:</strong></div>
-                    <div className="col-8">{details.semesterEntry || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Year of Entry:</strong></div>
-                    <div className="col-8">{details.yearOfEntry || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Application Type:</strong></div>
-                    <div className="col-8">{details.applicationType || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-4"><strong>Course:</strong></div>
+                     <div className="col-8">{studentRegistration?.course || 'Bachelor of Science in Information Technology'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Major:</strong></div>
+                     <div className="col-8">{studentRegistration?.major || 'Information Technology'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Student Type:</strong></div>
+                     <div className="col-8">{studentRegistration?.studentType || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Semester Entry:</strong></div>
+                     <div className="col-8">{studentRegistration?.semesterEntry || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Year of Entry:</strong></div>
+                     <div className="col-8">{studentRegistration?.yearOfEntry || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Application Type:</strong></div>
+                     <div className="col-8">{studentRegistration?.applicationType || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-6">
                   <h6 className="text-success mb-3">Academic Status</h6>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Status:</strong></div>
-                    <div className="col-8">
-                      <span className={`badge ${details.academicStatus === 'Regular' ? 'bg-success' : 'bg-warning'}`}>
-                        {details.academicStatus || 'Not registered'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Current Semester:</strong></div>
-                    <div className="col-8">{details.currentSemester ? `${details.currentSemester}${getOrdinalSuffix(details.currentSemester)} Semester` : 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Year Level:</strong></div>
-                    <div className="col-8">{details.currentYearLevel || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>Units Earned:</strong></div>
-                    <div className="col-8">{details.totalUnitsEarned || '0'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-4"><strong>GPA:</strong></div>
-                    <div className="col-8">{details.cumulativeGPA || '0.00'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-4"><strong>Status:</strong></div>
+                     <div className="col-8">
+                       <span className={`badge ${studentRegistration?.registrationStatus === 'Approved' ? 'bg-success' : 'bg-warning'}`}>
+                         {studentRegistration?.registrationStatus || 'Not registered'}
+                       </span>
+                     </div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Current Semester:</strong></div>
+                     <div className="col-8">{studentRegistration?.semester ? `${studentRegistration.semester}${getOrdinalSuffix(studentRegistration.semester)} Semester` : 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Year Level:</strong></div>
+                     <div className="col-8">{studentRegistration?.yearLevel || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>School Year:</strong></div>
+                     <div className="col-8">{studentRegistration?.schoolYear || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-4"><strong>Registration Date:</strong></div>
+                     <div className="col-8">{studentRegistration?.createdAt ? new Date(studentRegistration.createdAt).toLocaleDateString() : 'N/A'}</div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -576,64 +819,64 @@ function StudentDetailView({ enrolledStudents }) {
               <div className="row">
                 <div className="col-md-4">
                   <h6 className="text-secondary mb-3">Elementary Education</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>School:</strong></div>
-                    <div className="col-7">{details.elementarySchool || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Address:</strong></div>
-                    <div className="col-7">{details.elementaryAddress || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Year Graduated:</strong></div>
-                    <div className="col-7">{details.elementaryYearGraduated || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Honor:</strong></div>
-                    <div className="col-7">{details.elementaryHonor || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>School:</strong></div>
+                     <div className="col-7">{studentRegistration?.elementarySchool || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Address:</strong></div>
+                     <div className="col-7">{studentRegistration?.elementaryAddress || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Year Graduated:</strong></div>
+                     <div className="col-7">{studentRegistration?.elementaryYearGraduated || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Honor:</strong></div>
+                     <div className="col-7">{studentRegistration?.elementaryHonor || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="text-secondary mb-3">Junior High School</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>School:</strong></div>
-                    <div className="col-7">{details.juniorHighSchool || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Address:</strong></div>
-                    <div className="col-7">{details.juniorHighAddress || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Year Graduated:</strong></div>
-                    <div className="col-7">{details.juniorHighYearGraduated || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Honor:</strong></div>
-                    <div className="col-7">{details.juniorHighHonor || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>School:</strong></div>
+                     <div className="col-7">{studentRegistration?.juniorHighSchool || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Address:</strong></div>
+                     <div className="col-7">{studentRegistration?.juniorHighAddress || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Year Graduated:</strong></div>
+                     <div className="col-7">{studentRegistration?.juniorHighYearGraduated || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Honor:</strong></div>
+                     <div className="col-7">{studentRegistration?.juniorHighHonor || 'N/A'}</div>
+                   </div>
                 </div>
                 <div className="col-md-4">
                   <h6 className="text-secondary mb-3">Senior High School</h6>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>School:</strong></div>
-                    <div className="col-7">{details.seniorHighSchool || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Address:</strong></div>
-                    <div className="col-7">{details.seniorHighAddress || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Strand:</strong></div>
-                    <div className="col-7">{details.seniorHighStrand || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Year Graduated:</strong></div>
-                    <div className="col-7">{details.seniorHighYearGraduated || 'N/A'}</div>
-                  </div>
-                  <div className="row mb-2">
-                    <div className="col-5"><strong>Honor:</strong></div>
-                    <div className="col-7">{details.seniorHighHonor || 'N/A'}</div>
-                  </div>
+                                     <div className="row mb-2">
+                     <div className="col-5"><strong>School:</strong></div>
+                     <div className="col-7">{studentRegistration?.seniorHighSchool || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Address:</strong></div>
+                     <div className="col-7">{studentRegistration?.seniorHighAddress || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Strand:</strong></div>
+                     <div className="col-7">{studentRegistration?.seniorHighStrand || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Year Graduated:</strong></div>
+                     <div className="col-7">{studentRegistration?.seniorHighYearGraduated || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Honor:</strong></div>
+                     <div className="col-7">{studentRegistration?.seniorHighHonor || 'N/A'}</div>
+                   </div>
                 </div>
               </div>
             </div>
@@ -652,33 +895,33 @@ function StudentDetailView({ enrolledStudents }) {
                 <div className="row">
                   <div className="col-md-4">
                     <h6 className="text-dark mb-3">NCAE & Specialization</h6>
-                    <div className="row mb-2">
-                      <div className="col-5"><strong>NCAE Grade:</strong></div>
-                      <div className="col-7">{details.ncaeGrade || 'N/A'}</div>
-                    </div>
-                    <div className="row mb-2">
-                      <div className="col-5"><strong>Specialization:</strong></div>
-                      <div className="col-7">{details.specialization || 'N/A'}</div>
-                    </div>
+                                       <div className="row mb-2">
+                     <div className="col-5"><strong>NCAE Grade:</strong></div>
+                     <div className="col-7">{studentRegistration?.ncaeGrade || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-5"><strong>Specialization:</strong></div>
+                     <div className="col-7">{studentRegistration?.specialization || 'N/A'}</div>
+                   </div>
                   </div>
                   <div className="col-md-8">
                     <h6 className="text-dark mb-3">Previous College (if any)</h6>
-                    <div className="row mb-2">
-                      <div className="col-3"><strong>College:</strong></div>
-                      <div className="col-9">{details.lastCollegeAttended || 'N/A'}</div>
-                    </div>
-                    <div className="row mb-2">
-                      <div className="col-3"><strong>Year Taken:</strong></div>
-                      <div className="col-9">{details.lastCollegeYearTaken || 'N/A'}</div>
-                    </div>
-                    <div className="row mb-2">
-                      <div className="col-3"><strong>Course:</strong></div>
-                      <div className="col-9">{details.lastCollegeCourse || 'N/A'}</div>
-                    </div>
-                    <div className="row mb-2">
-                      <div className="col-3"><strong>Major:</strong></div>
-                      <div className="col-9">{details.lastCollegeMajor || 'N/A'}</div>
-                    </div>
+                                       <div className="row mb-2">
+                     <div className="col-3"><strong>College:</strong></div>
+                     <div className="col-9">{studentRegistration?.lastCollegeAttended || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-3"><strong>Year Taken:</strong></div>
+                     <div className="col-9">{studentRegistration?.lastCollegeYearTaken || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-3"><strong>Course:</strong></div>
+                     <div className="col-9">{studentRegistration?.lastCollegeCourse || 'N/A'}</div>
+                   </div>
+                   <div className="row mb-2">
+                     <div className="col-3"><strong>Major:</strong></div>
+                     <div className="col-9">{studentRegistration?.lastCollegeMajor || 'N/A'}</div>
+                   </div>
                   </div>
                 </div>
               </div>
@@ -687,17 +930,174 @@ function StudentDetailView({ enrolledStudents }) {
         </div>
       </div>
 
-      {/* Curriculum Modal */}
-      {isCurriculumModalOpen && (
-        <CurriculumTrackModal
-          studentName={student.name}
-          curriculum={studentDetails.curriculum}
-          takenSubjects={studentDetails.allTakenSubjects}
-          onClose={() => setCurriculumModalOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
+             {/* BSIT Prospectus Modal */}
+       {isCurriculumModalOpen && (
+         <BsitProspectusModal
+           isOpen={isCurriculumModalOpen}
+           onClose={() => setCurriculumModalOpen(false)}
+           studentName={`${student.firstName} ${student.lastName}`}
+         />
+       )}
+
+       {/* Photo Upload Modal */}
+       {photoUploadModalOpen && (
+         <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+           <div className="modal-dialog modal-dialog-centered">
+             <div className="modal-content">
+               <div className="modal-header">
+                 <h5 className="modal-title">
+                   <i className="fas fa-camera me-2"></i>
+                   Upload Student Photo
+                 </h5>
+                 <button 
+                   type="button" 
+                   className="btn-close" 
+                   onClick={() => setPhotoUploadModalOpen(false)}
+                 ></button>
+               </div>
+               <div className="modal-body">
+                 <div className="text-center mb-3">
+                   <label htmlFor="photoInput" className="btn btn-outline-primary btn-lg">
+                     <i className="fas fa-upload me-2"></i>
+                     Choose Photo from Library
+                   </label>
+                   <input
+                     id="photoInput"
+                     type="file"
+                     accept="image/*"
+                     onChange={handlePhotoSelect}
+                     style={{ display: 'none' }}
+                   />
+                 </div>
+                 
+                 {photoPreview && (
+                   <div className="text-center">
+                     <h6>Photo Preview:</h6>
+                     <img 
+                       src={photoPreview} 
+                       alt="Preview" 
+                       className="img-fluid rounded mb-3"
+                       style={{ maxHeight: '200px' }}
+                     />
+                   </div>
+                 )}
+
+                                   {student.profilePhoto && (
+                    <div className="text-center mb-3">
+                      <h6>Current Photo:</h6>
+                                            <img 
+                         src={`http://localhost:5000${student.profilePhoto}`} 
+                         alt="Current" 
+                         className="img-fluid rounded mb-2"
+                         style={{ maxHeight: '150px' }}
+                       />
+                     <br />
+                     <button 
+                       className="btn btn-outline-danger btn-sm"
+                       onClick={handleDeletePhoto}
+                     >
+                       <i className="fas fa-trash me-1"></i>
+                       Delete Current Photo
+                     </button>
+                   </div>
+                 )}
+               </div>
+               <div className="modal-footer">
+                 <button 
+                   type="button" 
+                   className="btn btn-secondary" 
+                   onClick={() => setPhotoUploadModalOpen(false)}
+                 >
+                   Cancel
+                 </button>
+                 <button 
+                   type="button" 
+                   className="btn btn-primary" 
+                   onClick={handlePhotoUpload}
+                   disabled={!selectedPhoto || uploadingPhoto}
+                 >
+                   {uploadingPhoto ? (
+                     <>
+                       <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                       Uploading...
+                     </>
+                   ) : (
+                     <>
+                       <i className="fas fa-upload me-2"></i>
+                       Upload Photo
+                     </>
+                   )}
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
+               {/* Modal Backdrop */}
+        {photoUploadModalOpen && (
+          <div className="modal-backdrop fade show"></div>
+        )}
+
+        {/* Photo Preview Modal */}
+        {photoPreviewModalOpen && (
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered modal-xl">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    <i className="fas fa-image me-2"></i>
+                    Student Photo
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setPhotoPreviewModalOpen(false)}
+                  ></button>
+                </div>
+                                 <div className="modal-body text-center p-0">
+                   <img 
+                     src={`http://localhost:5000${student.profilePhoto}`} 
+                     alt="Student Photo" 
+                     className="img-fluid"
+                     style={{ 
+                       maxHeight: '80vh', 
+                       maxWidth: '100%',
+                       objectFit: 'contain'
+                     }}
+                   />
+                 </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setPhotoPreviewModalOpen(false)}
+                  >
+                    Close
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={() => {
+                      setPhotoPreviewModalOpen(false);
+                      setPhotoUploadModalOpen(true);
+                    }}
+                  >
+                    <i className="fas fa-edit me-2"></i>
+                    Change Photo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Photo Preview Modal Backdrop */}
+        {photoPreviewModalOpen && (
+          <div className="modal-backdrop fade show"></div>
+        )}
+     </div>
+   );
+ }
 
 export default StudentDetailView; 

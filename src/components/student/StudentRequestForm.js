@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function StudentRequestForm() {
     const [documentType, setDocumentType] = useState('');
@@ -12,11 +12,21 @@ function StudentRequestForm() {
 
     const fetchRequests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+            const sessionToken = getSessionToken();
+            console.log('🔍 Frontend - Fetching requests with token:', sessionToken ? 'EXISTS' : 'MISSING');
+            
+            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { 
+                headers: { 'X-Session-Token': sessionToken } 
+            });
+            
+            console.log('📡 Frontend - Fetch requests response status:', response.status);
+            
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to fetch');
             setRequests(data);
-        } catch (err) { console.error('Error fetching student requests:', err); }
+        } catch (err) { 
+            console.error('❌ Frontend - Error fetching requests:', err); 
+        }
     };
     useEffect(() => {
         fetchRequests();
@@ -57,13 +67,27 @@ function StudentRequestForm() {
             });
         }
         try {
-            const response = await fetch(`${API_BASE_URL}/requests`, { method: 'POST', headers: { 'Authorization': `Bearer ${getToken()}` }, body: formData });
+            const sessionToken = getSessionToken();
+            console.log('🔑 Frontend - Session token:', sessionToken ? 'EXISTS' : 'MISSING');
+            console.log('🔑 Frontend - API URL:', `${API_BASE_URL}/requests`);
+            
+            const response = await fetch(`${API_BASE_URL}/requests`, { 
+                method: 'POST', 
+                headers: { 'X-Session-Token': sessionToken }, 
+                body: formData 
+            });
+            
+            console.log('📡 Frontend - Response status:', response.status);
+            
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to submit');
             setMessage('Request submitted!');
             setDocumentType(''); setPurpose(''); setFiles([]); setFileNames('No files chosen');
             fetchRequests();
-        } catch (err) { setError(err.message); }
+        } catch (err) { 
+            console.error('❌ Frontend - Error:', err);
+            setError(err.message); 
+        }
     };
     return (
   <div className="container-fluid mt-5">

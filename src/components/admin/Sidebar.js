@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
@@ -14,6 +14,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const [isAssessmentOpen, setAssessmentOpen] = useState(location.pathname.startsWith('/admin/assessment'));
     
     const [profilePic, setProfilePic] = useState(null);
+    const [photoPreviewModalOpen, setPhotoPreviewModalOpen] = useState(false);
     const userRole = localStorage.getItem('userRole');
 
     const [schoolYears, setSchoolYears] = useState([]);
@@ -41,7 +42,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         const fetchPendingRequests = async () => {
             try {
                 const res = await fetch(`${API_BASE_URL}/requests`, {
-                    headers: { Authorization: `Bearer ${getToken()}` }
+                    headers: { 'X-Session-Token': getSessionToken() }
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -96,6 +97,13 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         },
         { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' }
     ];
+
+    // Function to handle photo preview
+    const handlePhotoPreview = () => {
+        if (profilePic) {
+            setPhotoPreviewModalOpen(true);
+        }
+    };
 
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0];
@@ -173,76 +181,131 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             : menuItems; // Show all for any other case (or default)
 
     return (
-        <div className="sidebar">
-            <div className="sidebar-header text-center">
-                <div className="sidebar-profile-container">
-                    <div onClick={() => profilePic && onProfileClick(profilePic)}>
-                        {profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}
+        <>
+            <div className="sidebar">
+                <div className="sidebar-header text-center">
+                    <div className="sidebar-profile-container">
+                        <div onClick={handlePhotoPreview} title="Click to view photo in full screen">
+                            {profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}
+                        </div>
+                        <label htmlFor="profile-pic-upload" className="profile-pic-edit-button" title="Click to upload/change photo"><i className="fas fa-camera"></i></label>
+                        <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
                     </div>
-                    <label htmlFor="profile-pic-upload" className="profile-pic-edit-button"><i className="fas fa-camera"></i></label>
-                    <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
+                    <h5>{userRole === 'accounting' ? 'Accounting' : 'Registrar'}</h5>
                 </div>
-                <h5>{userRole === 'accounting' ? 'Accounting' : 'Registrar'}</h5>
-            </div>
-            
-             {/* --- START: Added School Year Selector --- */}
-            <div className="sidebar-sy-selector">
-                <select 
-                    className="form-select sy-dropdown"
-                    value={selectedSchoolYear}
-                    onChange={handleSchoolYearChange}
-                >
-                    {schoolYears.map(sy => (
-                        <option key={sy.id} value={sy.id}>
-                            SY {sy.start_year} - {sy.end_year} {sy.semester}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            
-            <div className="sidebar-nav">
-                <ul className="nav flex-column">
-                    {visibleMenuItems.map(item => (
-                        <li className="nav-item" key={item.name}>
-                            {item.subItems ? (
-                                <>
-                                    {/* FIX: Changed 'itemName' to 'item.name' to pass the correct value */}
-                                    <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e) => handleMenuClick(e, item.name)}>
+                
+                {/* --- START: Added School Year Selector --- */}
+                <div className="sidebar-sy-selector">
+                    <select 
+                        className="form-select sy-dropdown"
+                        value={selectedSchoolYear}
+                        onChange={handleSchoolYearChange}
+                    >
+                        {schoolYears.map(sy => (
+                            <option key={sy.id} value={sy.id}>
+                                SY {sy.start_year} - {sy.end_year} {sy.semester}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                
+                <div className="sidebar-nav">
+                    <ul className="nav flex-column">
+                        {visibleMenuItems.map(item => (
+                            <li className="nav-item" key={item.name}>
+                                {item.subItems ? (
+                                    <>
+                                        {/* FIX: Changed 'itemName' to 'item.name' to pass the correct value */}
+                                        <a href="#!" className="nav-link d-flex justify-content-between" onClick={(e) => handleMenuClick(e, item.name)}>
+                                            <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
+                                            <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'rotate-180':''}`}></i>
+                                        </a>
+                                        <div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'show':''}`}>
+                                            <ul className="nav flex-column ps-3">
+                                                {item.subItems.map(subItem => (
+                                                    <li className="nav-item" key={subItem.name}>
+                                                        <Link 
+                                                            to={subItem.path} 
+                                                            className={`nav-link sub-item ${
+                                                                (location.pathname === subItem.path || (subItem.path === '/admin/all-students' && location.pathname.startsWith('/admin/students/'))) 
+                                                                ? 'active' 
+                                                                : ''
+                                                            }`} 
+                                                            onClick={() => subItem.path === '/admin/enrollment/new' && setStudentToEnroll(null)}>
+                                                            {subItem.name}
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <Link to={item.path} className={`nav-link d-flex justify-content-between align-items-center ${location.pathname === item.path ? 'active' : ''}`}>
                                         <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
-                                        <i className={`fas fa-chevron-down transition-transform ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'rotate-180':''}`}></i>
-                                    </a>
-                                    <div className={`collapse ${((item.name==='Enrollment'&&isEnrollmentOpen)||(item.name==='Registration'&&isRegistrationOpen)||(item.name==='Students'&&isStudentOpen)||(item.name==='Manage'&&isManageOpen)||(item.name==='Assessment'&&isAssessmentOpen))?'show':''}`}>
-                                        <ul className="nav flex-column ps-3">
-                                            {item.subItems.map(subItem => (
-                                                <li className="nav-item" key={subItem.name}>
-                                                    <Link 
-                                                        to={subItem.path} 
-                                                        className={`nav-link sub-item ${
-                                                            (location.pathname === subItem.path || (subItem.path === '/admin/all-students' && location.pathname.startsWith('/admin/students/'))) 
-                                                            ? 'active' 
-                                                            : ''
-                                                        }`} 
-                                                        onClick={() => subItem.path === '/admin/enrollment/new' && setStudentToEnroll(null)}>
-                                                        {subItem.name}
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </>
-                            ) : (
-                                <Link to={item.path} className={`nav-link d-flex justify-content-between align-items-center ${location.pathname === item.path ? 'active' : ''}`}>
-                                    <span><i className={`fas ${item.icon} me-2`}></i>{item.name}</span>
-                                    {item.badge > 0 && (
-                                    <span className="badge bg-danger rounded-pill small-badge">{item.badge}</span>
-                                    )}
-                                </Link>
-                            )}
-                        </li>
-                    ))}
-                </ul>
+                                        {item.badge > 0 && (
+                                        <span className="badge bg-danger rounded-pill small-badge">{item.badge}</span>
+                                        )}
+                                    </Link>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
             </div>
-        </div>
+
+            {photoPreviewModalOpen && (
+                <div className="modal fade show" style={{ display: 'block', zIndex: 9999 }} tabIndex="-1">
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content profile-preview-modal">
+                            <div className="modal-header border-0 pb-0">
+                                <h5 className="modal-title text-center w-100">
+                                    <i className="fas fa-user-circle me-2"></i>
+                                    Profile Photo
+                                </h5>
+                                <button 
+                                    type="button" 
+                                    className="btn-close position-absolute" 
+                                    style={{ right: '1rem', top: '1rem' }}
+                                    onClick={() => setPhotoPreviewModalOpen(false)}
+                                ></button>
+                            </div>
+                            <div className="modal-body text-center p-4">
+                                <div className="profile-preview-container">
+                                    <img 
+                                        src={profilePic} 
+                                        alt="Profile Photo" 
+                                        className="profile-preview-image"
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-footer border-0 pt-0 justify-content-center">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline-secondary btn-sm" 
+                                    onClick={() => setPhotoPreviewModalOpen(false)}
+                                >
+                                    <i className="fas fa-times me-1"></i>
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Photo Preview Modal Backdrop */}
+            {photoPreviewModalOpen && (
+                <div className="photo-preview-overlay" onClick={() => setPhotoPreviewModalOpen(false)}>
+                    <div className="photo-preview-circle">
+                        <img 
+                            src={profilePic} 
+                            alt="Profile Photo" 
+                            className="photo-preview-image"
+                        />
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 

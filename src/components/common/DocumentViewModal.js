@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { API_BASE_URL, getToken } from '../../utils/api';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function DocumentViewModal({ modalData, onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -13,7 +13,7 @@ function DocumentViewModal({ modalData, onClose }) {
 
         try {
             const response = await fetch(`${API_BASE_URL}/requests/${modalData.requestId}/document/${index}`, {
-                headers: { 'Authorization': `Bearer ${getToken()}` },
+                headers: { 'X-Session-Token': getSessionToken() },
             });
 
             if (!response.ok) {

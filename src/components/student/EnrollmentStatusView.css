@@ -1,0 +1,431 @@
+/* Enrollment Status View Professional Styling */
+.enrollment-status-container {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header Section */
+.enrollment-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.enrollment-title {
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+    color: #ecf0f1;
+}
+
+.enrollment-subtitle {
+    font-size: 1.1rem;
+    color: #bdc3c7;
+    margin-bottom: 0;
+    font-weight: 400;
+}
+
+.enrollment-summary {
+    text-align: right;
+}
+
+.summary-item {
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #bdc3c7;
+    margin-bottom: 0.25rem;
+}
+
+.summary-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ecf0f1;
+}
+
+/* Semester Filter */
+.semester-filter .card {
+    border: none;
+    border-radius: 12px;
+}
+
+.semester-filter .form-label {
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.semester-filter .form-select {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    font-weight: 500;
+}
+
+.semester-filter .form-select:focus {
+    border-color: #2c3e50;
+    box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25);
+}
+
+/* Enrollment Summary Card */
+.enrollment-summary-card .card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.enrollment-summary-card .card-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    border: none;
+    padding: 1.5rem;
+}
+
+.enrollment-summary-card .card-header h5 {
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.summary-stat {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enrolled Subjects Section */
+.enrolled-subjects-section .card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.enrolled-subjects-section .card-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    padding: 1.5rem;
+}
+
+.enrolled-subjects-section .card-header h5 {
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.enrolled-subjects-section .table {
+    margin-bottom: 0;
+}
+
+.enrolled-subjects-section .table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 1rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.enrolled-subjects-section .table td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.enrolled-subjects-section .table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Weekly Schedule Section */
+.weekly-schedule-section .card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.weekly-schedule-section .card-header {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+    border: none;
+    padding: 1.5rem;
+}
+
+.weekly-schedule-section .card-header h5 {
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: #212529;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.schedule-day {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+}
+
+.day-header {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.day-subjects {
+    padding: 1rem;
+    min-height: 120px;
+}
+
+.schedule-item {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid #2c3e50;
+}
+
+.schedule-item:last-child {
+    margin-bottom: 0;
+}
+
+.subject-code {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.subject-time {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.subject-room {
+    font-size: 0.8rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.no-classes {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem 0;
+}
+
+/* Additional Information Section */
+.additional-info-section .card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.additional-info-section .card-header {
+    background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%);
+    border: none;
+    padding: 1.5rem;
+}
+
+.additional-info-section .card-header h5 {
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+.additional-info-section .card-body {
+    padding: 2rem;
+}
+
+.additional-info-section h6 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.additional-info-section ul li {
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.additional-info-section ul li strong {
+    color: #2c3e50;
+}
+
+/* Badge Styling */
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .enrollment-header {
+        padding: 2rem 0;
+        text-align: center;
+    }
+    
+    .enrollment-title {
+        font-size: 2rem;
+    }
+    
+    .enrollment-submary {
+        text-align: center;
+        margin-top: 1rem;
+    }
+    
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .enrolled-subjects-section .table-responsive {
+        font-size: 0.9rem;
+    }
+    
+    .enrolled-subjects-section .table th,
+    .enrolled-subjects-section .table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .enrollment-title {
+        font-size: 1.75rem;
+    }
+    
+    .enrollment-subtitle {
+        font-size: 1rem;
+    }
+    
+    .schedule-day {
+        margin-bottom: 1rem;
+    }
+    
+    .additional-info-section .card-body {
+        padding: 1.5rem;
+    }
+    
+    .summary-stat {
+        padding: 0.75rem;
+    }
+    
+    .stat-number {
+        font-size: 1.75rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .enrollment-status-container {
+        background: white;
+    }
+    
+    .enrollment-header {
+        background: #f8f9fa !important;
+        color: #2c3e50 !important;
+        box-shadow: none;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+    
+    .schedule-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Animation Effects */
+.enrollment-summary-card .card,
+.enrolled-subjects-section .card,
+.weekly-schedule-section .card,
+.additional-info-section .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.enrollment-summary-card .card:hover,
+.enrolled-subjects-section .card:hover,
+.weekly-schedule-section .card:hover,
+.additional-info-section .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.schedule-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.schedule-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Loading and Error States */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+}
+
+/* Custom Scrollbar for Table */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}

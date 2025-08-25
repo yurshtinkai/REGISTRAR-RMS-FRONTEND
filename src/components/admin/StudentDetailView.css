@@ -29,6 +29,110 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 50%;
   color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.clickable-photo {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clickable-photo:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.profile-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.profile-photo:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Camera icon overlay for uploaded photos */
+.profile-photo::after {
+  content: '\f030'; /* FontAwesome camera icon */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 1.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-photo:hover::after {
+  opacity: 1;
+}
+
+.photo-upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.clickable-photo:hover .photo-upload-overlay {
+  opacity: 1;
+}
+
+/* When photo exists, show overlay on hover */
+.profile-photo + .photo-upload-overlay {
+  opacity: 0;
+}
+
+.profile-photo:hover + .photo-upload-overlay,
+.clickable-photo:hover .photo-upload-overlay {
+  opacity: 1;
+}
+
+/* Make sure camera icon is always clickable when visible */
+.photo-upload-overlay:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.photo-upload-overlay i {
+  margin-bottom: 5px;
+}
+
+.photo-upload-overlay span {
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
 .student-detail-view .row {
@@ -113,4 +217,30 @@
   .student-detail-view .btn {
     display: none;
   }
+}
+
+/* Photo Preview Modal Styles */
+.modal-xl .modal-body img {
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-xl .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Full-screen photo preview */
+.modal-xl .modal-dialog {
+  max-width: 90vw;
+  margin: 1.75rem auto;
+}
+
+.modal-xl .modal-body {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
 }

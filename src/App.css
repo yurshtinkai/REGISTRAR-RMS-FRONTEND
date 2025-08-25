@@ -162,6 +162,11 @@ body.login-background {
 .sidebar-profile-container {
   position: relative;
   margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.sidebar-profile-container:hover {
+  transform: scale(1.02);
 }
 
 /* The default icon if no picture is uploaded */
@@ -179,6 +184,13 @@ body.login-background {
   object-fit: cover;
   border: 3px solid #dee2e6;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sidebar .sidebar-profile-pic:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border-color: #0d6efd;
 }
 
 /* The camera icon overlay button */
@@ -358,6 +370,41 @@ body.login-background {
     width: auto;
     height: auto;
     object-fit: contain;
+}
+
+/* Photo Preview Modal Styles */
+.modal-xl .modal-body img {
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.modal-xl .modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Full-screen photo preview */
+.modal-xl .modal-dialog {
+    max-width: 90vw;
+    margin: 1.75rem auto;
+}
+
+.modal-xl .modal-body {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+/* Ensure photo preview modal appears above sidebar */
+.modal-xl {
+    z-index: 9999 !important;
+}
+
+.modal-xl .modal-backdrop {
+    z-index: 9998 !important;
 }
 
 .small-badge {
@@ -658,4 +705,144 @@ body.login-background {
 }
 .student-navbar-btn.active::after {
   background: #ffffff;
+}
+
+.profile-preview-modal {
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  max-width: 400px;
+  width: 90vw;
+}
+
+.profile-preview-modal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+}
+
+.profile-preview-modal .modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.profile-preview-modal .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.profile-preview-modal .btn-close:hover {
+  opacity: 1;
+}
+
+.profile-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.profile-preview-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 6px solid #f8f9fa;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-preview-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.25);
+}
+
+.profile-preview-modal .modal-footer {
+  background: #f8f9fa;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+}
+
+.profile-preview-modal .btn-outline-secondary {
+  border-radius: 25px;
+  padding: 0.5rem 1.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.profile-preview-modal .btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .profile-preview-modal {
+      margin: 1rem;
+      width: calc(100vw - 2rem);
+  }
+  
+  .profile-preview-image {
+      width: 150px;
+      height: 150px;
+  }
+}
+
+
+
+/* Photo Preview - Just Circle Picture */
+.photo-preview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    cursor: pointer;
+}
+
+.photo-preview-circle {
+    position: relative;
+    animation: photoPopIn 0.3s ease-out;
+}
+
+.photo-preview-image {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 8px solid white;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.photo-preview-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes photoPopIn {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .photo-preview-image {
+        width: 250px;
+        height: 250px;
+    }
 }

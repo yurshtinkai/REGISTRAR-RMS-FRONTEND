@@ -1,36 +1,46 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../utils/api'; 
+import StudentLogin from './StudentLogin';
+import StudentRegistration from './StudentRegistration';
+import AdminLogin from './AdminLogin';
 
 function Login({ onLoginSuccess }) {
-  const [idNumber, setIdNumber] = useState('');
-  const [password, setPassword] = useState('');
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ idNumber, password }) 
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Login failed');
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userRole', data.user.role);
-      localStorage.setItem('idNumber', data.user.idNumber);
+  const handleLoginSuccess = (result) => {
+    // Store session token and user info
+    localStorage.setItem('sessionToken', result.sessionToken);
+    localStorage.setItem('userRole', result.user.role);
+    localStorage.setItem('idNumber', result.user.idNumber);
+    localStorage.setItem('userId', result.user.id); // Store the actual user ID from database
 
-      if (data.user.role === 'student') {
-        const fullName = `${data.user.firstName} ${data.user.middleName || ''} ${data.user.lastName}`;
-        localStorage.setItem('fullName', fullName.trim());
-        localStorage.setItem('course', data.user.course);
-      }
-
-      onLoginSuccess(data.user.role);
-    } catch (err) { 
-      setError(err.message); 
+    if (result.user.role === 'student') {
+      const fullName = `${result.user.firstName} ${result.user.middleName || ''} ${result.user.lastName}`;
+      localStorage.setItem('fullName', fullName.trim());
     }
+
+    onLoginSuccess(result.user.role);
+  };
+
+  const handleRegistrationSuccess = (result) => {
+    // After successful registration, switch to login
+    setShowRegistration(false);
+    setError('');
+    // Show success message
+    alert('Registration successful! You can now login with your School ID and password.');
+  };
+
+  const handleAdminLoginSuccess = (result) => {
+    // Store session token and user info
+    localStorage.setItem('sessionToken', result.sessionToken);
+    localStorage.setItem('userRole', result.user.role);
+    localStorage.setItem('idNumber', result.user.idNumber);
+    localStorage.setItem('userId', result.user.id); // Store the actual user ID from database
+    localStorage.setItem('fullName', `${result.user.firstName} ${result.user.lastName}`);
+    
+    onLoginSuccess(result.user.role);
   };
 
   return (
@@ -40,49 +50,46 @@ function Login({ onLoginSuccess }) {
           <img src="/bcleads.png" alt="Registrar Logo" style={{ maxWidth: '850px', width: '100%', height: 'auto' }} className="mb-4" />
         </div>
         <div className="col-md-7 d-flex justify-content-end">
-          <div className="loginCard shadow-lg p-4 w-100 d-flex flex-column align-items-center" style={{ maxWidth: '400px' }}>
-            <i className="fa-solid fa-user mb-1 fs-1" style={{color:'#dd5618'}}></i>
-            <h2 className="text-center mb-3" style={{color:'#dd5618'}}>Login</h2>
-            <form onSubmit={handleSubmit}>
-                <div className="d-flex flex-column align-items-center">
-                  <div className="mb-3 w-100 d-flex flex-column align-items-center">
-                    <label htmlFor="idNumber" className="mb-1 fs-5" style={{color:'#dd5618'}}>ID Number</label>
-                    <input 
-                      type="text" 
-                      className="form-control rounded-3 text-center" 
-                      style={{maxWidth: '260px'}} 
-                      id="idNumber" 
-                      value={idNumber} 
-                      onChange={(e) => setIdNumber(e.target.value)} 
-                      required 
-                      placeholder='Enter your ID number'
-                    />
-                  </div>
-                  <div className="mb-3 w-100 d-flex flex-column align-items-center">
-                    <label htmlFor="password" className="mb-1 fs-5" style={{color:'#dd5618'}}>Password</label>
-                    <input 
-                      type="password" 
-                      className="form-control rounded-3 text-center" 
-                      style={{maxWidth: '260px'}} 
-                      id="password" 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      required
-                      placeholder='Enter your password'
-                    />
-                  </div>
-                </div>
-                {error && <div className="alert alert-danger">{error}</div>}
-                <div className="d-grid">
-                  <button type="submit" className="btn btn-outline-orange rounded-pill mt-2">Login</button>
-                  <Link to="/register" className="btn btn-outline-secondary">
-                      Register as a New Student
-                    </Link>
-                </div>
-                <p className="text-center mt-3 text-white fs-6">
-                  <small>Dummy Accounts: Student (S001/password) | Admin (A001/adminpass)| Accounting (AC001/accountingpass)</small>
-                </p>
-            </form>
+          <div className="loginCard shadow-lg p-4 w-100 d-flex flex-column align-items-center" style={{ maxWidth: '500px' }}>
+            {showAdminLogin ? (
+              <AdminLogin 
+                onLoginSuccess={handleAdminLoginSuccess}
+                onSwitchToStudent={() => setShowAdminLogin(false)}
+              />
+            ) : !showRegistration ? (
+              <StudentLogin 
+                onLoginSuccess={handleLoginSuccess}
+                onSwitchToRegister={() => setShowRegistration(true)}
+                onSwitchToAdmin={() => setShowAdminLogin(true)}
+              />
+            ) : (
+              <StudentRegistration 
+                onRegistrationSuccess={handleRegistrationSuccess}
+                onSwitchToLogin={() => setShowRegistration(false)}
+              />
+            )}
+            
+            {/* Error Message */}
+            {error && (
+              <div className="alert alert-danger mt-3">
+                {error}
+              </div>
+            )}
+            
+            {/* Sample Accounts Info */}
+            <div className="text-center mt-3 text-white fs-6">
+              <small>Sample Accounts: Student (2022-00037/password) | Admin (A001/adminpass)</small>
+            </div>
+            
+            {/* Switch to Admin Login */}
+            {!showRegistration && !showAdminLogin && (
+              <button 
+                className="btn btn-outline-light btn-sm mt-2"
+                onClick={() => setShowAdminLogin(true)}
+              >
+                Login as Admin
+              </button>
+            )}
           </div>
         </div>
       </div>
