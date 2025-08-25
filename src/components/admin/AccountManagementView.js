@@ -258,7 +258,7 @@ function AccountManagementView() {
                                                 acc.registrationStatus === 'Pending' ? 'bg-warning' : 
                                                 acc.registrationStatus === 'Rejected' ? 'bg-danger' : 'bg-secondary'
                                             }`}>
-                                                {acc.registrationStatus}
+                                                {acc.registrationStatus === 'Approved' ? 'Enrolled' : acc.registrationStatus}
                                             </span>
                                         </td>
                                         <td>

@@ -24,6 +24,37 @@ function Dashboard() {
     const [error, setError] = useState('');
     const [showBsitDetails, setShowBsitDetails] = useState(false);
 
+    // Function to update registration statuses
+    const updateRegistrationStatuses = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`${API_BASE_URL}/students/update-registration-statuses`, {
+                method: 'PUT',
+                headers: { 
+                    'X-Session-Token': getSessionToken(),
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Registration statuses updated:', data);
+                alert(`Successfully updated ${data.updatedCount} registrations to "Enrolled" status!`);
+                // Refresh the page to show updated data
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                console.error('❌ Failed to update registration statuses:', errorData);
+                alert('Failed to update registration statuses. Please try again.');
+            }
+        } catch (err) {
+            console.error('❌ Error updating registration statuses:', err);
+            alert('Error updating registration statuses. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Fetch dashboard statistics
     const fetchDashboardStats = async () => {
         try {
@@ -652,6 +683,16 @@ function Dashboard() {
                                     <button className="btn btn-warning btn-lg w-100">
                                         <i className="fas fa-chart-bar me-2"></i>
                                         Generate Reports
+                                    </button>
+                                </div>
+                                <div className="col-md-3 mb-3">
+                                    <button 
+                                        className="btn btn-secondary btn-lg w-100"
+                                        onClick={updateRegistrationStatuses}
+                                        disabled={loading}
+                                    >
+                                        <i className="fas fa-sync-alt me-2"></i>
+                                        {loading ? 'Updating...' : 'Update Registrations'}
                                     </button>
                                 </div>
                             </div>

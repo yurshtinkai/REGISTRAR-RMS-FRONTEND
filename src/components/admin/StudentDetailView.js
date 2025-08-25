@@ -430,7 +430,7 @@ function StudentDetailView({ enrolledStudents }) {
               {/* Academic Status Badge */}
               <div className="mb-3">
                 <span className={`badge ${(studentRegistration?.registrationStatus || user.registrationStatus) === 'Approved' ? 'bg-success' : 'bg-warning'} fs-6`}>
-                  {studentRegistration?.registrationStatus || user.registrationStatus || 'Not registered'}
+                    {(studentRegistration?.registrationStatus || user.registrationStatus) === 'Approved' ? 'Enrolled' : (studentRegistration?.registrationStatus || user.registrationStatus || 'Not registered')}
                 </span>
               </div>
 
@@ -782,7 +782,7 @@ function StudentDetailView({ enrolledStudents }) {
                      <div className="col-4"><strong>Status:</strong></div>
                      <div className="col-8">
                        <span className={`badge ${studentRegistration?.registrationStatus === 'Approved' ? 'bg-success' : 'bg-warning'}`}>
-                         {studentRegistration?.registrationStatus || 'Not registered'}
+                         {studentRegistration?.registrationStatus === 'Approved' ? 'Enrolled' : (studentRegistration?.registrationStatus || 'Not registered')}
                        </span>
                      </div>
                    </div>

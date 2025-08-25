@@ -101,15 +101,15 @@ function App() {
             name: `${student.firstName} ${student.lastName}`,
             gender: student.gender || 'N/A',
             course: student.course || 'Bachelor of Science in Information Technology',
-            status: student.registrationStatus || 'Not registered',
-            registrationStatus: student.registrationStatus || 'Not registered',
+            status: student.registrationStatus === 'Approved' ? 'Enrolled' : (student.registrationStatus || 'Not registered'),
+            registrationStatus: student.registrationStatus === 'Approved' ? 'Enrolled' : (student.registrationStatus || 'Not registered'),
             registrationDate: student.registrationDate || 'N/A',
             createdAt: new Date(student.createdAt).toLocaleDateString('en-US', { 
               year: 'numeric', 
               month: 'long', 
               day: 'numeric' 
             }),
-            academicStatus: student.registrationStatus || 'Not registered'
+            academicStatus: student.registrationStatus === 'Approved' ? 'Enrolled' : (student.registrationStatus || 'Not registered')
           }));
         } else {
           // Transform data from /api/students endpoint (for accounting role)
