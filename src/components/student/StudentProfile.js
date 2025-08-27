@@ -1,22 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import './StudentProfile.css';
+import { cleanupSharedProfileImages, getStudentProfileImage, setStudentProfileImage } from '../../utils/cleanupProfileImages';
 
 function StudentProfile({ onProfileClick }) {
     // Load profilePic from localStorage on mount for persistence
-    const userRole = localStorage.getItem('userRole') || 'student';
-    const storedProfilePic = localStorage.getItem(`${userRole}ProfilePic`) || null;
+    const studentId = localStorage.getItem('idNumber') || 'unknown';
+    const storedProfilePic = getStudentProfileImage(studentId);
     const [profilePic, setProfilePic] = useState(storedProfilePic);
     const fullName = localStorage.getItem('fullName');
     const email = localStorage.getItem('email') || 'formetera@email.com';
     const country = 'Philippines';
     const timezone = 'Asia/Hong_Kong';
 
-    // Sync profilePic to navbar by updating localStorage 'profileImage'
+    // Clean up shared profile images on mount
+    useEffect(() => {
+        cleanupSharedProfileImages();
+    }, []);
+
+    // Sync profilePic to navbar by updating localStorage with student-specific key
     useEffect(() => {
         if (profilePic) {
-            localStorage.setItem('profileImage', profilePic);
+            setStudentProfileImage(studentId, profilePic);
         }
-    }, [profilePic]);
+    }, [profilePic, studentId]);
 
     const handleProfilePicChange = (e) => {
         const file = e.target.files[0];
@@ -49,7 +55,8 @@ function StudentProfile({ onProfileClick }) {
                 ctx.drawImage(img, 0, 0, width, height);
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 try {
-                    localStorage.setItem(`${userRole}ProfilePic`, dataUrl);
+                    const studentId = localStorage.getItem('idNumber') || 'unknown';
+                    setStudentProfileImage(studentId, dataUrl);
                     setProfilePic(dataUrl);
                 } catch (error) {
                     alert("Could not save the profile picture. The image might still be too large or your browser's storage is full.");

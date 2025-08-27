@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './StudentLogin.css';
+import sessionManager from '../../utils/sessionManager';
 
 function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin }) {
     const [formData, setFormData] = useState({
@@ -39,8 +40,8 @@ function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin }) {
             if (response.ok) {
                 const result = await response.json();
                 
-                // Store session token in localStorage
-                localStorage.setItem('sessionToken', result.sessionToken);
+                // Store session token using session manager
+                sessionManager.setSessionToken(result.sessionToken);
                 
                 // Store user info
                 localStorage.setItem('userInfo', JSON.stringify(result.user));

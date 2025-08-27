@@ -344,7 +344,7 @@ function EnrollmentStatusView() {
                                                 </td>
                                                 <td className="text-center">
                                                     <span className={getStatusBadge(subject.status)}>
-                                                        {subject.status || 'Not Enrolled'}
+                                                        {subject.status || 'Enrolled'}
                                                     </span>
                                                 </td>
                                             </tr>

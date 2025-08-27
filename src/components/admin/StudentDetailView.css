@@ -244,3 +244,239 @@
   justify-content: center;
   min-height: 60vh;
 }
+
+/* ENROLLMENT REQUIREMENTS Section Styles */
+.requirements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.requirement-item:hover {
+  border-color: #007bff;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.requirement-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.requirement-details {
+  flex: 1;
+}
+
+.requirement-details strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #495057;
+}
+
+.requirement-details small {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.requirements-summary {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.summary-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.summary-value {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.requirements-status {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.requirement-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.requirement-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Requirements Modal Styles */
+.modal-lg .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.modal-lg .modal-header {
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+}
+
+.modal-lg .form-control {
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  transition: border-color 0.3s ease;
+}
+
+.modal-lg .form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.modal-lg .form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+/* Announcement Modal Styles */
+.modal .alert-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+  border-radius: 8px;
+}
+
+.modal .alert-info i {
+  color: #17a2b8;
+}
+
+/* Responsive adjustments for requirements */
+@media (max-width: 768px) {
+  .requirements-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .requirement-item {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .requirement-icon {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .requirements-summary {
+    margin-top: 1rem;
+  }
+}
+
+/* Fallback avatar styles */
+.fallback-avatar {
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fallback-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fallback-avatar:active {
+  transform: scale(0.95);
+}
+
+/* Message Tracker Styles */
+.message-history {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.message-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.message-item:last-child {
+  border-bottom: none;
+}
+
+.message-item:hover {
+  background-color: #e9ecef;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.message-content {
+  padding-left: 1.5rem;
+}
+
+.message-content small {
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* Scrollbar styling for message history */
+.message-history::-webkit-scrollbar {
+  width: 6px;
+}
+
+.message-history::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.message-history::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.message-history::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

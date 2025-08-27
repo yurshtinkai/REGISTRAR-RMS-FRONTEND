@@ -4,6 +4,7 @@ import { getDummyCurriculum } from '../../data/dummyData';
 import BsitProspectusModal from './BsitProspectusModal';
 import './StudentDetailView.css';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import { getStudentAvatar } from '../../utils/avatarUtils';
 
 function StudentDetailView({ enrolledStudents }) {
   const { idNo } = useParams();
@@ -18,6 +19,20 @@ function StudentDetailView({ enrolledStudents }) {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  
+  // Requirements state
+  const [requirements, setRequirements] = useState({
+    psa: false,
+    validId: false,
+    form137: false,
+    idPicture: false
+  });
+  const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
+  const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
+  const [announcementText, setAnnouncementText] = useState('');
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
+  const [announcementHistory, setAnnouncementHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Fetch student details from backend
   useEffect(() => {
@@ -33,6 +48,9 @@ function StudentDetailView({ enrolledStudents }) {
         }
 
         // Use the data we already have from enrolledStudents
+        console.log('🔍 Frontend - Setting student from enrolledStudents:', enrolledStudent);
+        console.log('🔍 Frontend - enrolledStudent.id:', enrolledStudent.id);
+        console.log('🔍 Frontend - enrolledStudent.idNumber:', enrolledStudent.idNumber);
         setStudent(enrolledStudent);
 
         // Fetch user data with profile photo if not already present
@@ -118,6 +136,29 @@ function StudentDetailView({ enrolledStudents }) {
           console.error("Error fetching document requests:", error);
         }
         // --- END: Fetch requests ---
+
+        // --- START: Fetch announcement history for this student ---
+        try {
+          setLoadingHistory(true);
+          const historyResponse = await fetch(`${API_BASE_URL}/notifications/student/${enrolledStudent.id}`, {
+              headers: { 'X-Session-Token': getSessionToken() }
+          });
+          if (historyResponse.ok) {
+              const historyData = await historyResponse.json();
+              // Filter for requirements announcements only
+              const requirementsAnnouncements = historyData.filter(notif => 
+                notif.type === 'requirements_reminder'
+              );
+              setAnnouncementHistory(requirementsAnnouncements);
+          } else {
+              console.error("Failed to fetch announcement history.");
+          }
+        } catch (error) {
+          console.error("Error fetching announcement history:", error);
+        } finally {
+          setLoadingHistory(false);
+        }
+        // --- END: Fetch announcement history ---
       } catch (error) {
         console.error('Error fetching student details:', error);
         setError('Error fetching student details');
@@ -145,6 +186,10 @@ function StudentDetailView({ enrolledStudents }) {
       default: return 'th';
     }
   };
+
+  // Requirements summary calculations
+  const submittedCount = Object.values(requirements).filter(Boolean).length;
+  const pendingCount = Object.values(requirements).filter(Boolean => !Boolean).length;
 
   const studentDetails = useMemo(() => {
     if (!student) return null;
@@ -342,6 +387,111 @@ function StudentDetailView({ enrolledStudents }) {
       setPhotoPreviewModalOpen(true);
     }
   };
+
+  // Requirements handling functions
+  const handleRequirementToggle = (requirementType) => {
+    setRequirements(prev => ({
+      ...prev,
+      [requirementType]: !prev[requirementType]
+    }));
+  };
+
+  const handleDocumentUpload = async (requirementType, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('requirementType', requirementType);
+      formData.append('studentId', student.id);
+
+      const response = await fetch(`${API_BASE_URL}/requirements/upload`, {
+        method: 'POST',
+        headers: { 'X-Session-Token': getSessionToken() },
+        body: formData
+      });
+
+      if (response.ok) {
+        // Update requirements state
+        handleRequirementToggle(requirementType);
+        alert(`${requirementType.toUpperCase()} document uploaded successfully!`);
+      } else {
+        const error = await response.json();
+        alert(`Upload failed: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error uploading document:', error);
+      alert('Upload failed. Please try again.');
+    }
+  };
+
+  const refreshAnnouncementHistory = async () => {
+    if (!student?.id) return;
+    
+    try {
+      setLoadingHistory(true);
+      const historyResponse = await fetch(`${API_BASE_URL}/notifications/student/${student.id}`, {
+          headers: { 'X-Session-Token': getSessionToken() }
+      });
+      if (historyResponse.ok) {
+          const historyData = await historyResponse.json();
+          const requirementsAnnouncements = historyData.filter(notif => 
+            notif.type === 'requirements_reminder'
+          );
+          setAnnouncementHistory(requirementsAnnouncements);
+      }
+    } catch (error) {
+      console.error("Error refreshing announcement history:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleSendAnnouncement = async () => {
+    if (!announcementText.trim()) {
+      alert('Please enter an announcement message.');
+      return;
+    }
+
+    console.log('🔍 Frontend - About to send announcement');
+    console.log('🔍 Frontend - Student object:', student);
+    console.log('🔍 Frontend - Student ID being sent:', student.id);
+    console.log('🔍 Frontend - Announcement text:', announcementText);
+
+    try {
+      setSendingAnnouncement(true);
+      const response = await fetch(`${API_BASE_URL}/requirements/announcement`, {
+        method: 'POST',
+        headers: { 
+          'X-Session-Token': getSessionToken(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          studentId: student.id,
+          message: announcementText,
+          type: 'requirements_reminder'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Frontend - Announcement sent successfully:', result);
+        alert('Announcement sent successfully to the student!');
+        setAnnouncementText('');
+        setAnnouncementModalOpen(false);
+        
+        // Refresh announcement history
+        await refreshAnnouncementHistory();
+      } else {
+        const error = await response.json();
+        console.log('❌ Frontend - Failed to send announcement:', error);
+        alert(`Failed to send announcement: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error sending announcement:', error);
+      alert('Failed to send announcement. Please try again.');
+    } finally {
+      setSendingAnnouncement(false);
+    }
+  };
   
 
 
@@ -381,37 +531,69 @@ function StudentDetailView({ enrolledStudents }) {
             </div>
             <div className="card-body text-center">
                              <div className="profile-pic-wrapper mb-3">
-                 {console.log('🔍 Rendering profile photo section, student.profilePhoto:', student.profilePhoto)}
                                    <div 
                     className="profile-avatar clickable-photo"
                     title="Click photo to view, click camera to upload"
                   >
-                                       {student.profilePhoto ? (
-                      <>
-                        {console.log('🔍 Constructing photo URL:', `http://localhost:5000${student.profilePhoto}`)}
-                        <img 
-                          src={`http://localhost:5000${student.profilePhoto}`} 
-                          alt="Student Photo" 
-                          className="profile-photo"
-                          onClick={handlePhotoPreview}
-                          title="Click to view photo in full screen"
-                          onError={(e) => {
-                            console.log('❌ Photo failed to load:', e.target.src);
-                            console.log('❌ Error details:', e);
-                            // If photo fails to load, show the user icon instead
-                            e.target.style.display = 'none';
-                          }}
-                          onLoad={(e) => {
-                            console.log('✅ Photo loaded successfully:', e.target.src);
-                            console.log('✅ Photo element:', e.target);
-                          }}
-                        />
-                        {/* Fallback user icon that shows if photo fails to load */}
-                        <i className="fas fa-user-circle fa-4x text-white" style={{ display: 'none' }}></i>
-                      </>
-                    ) : (
-                      <i className="fas fa-user-circle fa-4x text-white"></i>
-                    )}
+                                       {(() => {
+                                         const avatar = getStudentAvatar(student);
+                                         if (avatar.isFallback) {
+                                           return (
+                                             <div 
+                                               className="fallback-avatar"
+                                               style={{
+                                                 width: '150px',
+                                                 height: '150px',
+                                                 borderRadius: '50%',
+                                                 backgroundColor: avatar.color || '#6c757d',
+                                                 display: 'flex',
+                                                 alignItems: 'center',
+                                                 justifyContent: 'center',
+                                                 color: 'white',
+                                                 fontSize: '48px',
+                                                 fontWeight: 'bold',
+                                                 cursor: 'pointer'
+                                               }}
+                                               onClick={handlePhotoPreview}
+                                               title="Click to view avatar in full screen"
+                                             >
+                                               {avatar.initials}
+                                             </div>
+                                           );
+                                         }
+                                         return (
+                                           <img 
+                                             src={avatar.src} 
+                                             alt="Student Photo" 
+                                             className="profile-photo"
+                                             onClick={handlePhotoPreview}
+                                             title="Click to view photo in full screen"
+                                             onError={(e) => {
+                                               console.log('❌ Photo failed to load:', e.target.src);
+                                               // If photo fails to load, show fallback avatar
+                                               e.target.style.display = 'none';
+                                               const fallbackAvatar = document.createElement('div');
+                                               fallbackAvatar.className = 'fallback-avatar';
+                                               fallbackAvatar.style.cssText = `
+                                                 width: 150px;
+                                                 height: 150px;
+                                                 border-radius: 50%;
+                                                 background-color: ${avatar.color || '#6c757d'};
+                                                 display: flex;
+                                                 align-items: center;
+                                                 justify-content: center;
+                                                 color: white;
+                                                 font-size: 48px;
+                                                 font-weight: bold;
+                                                 cursor: pointer;
+                                               `;
+                                               fallbackAvatar.textContent = avatar.initials;
+                                               fallbackAvatar.onclick = handlePhotoPreview;
+                                               e.target.parentNode.appendChild(fallbackAvatar);
+                                             }}
+                                           />
+                                         );
+                                       })()}
                     <div 
                       className="photo-upload-overlay"
                       onClick={() => setPhotoUploadModalOpen(true)}
@@ -502,6 +684,161 @@ function StudentDetailView({ enrolledStudents }) {
                 )}
                 </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  {/* ENROLLMENT REQUIREMENTS Section */}
+  <div className="card shadow-sm border-0 mb-4">
+    <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <h5 className="mb-0">
+        <i className="fas fa-clipboard-check me-2"></i>
+        ENROLLMENT REQUIREMENTS
+      </h5>
+      <button className="btn btn-sm btn-light" onClick={() => setRequirementsModalOpen(true)}>
+        <i className="fas fa-plus me-1"></i>
+        Manage Requirements
+      </button>
+    </div>
+    <div className="card-body">
+      <div className="row">
+        <div className="col-md-8">
+          <h6 className="text-primary mb-3">Required Documents</h6>
+          <div className="requirements-grid">
+            <div className="requirement-item">
+              <div className="requirement-icon">
+                <i className="fas fa-id-card text-primary"></i>
+              </div>
+              <div className="requirement-details">
+                <strong>PSA Birth Certificate</strong>
+                <small className="text-muted d-block">Philippine Statistics Authority</small>
+                <span className={`badge ${requirements.psa ? 'bg-success' : 'bg-warning'}`}>
+                  {requirements.psa ? 'Submitted' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="requirement-item">
+              <div className="requirement-icon">
+                <i className="fas fa-credit-card text-primary"></i>
+              </div>
+              <div className="requirement-details">
+                <strong>Valid ID</strong>
+                <small className="text-muted d-block">Government-issued ID</small>
+                <span className={`badge ${requirements.validId ? 'bg-success' : 'bg-warning'}`}>
+                  {requirements.validId ? 'Submitted' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="requirement-item">
+              <div className="requirement-icon">
+                <i className="fas fa-file-alt text-primary"></i>
+              </div>
+              <div className="requirement-details">
+                <strong>Form 137</strong>
+                <small className="text-muted d-block">High School Records</small>
+                <span className={`badge ${requirements.form137 ? 'bg-success' : 'bg-warning'}`}>
+                  {requirements.form137 ? 'Submitted' : 'Pending'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="requirement-item">
+              <div className="requirement-icon">
+                <i className="fas fa-image text-primary"></i>
+              </div>
+              <div className="requirement-details">
+                <strong>2x2 ID Picture</strong>
+                <small className="text-muted d-block">Recent photo</small>
+                <span className={`badge ${requirements.idPicture ? 'bg-success' : 'bg-warning'}`}>
+                  {requirements.idPicture ? 'Submitted' : 'Pending'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="col-md-4">
+          <h6 className="text-primary mb-3">Requirements Status</h6>
+          <div className="requirements-summary">
+            <div className="summary-item">
+              <span className="summary-label">Submitted:</span>
+              <span className="summary-value text-success">{submittedCount}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Pending:</span>
+              <span className="summary-value text-warning">{pendingCount}</span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Total:</span>
+              <span className="summary-value text-primary">4</span>
+            </div>
+          </div>
+          
+          <div className="mt-3">
+            <button 
+              className="btn btn-warning btn-sm w-100 mb-2"
+              onClick={() => setAnnouncementModalOpen(true)}
+            >
+              <i className="fas fa-bell me-1"></i>
+              Send Announcement
+            </button>
+            <button 
+              className="btn btn-info btn-sm w-100"
+              onClick={() => setRequirementsModalOpen(true)}
+            >
+              <i className="fas fa-upload me-1"></i>
+              Upload Documents
+            </button>
+          </div>
+
+          {/* Message Tracker */}
+          <div className="mt-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h6 className="text-primary mb-0">Message Tracker</h6>
+              <button 
+                className="btn btn-outline-primary btn-sm"
+                onClick={refreshAnnouncementHistory}
+                disabled={loadingHistory}
+                title="Refresh message history"
+              >
+                <i className={`fas ${loadingHistory ? 'fa-spinner fa-spin' : 'fa-sync-alt'}`}></i>
+              </button>
+            </div>
+            {loadingHistory ? (
+              <div className="text-center">
+                <div className="spinner-border spinner-border-sm text-primary" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+              </div>
+            ) : announcementHistory.length > 0 ? (
+              <div className="message-history">
+                {announcementHistory.map((announcement, index) => (
+                  <div key={announcement.id || index} className="message-item">
+                    <div className="message-header">
+                      <i className="fas fa-bell text-warning me-2"></i>
+                      <small className="text-muted">
+                        {new Date(announcement.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </small>
+                    </div>
+                    <div className="message-content">
+                      <small className="text-dark">{announcement.message}</small>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-muted">
+                <small>No announcements sent yet</small>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -982,25 +1319,53 @@ function StudentDetailView({ enrolledStudents }) {
                    </div>
                  )}
 
-                                   {student.profilePhoto && (
-                    <div className="text-center mb-3">
-                      <h6>Current Photo:</h6>
-                                            <img 
-                         src={`http://localhost:5000${student.profilePhoto}`} 
-                         alt="Current" 
-                         className="img-fluid rounded mb-2"
-                         style={{ maxHeight: '150px' }}
-                       />
-                     <br />
-                     <button 
-                       className="btn btn-outline-danger btn-sm"
-                       onClick={handleDeletePhoto}
-                     >
-                       <i className="fas fa-trash me-1"></i>
-                       Delete Current Photo
-                     </button>
-                   </div>
-                 )}
+                                   {(() => {
+                                     const avatar = getStudentAvatar(student);
+                                     if (avatar.isFallback) {
+                                       return (
+                                         <div className="text-center mb-3">
+                                           <h6>Current Avatar:</h6>
+                                           <div 
+                                             className="fallback-avatar mx-auto mb-2"
+                                             style={{
+                                               width: '150px',
+                                               height: '150px',
+                                               borderRadius: '50%',
+                                               backgroundColor: avatar.color || '#6c757d',
+                                               display: 'flex',
+                                               alignItems: 'center',
+                                               justifyContent: 'center',
+                                               color: 'white',
+                                               fontSize: '48px',
+                                               fontWeight: 'bold'
+                                             }}
+                                           >
+                                             {avatar.initials}
+                                           </div>
+                                           <small className="text-muted">No profile photo uploaded yet</small>
+                                         </div>
+                                       );
+                                     }
+                                     return (
+                                       <div className="text-center mb-3">
+                                         <h6>Current Photo:</h6>
+                                         <img 
+                                           src={avatar.src} 
+                                           alt="Current" 
+                                           className="img-fluid rounded mb-2"
+                                           style={{ maxHeight: '150px' }}
+                                         />
+                                         <br />
+                                         <button 
+                                           className="btn btn-outline-danger btn-sm"
+                                           onClick={handleDeletePhoto}
+                                         >
+                                           <i className="fas fa-trash me-1"></i>
+                                           Delete Current Photo
+                                         </button>
+                                       </div>
+                                     );
+                                   })()}
                </div>
                <div className="modal-footer">
                  <button 
@@ -1056,16 +1421,43 @@ function StudentDetailView({ enrolledStudents }) {
                   ></button>
                 </div>
                                  <div className="modal-body text-center p-0">
-                   <img 
-                     src={`http://localhost:5000${student.profilePhoto}`} 
-                     alt="Student Photo" 
-                     className="img-fluid"
-                     style={{ 
-                       maxHeight: '80vh', 
-                       maxWidth: '100%',
-                       objectFit: 'contain'
-                     }}
-                   />
+                   {(() => {
+                     const avatar = getStudentAvatar(student);
+                     if (avatar.isFallback) {
+                       return (
+                         <div 
+                           className="fallback-avatar mx-auto"
+                           style={{
+                             width: '300px',
+                             height: '300px',
+                             borderRadius: '50%',
+                             backgroundColor: avatar.color || '#6c757d',
+                             display: 'flex',
+                             alignItems: 'center',
+                             justifyContent: 'center',
+                             color: 'white',
+                             fontSize: '120px',
+                             fontWeight: 'bold',
+                             margin: '20px auto'
+                           }}
+                         >
+                           {avatar.initials}
+                         </div>
+                       );
+                     }
+                     return (
+                       <img 
+                         src={avatar.src} 
+                         alt="Student Photo" 
+                         className="img-fluid"
+                         style={{ 
+                           maxHeight: '80vh', 
+                           maxWidth: '100%',
+                           objectFit: 'contain'
+                         }}
+                       />
+                     );
+                   })()}
                  </div>
                 <div className="modal-footer">
                   <button 
@@ -1094,6 +1486,244 @@ function StudentDetailView({ enrolledStudents }) {
 
         {/* Photo Preview Modal Backdrop */}
         {photoPreviewModalOpen && (
+          <div className="modal-backdrop fade show"></div>
+        )}
+
+        {/* Requirements Management Modal */}
+        {requirementsModalOpen && (
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-lg modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header bg-primary text-white">
+                  <h5 className="modal-title">
+                    <i className="fas fa-clipboard-check me-2"></i>
+                    Manage Enrollment Requirements
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close btn-close-white" 
+                    onClick={() => setRequirementsModalOpen(false)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <div className="row">
+                    <div className="col-md-6">
+                      <h6 className="text-primary mb-3">Upload Documents</h6>
+                      <div className="mb-3">
+                        <label className="form-label">PSA Birth Certificate</label>
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleDocumentUpload('psa', e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="form-label">Valid ID</label>
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleDocumentUpload('validId', e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="form-label">Form 137</label>
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleDocumentUpload('form137', e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="form-label">2x2 ID Picture</label>
+                        <input
+                          type="file"
+                          className="form-control"
+                          accept=".jpg,.jpeg,.png"
+                          onChange={(e) => {
+                            if (e.target.files[0]) {
+                              handleDocumentUpload('idPicture', e.target.files[0]);
+                            }
+                          }}
+                        />
+                        <small className="text-muted">Accepted: JPG, PNG (Max 5MB)</small>
+                      </div>
+                    </div>
+                    
+                    <div className="col-md-6">
+                      <h6 className="text-primary mb-3">Requirements Status</h6>
+                      <div className="requirements-status">
+                        <div className="requirement-status-item mb-2">
+                          <span className="requirement-label">PSA Birth Certificate:</span>
+                          <span className={`badge ${requirements.psa ? 'bg-success' : 'bg-warning'}`}>
+                            {requirements.psa ? 'Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="requirement-status-item mb-2">
+                          <span className="requirement-label">Valid ID:</span>
+                          <span className={`badge ${requirements.validId ? 'bg-success' : 'bg-warning'}`}>
+                            {requirements.validId ? 'Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="requirement-status-item mb-2">
+                          <span className="requirement-label">Form 137:</span>
+                          <span className={`badge ${requirements.form137 ? 'bg-success' : 'bg-warning'}`}>
+                            {requirements.form137 ? 'Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="requirement-status-item mb-2">
+                          <span className="requirement-label">2x2 ID Picture:</span>
+                          <span className={`badge ${requirements.idPicture ? 'bg-success' : 'bg-warning'}`}>
+                            {requirements.idPicture ? 'Submitted' : 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <h6 className="text-warning">Quick Actions</h6>
+                        <button 
+                          className="btn btn-warning btn-sm w-100 mb-2"
+                          onClick={() => {
+                            setRequirementsModalOpen(false);
+                            setAnnouncementModalOpen(true);
+                          }}
+                        >
+                          <i className="fas fa-bell me-1"></i>
+                          Send Reminder
+                        </button>
+                        <button 
+                          className="btn btn-info btn-sm w-100"
+                          onClick={() => {
+                            // Mark all as submitted (for testing)
+                            setRequirements({
+                              psa: true,
+                              validId: true,
+                              form137: true,
+                              idPicture: true
+                            });
+                          }}
+                        >
+                          <i className="fas fa-check me-1"></i>
+                          Mark All Complete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setRequirementsModalOpen(false)}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Announcement Modal */}
+        {announcementModalOpen && (
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header bg-warning text-dark">
+                  <h5 className="modal-title">
+                    <i className="fas fa-bell me-2"></i>
+                    Send Announcement to Student
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setAnnouncementModalOpen(false)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  <div className="mb-3">
+                    <label className="form-label">Student Name</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={`${student.firstName} ${student.lastName}`}
+                      readOnly
+                    />
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="form-label">Announcement Message *</label>
+                    <textarea
+                      className="form-control"
+                      rows="4"
+                      placeholder="Enter your announcement message here..."
+                      value={announcementText}
+                      onChange={(e) => setAnnouncementText(e.target.value)}
+                    ></textarea>
+                    <small className="text-muted">
+                      This message will be sent to the student about their enrollment requirements.
+                    </small>
+                  </div>
+                  
+                  <div className="alert alert-info">
+                    <i className="fas fa-info-circle me-2"></i>
+                    <strong>Tip:</strong> Be specific about which documents are missing and when they should be submitted.
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary" 
+                    onClick={() => setAnnouncementModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-warning" 
+                    onClick={handleSendAnnouncement}
+                    disabled={!announcementText.trim() || sendingAnnouncement}
+                  >
+                    {sendingAnnouncement ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-paper-plane me-2"></i>
+                        Send Announcement
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Backdrops */}
+        {(requirementsModalOpen || announcementModalOpen) && (
           <div className="modal-backdrop fade show"></div>
         )}
      </div>

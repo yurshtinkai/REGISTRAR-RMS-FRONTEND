@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
+import { getStudentProfileImage } from './utils/cleanupProfileImages';
 
 // Import components
 import Login from './components/auth/Login';
@@ -297,7 +298,7 @@ function App() {
                   style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
                 >
                   <img
-                    src={localStorage.getItem('profileImage') || '/bc.png'}
+                    src={getStudentProfileImage(localStorage.getItem('idNumber')) || '/bc.png'}
                     alt="Profile"
                     style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
                   />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './StudentHomePage.css';
 import StudentRegistrationForm from './StudentRegistrationForm';
+import sessionManager from '../../utils/sessionManager';
 
 function StudentHomePage() {
     const [userData, setUserData] = useState({
@@ -11,12 +12,23 @@ function StudentHomePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('dashboard');
+    const [announcements, setAnnouncements] = useState([]);
+    const [announcementsLoading, setAnnouncementsLoading] = useState(true);
+    const [expandedAnnouncements, setExpandedAnnouncements] = useState(new Set());
 
     // Fetch user data from database using session token
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const sessionToken = localStorage.getItem('sessionToken');
+                // Try to refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setError('Session expired. Please login again.');
+                    setLoading(false);
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 if (!sessionToken) {
                     setError('No session token found. Please login again.');
                     setLoading(false);
@@ -62,26 +74,56 @@ function StudentHomePage() {
         fetchUserData();
     }, []);
 
-    const announcements = [
-        { 
-            id: 1, 
-            title: 'Enrollment for 1st Semester AY 2025-2026 now open!', 
-            date: 'July 15, 2025',
-            priority: 'high'
-        },
-        { 
-            id: 2, 
-            title: 'Deadline for TOR requests: August 5, 2025', 
-            date: 'July 30, 2025',
-            priority: 'medium'
-        },
-        { 
-            id: 3, 
-            title: 'Academic Calendar for AY 2025-2026 available', 
-            date: 'July 10, 2025',
-            priority: 'low'
-        }
-    ];
+    // Fetch announcements from database
+    useEffect(() => {
+        const fetchAnnouncements = async () => {
+            try {
+                const sessionToken = sessionManager.getSessionToken();
+                if (!sessionToken) {
+                    setAnnouncementsLoading(false);
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/notifications`, {
+                    headers: {
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Filter for requirements announcements and general announcements
+                    const requirementsAnnouncements = data
+                        .filter(notif => notif.type === 'requirements_reminder' || notif.type === 'general')
+                        .map(notif => ({
+                            id: notif.id,
+                            title: notif.message,
+                            date: new Date(notif.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            }),
+                            priority: notif.type === 'requirements_reminder' ? 'high' : 'medium',
+                            type: notif.type
+                        }))
+                        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+                    
+                    setAnnouncements(requirementsAnnouncements);
+                } else {
+                    console.error('Failed to fetch announcements:', response.status);
+                }
+            } catch (err) {
+                console.error('Error fetching announcements:', err);
+            } finally {
+                setAnnouncementsLoading(false);
+            }
+        };
+
+        fetchAnnouncements();
+    }, []);
+
+    // Announcements are now fetched from the database via useEffect above
 
     const quickActions = [
         { 
@@ -139,6 +181,22 @@ function StudentHomePage() {
         }
     };
 
+    const toggleAnnouncementVisibility = (announcementId) => {
+        setExpandedAnnouncements(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(announcementId)) {
+                newSet.delete(announcementId);
+            } else {
+                newSet.add(announcementId);
+            }
+            return newSet;
+        });
+    };
+
+    const isAnnouncementExpanded = (announcementId) => {
+        return expandedAnnouncements.has(announcementId);
+    };
+
     const renderDashboard = () => (
         <>
             {/* Quick Actions */}
@@ -165,20 +223,95 @@ function StudentHomePage() {
 
             {/* Announcements */}
             <div className="section">
-                <h2 className="section-title">Announcements</h2>
+                <div className="section-header">
+                    <h2 className="section-title">
+                        <i className="fas fa-bullhorn me-2 text-primary"></i>
+                        Announcements
+                    </h2>
+                    <div className="announcement-count">
+                        <span className="badge bg-primary rounded-pill">{announcements.length}</span>
+                    </div>
+                </div>
+                
                 <div className="announcements-container">
-                    {announcements.map(announcement => (
-                        <div key={announcement.id} className="announcement-item">
-                            <div className="announcement-header">
-                                <span className="priority-badge" 
-                                      style={{ backgroundColor: getPriorityColor(announcement.priority) }}>
-                                    {getPriorityLabel(announcement.priority)}
-                                </span>
-                                <span className="announcement-date">{announcement.date}</span>
+                    {announcementsLoading ? (
+                        <div className="announcement-loading">
+                            <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Loading...</span>
                             </div>
-                            <h6 className="announcement-title">{announcement.title}</h6>
+                            <p className="mt-3 text-muted">Loading announcements...</p>
                         </div>
-                    ))}
+                    ) : announcements.length > 0 ? (
+                        <div className="announcements-grid">
+                            {announcements.map(announcement => (
+                                <div key={announcement.id} className="announcement-card">
+                                    <div className="announcement-card-header">
+                                        <div className="announcement-meta">
+                                            <span className="priority-badge" 
+                                                  style={{ backgroundColor: getPriorityColor(announcement.priority) }}>
+                                                <i className={`fas ${announcement.priority === 'high' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-1`}></i>
+                                                {getPriorityLabel(announcement.priority)}
+                                            </span>
+                                            <span className="announcement-type-badge">
+                                                <i className="fas fa-bell me-1"></i>
+                                                {announcement.type === 'requirements_reminder' ? 'Requirements' : 'General'}
+                                            </span>
+                                        </div>
+                                        <div className="announcement-date">
+                                            <i className="far fa-calendar-alt me-1"></i>
+                                            {announcement.date}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="announcement-content">
+                                        <h5 className="announcement-title">
+                                            <i className="fas fa-file-alt me-2 text-primary"></i>
+                                            {announcement.title}
+                                        </h5>
+                                        <div className="announcement-actions">
+                                            <button 
+                                                className={`btn btn-sm ${isAnnouncementExpanded(announcement.id) ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => toggleAnnouncementVisibility(announcement.id)}
+                                                title={isAnnouncementExpanded(announcement.id) ? 'Hide message' : 'Show message'}
+                                            >
+                                                <i className={`fas ${isAnnouncementExpanded(announcement.id) ? 'fa-eye-slash' : 'fa-eye'} me-1`}></i>
+                                                {isAnnouncementExpanded(announcement.id) ? 'Hide Details' : 'View Details'}
+                                            </button>
+                                            <button className="btn btn-outline-secondary btn-sm">
+                                                <i className="fas fa-bookmark me-1"></i>
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Expandable Message Content */}
+                                    {isAnnouncementExpanded(announcement.id) && (
+                                        <div className="announcement-message">
+                                            <div className="message-content">
+                                                <p className="message-text">{announcement.title}</p>
+                                            </div>
+                                            <div className="message-footer">
+                                                <small className="text-muted">
+                                                    <i className="fas fa-clock me-1"></i>
+                                                    Posted on {announcement.date}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="announcement-empty-state">
+                            <div className="empty-state-icon">
+                                <i className="fas fa-bell-slash"></i>
+                            </div>
+                            <h5 className="empty-state-title">No Announcements</h5>
+                            <p className="empty-state-description">
+                                You're all caught up! Check back later for new updates and important information.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
