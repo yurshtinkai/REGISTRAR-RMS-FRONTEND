@@ -36,8 +36,8 @@ import StudentRegistrationForm from './components/student/StudentRegistrationFor
 import EditStudentDetailView from './components/admin/EditStudentDetailView';
 import EnrollmentStatusView from './components/student/EnrollmentStatusView';
 import SubjectScheduleView from './components/student/SubjectScheduleView';
-
-// Import data and utils
+import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
+import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 
@@ -393,10 +393,10 @@ function App() {
             <Route path="enrollment/new" element={<NewEnrollmentView student={studentToEnroll} onCompleteEnrollment={handleCompleteEnrollment} registrations={registrations} setStudentToEnroll={setStudentToEnroll} />} />
             
             <Route path="requests" element={<RequestManagementView setDocumentModalData={setDocumentModalData} />} />
-            
+            <Route path="requests/approve-document/:requestId" element={<DocumentApprovalModal/>} />
             <Route path="assessment/unassessed-student" element={<UnassessedStudentView assessment={assessment} onAssessedStudent={setAssessment}/>} />
             <Route path="assessment/view-assessment" element={<ViewAssessmentView/>} />
-
+            <Route path="/admin/request-from-registrar" element={<RequestFromRegistrarView />} />
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
             <Route path="accounts" element={<AccountManagementView />} />
@@ -404,6 +404,7 @@ function App() {
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />
             <Route path="manage/encode-enrollments" element={<EncodeEnrollmentView onEncodeStudent={handleEncodeStudent} />} />
+
           </Route>
 
           <Route path="*" element={<Navigate to={

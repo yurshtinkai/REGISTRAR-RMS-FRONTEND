@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { API_BASE_URL } from '../../utils/api'; 
 import StudentLogin from './StudentLogin';
 import StudentRegistration from './StudentRegistration';
 import AdminLogin from './AdminLogin';
+import AccountingLogin from './AccountingLogin';
 
 function Login({ onLoginSuccess }) {
-  const [showRegistration, setShowRegistration] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [view, setView] = useState('student'); // 'student', 'register', 'admin', 'accounting'
   const [error, setError] = useState('');
 
   const handleLoginSuccess = (result) => {
@@ -19,28 +18,41 @@ function Login({ onLoginSuccess }) {
     if (result.user.role === 'student') {
       const fullName = `${result.user.firstName} ${result.user.middleName || ''} ${result.user.lastName}`;
       localStorage.setItem('fullName', fullName.trim());
+    } else {
+      localStorage.setItem('fullName', `${result.user.firstName} ${result.user.lastName}`);
     }
 
     onLoginSuccess(result.user.role);
   };
 
-  const handleRegistrationSuccess = (result) => {
+  const handleRegistrationSuccess = () => {
     // After successful registration, switch to login
-    setShowRegistration(false);
+    setView('student');
     setError('');
     // Show success message
     alert('Registration successful! You can now login with your School ID and password.');
   };
 
-  const handleAdminLoginSuccess = (result) => {
-    // Store session token and user info
-    localStorage.setItem('sessionToken', result.sessionToken);
-    localStorage.setItem('userRole', result.user.role);
-    localStorage.setItem('idNumber', result.user.idNumber);
-    localStorage.setItem('userId', result.user.id); // Store the actual user ID from database
-    localStorage.setItem('fullName', `${result.user.firstName} ${result.user.lastName}`);
-    
-    onLoginSuccess(result.user.role);
+  const renderCurrentView = () => {
+    switch (view) {
+      case 'admin':
+        return <AdminLogin onLoginSuccess={handleLoginSuccess} onSwitchToStudent={() => setView('student')} />;
+      case 'accounting':
+        return <AccountingLogin onLoginSuccess={handleLoginSuccess} onSwitchToStudent={() => setView('student')} />;
+      case 'register':
+        return <StudentRegistration onRegistrationSuccess={handleRegistrationSuccess} onSwitchToLogin={() => setView('student')} />;
+      case 'student':
+      default:
+        // FIX: Pass the required props to StudentLogin
+        return (
+          <StudentLogin 
+            onLoginSuccess={handleLoginSuccess} 
+            onSwitchToRegister={() => setView('register')}
+            onSwitchToAdmin={() => setView('admin')}
+            onSwitchToAccounting={() => setView('accounting')}
+          />
+        );
+    }
   };
 
   return (
@@ -51,23 +63,7 @@ function Login({ onLoginSuccess }) {
         </div>
         <div className="col-md-7 d-flex justify-content-end">
           <div className="loginCard shadow-lg p-4 w-100 d-flex flex-column align-items-center" style={{ maxWidth: '500px' }}>
-            {showAdminLogin ? (
-              <AdminLogin 
-                onLoginSuccess={handleAdminLoginSuccess}
-                onSwitchToStudent={() => setShowAdminLogin(false)}
-              />
-            ) : !showRegistration ? (
-              <StudentLogin 
-                onLoginSuccess={handleLoginSuccess}
-                onSwitchToRegister={() => setShowRegistration(true)}
-                onSwitchToAdmin={() => setShowAdminLogin(true)}
-              />
-            ) : (
-              <StudentRegistration 
-                onRegistrationSuccess={handleRegistrationSuccess}
-                onSwitchToLogin={() => setShowRegistration(false)}
-              />
-            )}
+            {renderCurrentView()}
             
             {/* Error Message */}
             {error && (
@@ -78,18 +74,10 @@ function Login({ onLoginSuccess }) {
             
             {/* Sample Accounts Info */}
             <div className="text-center mt-3 text-white fs-6">
-              <small>Sample Accounts: Student (2022-00037/password) | Admin (A001/adminpass)</small>
+              <small>Sample Accounts: Student (2022-00037/password) | Admin (A001/adminpass) | Accounting (ACC01/accpass)</small>
             </div>
             
-            {/* Switch to Admin Login */}
-            {!showRegistration && !showAdminLogin && (
-              <button 
-                className="btn btn-outline-light btn-sm mt-2"
-                onClick={() => setShowAdminLogin(true)}
-              >
-                Login as Admin
-              </button>
-            )}
+            {/* FIX: Removed the redundant buttons from here */}
           </div>
         </div>
       </div>

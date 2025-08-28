@@ -846,3 +846,7 @@ body.login-background {
         height: 250px;
     }
 }
+
+.approval-form-page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}

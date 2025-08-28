@@ -86,6 +86,11 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
           icon: 'fa-folder-open', 
           badge: pendingRequestCount 
         },
+        { 
+          name: 'Request from Registrar', // <-- Add this menu item
+          path: '/admin/request-from-registrar', // <-- Set your route here
+          icon: 'fa-envelope-open-text' // <-- Choose an appropriate icon
+        },
         { name: 'Manage',
           icon: 'fa-cogs',
           subItems: [
@@ -174,11 +179,28 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         // so other parts of your application know the selected SY has changed.
         console.log("Selected School Year ID:", e.target.value);
     };
-    const visibleMenuItems = userRole === 'accounting'
-        ? menuItems.filter(item => item.name === 'Registration')
-        : userRole === 'admin'
-            ? menuItems.filter(item => item.name !== 'Registration')
-            : menuItems; // Show all for any other case (or default)
+    let visibleMenuItems;
+
+    if (userRole === 'accounting') {
+      visibleMenuItems = menuItems
+        .filter(item =>
+          ['Registration', 'Assessment', 'Students', 'Request from Registrar'].includes(item.name)
+        )
+        .map(item => {
+          if (item.name === 'Students') {
+            return {
+              ...item,
+              subItems: item.subItems.filter(subItem => subItem.name !== 'New Student')
+            };
+          }
+          return item;
+        });
+    } else if (userRole === 'admin') {
+      visibleMenuItems = menuItems
+        .filter(item => item.name !== 'Registration' && item.name !== 'Request from Registrar');
+    } else {
+      visibleMenuItems = menuItems;
+    }
 
     return (
         <>
