@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './AccountingLogin.css';
+import sessionManager from '../../utils/sessionManager';
 
 function AccountingLogin({ onLoginSuccess, onSwitchToStudent }) {
   const [formData, setFormData] = useState({
@@ -35,6 +36,12 @@ function AccountingLogin({ onLoginSuccess, onSwitchToStudent }) {
 
       if (response.ok) {
         if (data.user.role === 'accounting') {
+          // Store session token using session manager
+          sessionManager.setSessionToken(data.sessionToken);
+          
+          // Store user info
+          localStorage.setItem('userInfo', JSON.stringify(data.user));
+          
           onLoginSuccess(data);
         } else {
           setError('This account is not an accounting user.');
