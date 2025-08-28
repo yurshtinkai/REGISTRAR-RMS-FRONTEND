@@ -9,38 +9,6 @@ function AllStudentsView({ enrolledStudents }) {
     console.log('AllStudentsView - enrolledStudents:', enrolledStudents); // Debug log
     console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents.length); // Debug log
     const [searchTerm, setSearchTerm] = useState('');
-    const [updating, setUpdating] = useState(false);
-
-    // Function to update registration statuses
-    const updateRegistrationStatuses = async () => {
-        try {
-            setUpdating(true);
-            const response = await fetch(`${API_BASE_URL}/students/update-registration-statuses`, {
-                method: 'PUT',
-                headers: { 
-                    'X-Session-Token': getSessionToken(),
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Registration statuses updated:', data);
-                alert(`Successfully updated ${data.updatedCount} registrations to "Enrolled" status!`);
-                // Refresh the page to show updated data
-                window.location.reload();
-            } else {
-                const errorData = await response.json();
-                console.error('❌ Failed to update registration statuses:', errorData);
-                alert('Failed to update registration statuses. Please try again.');
-            }
-        } catch (err) {
-            console.error('❌ Error updating registration statuses:', err);
-            alert('Error updating registration statuses. Please try again.');
-        } finally {
-            setUpdating(false);
-        }
-    };
 
     const handleViewClick = (e) => {
         if (!isAdmin) {
@@ -63,14 +31,6 @@ function AllStudentsView({ enrolledStudents }) {
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <h2 className="m-0"></h2>
                 <div>
-                    <button 
-                        className="btn btn-secondary me-2"
-                        onClick={updateRegistrationStatuses}
-                        disabled={updating}
-                        title="Update all completed registrations to 'Enrolled' status"
-                    >
-                        {updating ? 'Updating...' : 'Update Registrations'}
-                    </button>
                     <button className="btn btn-outline-secondary me-2">Export</button>
                     <button className="btn btn-primary">+ Add New</button>
                 </div>
