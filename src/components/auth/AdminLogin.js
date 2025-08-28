@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './AdminLogin.css';
+import sessionManager from '../../utils/sessionManager';
 
 function AdminLogin({ onLoginSuccess, onSwitchToStudent }) {
   const [formData, setFormData] = useState({
@@ -35,6 +36,12 @@ function AdminLogin({ onLoginSuccess, onSwitchToStudent }) {
 
       if (response.ok) {
         if (data.user.role === 'admin') {
+          // Store session token using session manager
+          sessionManager.setSessionToken(data.sessionToken);
+          
+          // Store user info
+          localStorage.setItem('userInfo', JSON.stringify(data.user));
+          
           onLoginSuccess(data);
         } else {
           setError('This account is not an administrator.');
