@@ -201,3 +201,19 @@ export const getDummyCurriculum = (course) => {
     // Return a default or empty curriculum for other courses
     return {};
 };
+
+// Add this function at the end or near other dummy grade functions
+export const getDummyGradesForSemester = () => [
+  { code: 'IT101', description: 'Introduction to Computing', units: 3, grade: '1.75' },
+  { code: 'MATH101', description: 'Mathematics in the Modern World', units: 3, grade: '2.00' },
+  { code: 'ENG101', description: 'Purposive Communication', units: 3, grade: '1.50' },
+  { code: 'FIL101', description: 'Kontekstwalisadong Komunikasyon', units: 3, grade: '1.25' },
+  { code: 'PE101', description: 'Physical Education 1', units: 2, grade: '1.00' },
+];
+
+export const getDocumentTypes = () => [
+  { name: 'Final Grade', amount: 50.00 },
+  { name: 'Transcript of Records', amount: 150.00 },
+  { name: 'Certificate of Enrollment', amount: 30.00 },
+  { name: 'Certificate of Graduation', amount: 100.00 },
+];

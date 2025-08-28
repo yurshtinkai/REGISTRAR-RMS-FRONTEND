@@ -109,6 +109,7 @@ function StudentRequestForm() {
                     <option value="GRADE SLIP">GRADE SLIP</option>
                     <option value="GOOD MORAL">GOOD MORAL</option>
                     <option value="CERTIFICATION">CERTIFICATION</option>
+                    <option value="DIPLOMA">DIPLOMA</option>
                   </select>
                 </div>
 

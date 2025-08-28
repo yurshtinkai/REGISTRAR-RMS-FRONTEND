@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getDummyCurriculum } from '../../data/dummyData';
 import BsitProspectusModal from './BsitProspectusModal';
 import './StudentDetailView.css';
+import NewRequestModal from './NewRequestModal';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import GradeSlipContent from './GradeSlipContent'; // Make sure this file exists and is exported
 
 function StudentDetailView({ enrolledStudents }) {
   const { idNo } = useParams();
@@ -18,6 +20,10 @@ function StudentDetailView({ enrolledStudents }) {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const userRole = localStorage.getItem('userRole');
+  const [requestToPrint, setRequestToPrint] = useState(null);
+  const componentRef = useRef();
 
   // Fetch student details from backend
   useEffect(() => {
@@ -343,7 +349,63 @@ function StudentDetailView({ enrolledStudents }) {
     }
   };
   
+  const handlePrintRequest = (request) => {
+    // FIX: Check if student data exists before attempting to print.
+    // This prevents the action from failing if the main data hasn't loaded yet.
+    if (!student) {
+      alert('Student details are still loading. Please wait a moment and try again.');
+      return;
+    }
 
+    if (request.documentType === 'Final Grade') {
+      setRequestToPrint(request);
+    } else {
+      alert(`Printing for "${request.documentType}" is not yet implemented.`);
+    }
+  };
+
+  const handleConfirmRequest = async (requestData) => {
+    // Create a new request object with default values
+    const newRequest = {
+      id: Date.now(), // Temporary ID for frontend
+      documentType: requestData.documentType,
+      schoolYear: requestData.schoolYear,
+      semester: requestData.semester,
+      amount: requestData.amount,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    // Optimistically add to table
+    setDocumentRequests(prev => [...prev, newRequest]);
+
+    // Send to backend
+    try {
+      const response = await fetch(`${API_BASE_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': getSessionToken(),
+        },
+        body: JSON.stringify({
+          ...requestData,
+          studentId: student.id,
+        }),
+      });
+      if (response.ok) {
+        const savedRequest = await response.json();
+        // Replace the temporary request with the one from backend (if needed)
+        setDocumentRequests(prev =>
+          prev.map(r => r.id === newRequest.id ? savedRequest : r)
+        );
+        alert('Request submitted successfully!');
+      } else {
+        alert('Failed to submit request.');
+      }
+    } catch (error) {
+      alert('Error submitting request.');
+    }
+  };
 
   // Extract student details for easier access
   const details = student || {};
@@ -369,6 +431,7 @@ function StudentDetailView({ enrolledStudents }) {
         </div>
       </div>
 
+      {(userRole === 'admin') && (
       <div className="row">
         {/* Student Profile Card */}
         <div className="col-lg-4 mb-4">
@@ -466,7 +529,9 @@ function StudentDetailView({ enrolledStudents }) {
           <div className="card shadow-sm mb-4">
     <div className="card-header bg-white d-flex justify-content-between align-items-center">
       <h5 className="mb-0">Document Requests</h5>
-      <button className="btn btn-sm btn-success">New Request</button>
+      <button className="btn btn-sm btn-outline-primary" onClick={() => setIsRequestModalOpen(true)}>
+                <i className="fas fa-plus me-1"></i> New Request
+              </button>
     </div>
     <div className="card-body">
       <div className="table-responsive">
@@ -481,26 +546,52 @@ function StudentDetailView({ enrolledStudents }) {
             </tr>
           </thead>
           <tbody>
-              {documentRequests.length > 0 ? (
-                documentRequests.map((req) => (
-                  <tr key={req.id}>
-                      <td>{req.documentType}</td>
-                      <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status}</span></td>
-                      <td>1</td>
-                      <td>{new Date(req.createdAt).toLocaleDateString()}</td>
-                      <td>
-                        <button className="btn btn-sm btn-primary" title="View Details">
-                          <i className="fas fa-eye"></i>
-                        </button>
-                      </td>
-                  </tr>
-                ))
-                ) : (
-                <tr>
-                  <td colSpan="4" className="text-center text-muted">No document requests found for this student.</td>
-                </tr>
-                )}
-                </tbody>
+                      {documentRequests.length > 0 ? (
+                        documentRequests.map((req) => (
+                          <tr key={req.id}>
+                              <td>
+                                  <div>{req.documentType}</div>
+                                  {req.schoolYear && <small className="text-muted">{req.schoolYear} / {req.semester}</small>}
+                              </td>
+                              <td><span className={`badge ${getStatusBadge(req.status)}`}>
+                                  {req.status.replace('_', ' ')}
+                                </span>
+                              </td>
+                              <td>₱ (req.amount || 0).toFixed(2)</td>
+                              <td>{new Date(req.createdAt).toLocaleDateString()}</td>
+                              <td>
+                                {/* --- START: NEW ACTIONS DROPDOWN --- */}
+                                <div className="dropdown">
+                                    <button className="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i className="fas fa-ellipsis-h"></i>
+                                    </button>
+                                    <ul className="dropdown-menu">
+                                        <li>
+                                            <button className="dropdown-item" onClick={() => handlePrintRequest(req)}>
+                                                <i className="fas fa-print fa-fw me-2"></i>Print
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button className="dropdown-item" onClick={() => alert('Marking as complete!')}>
+                                                <i className="fas fa-check fa-fw me-2"></i>Mark as Complete
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <button className="dropdown-item text-danger" onClick={() => alert('Cancelling request!')}>
+                                                <i className="fas fa-times fa-fw me-2"></i>Cancel Request
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                              </td>
+                          </tr>
+                        ))
+                        ) : (
+                        <tr>
+                          <td colSpan="5" className="text-center text-muted">No document requests found.</td>
+                        </tr>
+                        )}
+                  </tbody>
         </table>
       </div>
     </div>
@@ -929,6 +1020,7 @@ function StudentDetailView({ enrolledStudents }) {
           )}
         </div>
       </div>
+      )}
 
              {/* BSIT Prospectus Modal */}
        {isCurriculumModalOpen && (
@@ -1096,8 +1188,18 @@ function StudentDetailView({ enrolledStudents }) {
         {photoPreviewModalOpen && (
           <div className="modal-backdrop fade show"></div>
         )}
+
+        <NewRequestModal 
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        onConfirm={handleConfirmRequest}
+      />
+
+       <div style={{ display: 'none' }}>
+        <GradeSlipContent ref={componentRef} request={requestToPrint} student={student} />
+      </div>
      </div>
    );
  }
 
-export default StudentDetailView; 
+export default StudentDetailView;

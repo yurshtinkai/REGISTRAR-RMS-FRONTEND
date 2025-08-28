@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './StudentLogin.css';
 
-function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin }) {
+function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin, onSwitchToAccounting }) {
     const [formData, setFormData] = useState({
         idNumber: '',
         password: ''
@@ -123,13 +123,24 @@ function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin }) {
                     </p>
                     
                     <div className="admin-switch">
-                        <button 
-                            type="button" 
-                            className="btn-link btn-admin"
-                            onClick={onSwitchToAdmin}
-                        >
-                            Login as Administrator
-                        </button>
+                        <div>
+                            <button 
+                                type="button" 
+                                className="btn-link btn-admin"
+                                onClick={onSwitchToAdmin}
+                            >
+                                Login as Administrator
+                            </button>
+                        </div>
+                        <div>
+                            <button 
+                                type="button" 
+                                className="btn-link btn-admin"
+                                onClick={onSwitchToAccounting}
+                            >
+                                Login as Accounting
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>
