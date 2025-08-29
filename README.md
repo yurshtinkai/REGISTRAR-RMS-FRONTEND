@@ -1,76 +1,72 @@
-# Task
-August 1
-This day i add functionality for accounting and registrar.
+# 📁 CAPSTONE 2: Records Management System
 
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+**Documentation Lead**: Raquel Pacure  
+**Last Updated**: August 21, 2025 – 01:27 A.M 
+**Last Updated**: August 21, 2025 – 03:12 A.M
+**Last Updated**: August 21, 2025 – 04:14 A.M
+**Last Updated**: August 21, 2025 – 05:42 A.M
+**Last Updated**: August 22, 2025 - 04:39 P.M
 
 
+
+
+---
+
+## 📄 Project Documentation
+
+🔗 **Download the main documentation file:**  
+[📎 CAPSTONE 2 (RECORDS MANAGEMENT SYSTEM).docx](https://docs.google.com/document/d/1gKs0YLvVzjgidjCdS0-X6c6W-GxUuIZn/edit?usp=sharing&ouid=104714777232985337086&rtpof=true&sd=true)  
+
+---
+
+## 📊 Documentation Progress Tracker
+
+| **Section**                           | **Status**          | **Notes**                                        |
+|---------------------------------------|---------------------|--------------------------------------------------|
+| Scope and Limitation                  | ✅ Done              |                                                  |
+| Project Feasibility                   | ✅ Done              |                                                  |
+| Work Breakdown Structure              | ✅ Done              |                                                  |
+| Cost and Benefits                     | ✅ Done              |                                                  |
+| MOSCOW                                | ✅ Done              |                                                  |
+| Gantt Chart                           | ✅ Done              |                                                  |
+| Critical Path                         | ✅ Done              |                                                  |
+| Data and Process Modeling             | ✅ Done              |                                                  |
+| Existing Flowchart                    | ✅ Done              |                                                  |
+| Proposed Flowchart                    | ✅ Done              | Not the Updated Version                          |
+| Use Case Diagram                      | ✅ Done              |                                                  |
+| Narrative                             | ✅ Done              |                                                  |
+| Activity Diagram                      | ⛔ Not started yet   | Waiting for system completion                    |
+| State Chart Diagram                   | ⛔ Not started yet   | Waiting for system completion                    |
+| Design                                | ⚠️ Inputted          | Will be updated as features are completed        |
+| Entity Relationship Diagram (ERD)     | ⛔ Not started yet   | Waiting for database to be completed             |
+| System Architecture                   | ⛔ Not started yet   | Waiting for system completion                    |
+| Security                              | ✅ Done              |                                                  |
+| Development                           | ✅ Done              |                                                  |
+| Hardware Specification                | ✅ Done              |                                                  |
+
+---
+
+## 📌 Project Overview
+
+    The **Online Records Management System** is designed to streamline and automate the management of academic records.  
+It aims to reduce manual workloads, increase data accuracy, and enhance accessibility for registrar operations.
+
+---
+
+## 👥 Team Members
+- **Roy P. Estorco** - Team Leader
+- **Lourd Angelo Bufete** - Backend Developer
+- **Romy Formentera** - Frontend Developer
+- **Raquel Pacure** – Documentation Lead  
+- **Ly Ann Kate Candido** - Project Manager
+- **Jade Steve Molejon** - Researcher / Documentation
+
+---
+
+## 📝 Notes
+- Diagrams and designs will continue to be updated as development progresses.  
+- Some sections remain pending until the system and database are finalized.  
+- The **Entity Relationship Diagram (ERD)** has not yet started and will begin after database finalization.  
+- The **Design** section will be updated once the system’s final version and additional features are completed.   
+- The **Activity Diagram** and **State Chart Diagram** have not yet started, pending system completion.  
+- The **Existing Flowchart** is outdated and requires updating.  
