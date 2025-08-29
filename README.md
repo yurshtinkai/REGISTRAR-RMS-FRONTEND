@@ -7,6 +7,7 @@
 **Last Updated**: August 21, 2025 – 05:42 A.M
 **Last Updated**: August 22, 2025 - 04:39 P.M
 **Last Updated**: August 29, 2025 - 02:39 P.M
+**Last Updated**: August 29, 2025 - 05:24 P.M
 
 ---
 
@@ -15,6 +16,7 @@
 **GitHub Repository Main Link:**
 [RMS-FRONT](https://github.com/paybackmaboi/RMS-FRONT.git)  
 [RMS-BACK](https://github.com/paybackmaboi/RMS-BACK.git)  
+[MY DEPLOYMENT LINK] (https://rms-front-0hm1.onrender.com)
 
 ---
 
