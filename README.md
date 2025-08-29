@@ -1,6 +1,6 @@
-📁 CAPSTONE 2: DEVELOPMENT OF AN ONLINE RECORDS MANAGEMENT SYSTEM FOR INTEGRATION
+## 📁 CAPSTONE 2: DEVELOPMENT OF AN ONLINE RECORDS MANAGEMENT SYSTEM FOR INTEGRATION
 
-Project Manager: Ly Ann Kate Candido
+### Project Manager: Ly Ann Kate Candido
 
 
 📄 Project Documentation
@@ -19,6 +19,6 @@ CHAPTER 4: Ongoing <br>
 
 CHAPTER 5: Ongoing
 
-https://ly-ann-kate-candido.vercel.app
+# https://ly-ann-kate-candido.vercel.app
 
-https://github.com/paybackmaboi/RMS-FRONT.git
+# https://github.com/paybackmaboi/RMS-FRONT.git
