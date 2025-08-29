@@ -256,74 +256,81 @@ function App() {
   };
 
   return (
-    <div id="app-wrapper">
+       <div id="app-wrapper">
       {/* Student Navbar */}
       {userRole === 'student' && (
         <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom-gradient shadow-sm" style={{ minHeight: '60px', zIndex: 1040 }}>
           <div className="container-fluid align-items-center">
             <img src="/benedicto2.png" style={logoStyle} alt="bclogo" />
-            <ul className="navbar-nav flex-row ms-3" style={{ gap: '0px' }}>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/home')}
-                >Home</button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/request')}
-                >Request</button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/my-request')}
-                >My Request</button>
-              </li>
-            </ul>
-            <div className="ms-auto d-flex align-items-center">
-              
-              {/* --- Add the NotificationBell here --- */}
-              <NotificationBell />
-              
-              {/* Profile Dropdown */}
-              <div className="dropdown me-3">
-                <button
-                  className="btn btn-link dropdown-toggle p-0 border-0 bg-transparent text-white"
-                  type="button"
-                  id="profileDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
-                >
-                  <img
-                    src={getStudentProfileImage(localStorage.getItem('idNumber')) || '/bc.png'}
-                    alt="Profile"
-                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
-                  />
-                </button>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                  <li>
-                    <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
-                      <i className="fa-regular fa-user me-2"></i>
-                      Profile
-                    </button>
-                  </li>
-                  <li><hr className="dropdown-divider" /></li>
-                  <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
-                      Logout
-                    </button>
-                  </li>
-                </ul>
-              </div>
+            {/* Hamburger for mobile */}
+            <button className="navbar-toggler ms-2" type="button" style={{ border: 'none', background: 'transparent' }} onClick={() => setIsHamburgerOpen(!isHamburgerOpen)}>
+              <span><i className="fas fa-bars fa-lg text-white"></i></span>
+            </button>
+            {/* Main menu: collapses on mobile */}
+            <div className={`collapse navbar-collapse${isHamburgerOpen ? ' show' : ''}`} id="studentNavbarMenu">
+              <ul className="navbar-nav ms-3 mb-2 mb-lg-0">
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/home')}
+                  >Home</button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/request')}
+                  >Request</button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/my-request')}
+                  >My Request</button>
+                </li>
+              </ul>
             </div>
-          </div>
-        </nav>
-      )}
-
+            {/* Right side: bell and profile, hidden when hamburger is open */}
+            {!isHamburgerOpen && (
+              <div className="ms-auto d-flex align-items-center">
+                {/* --- Add the NotificationBell here --- */}
+                <NotificationBell />
+                {/* Profile Dropdown */}
+                <div className="dropdown me-3">
+                  <button
+                    className="btn btn-link dropdown-toggle p-0 border-0 bg-transparent text-white"
+                    type="button"
+                    id="profileDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
+                  >
+                    <img
+                      src={localStorage.getItem('profileImage') || '/bc.png'}
+                      alt="Profile"
+                      style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
+                    />
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
+                        <i className="fa-regular fa-user me-2"></i>
+                        Profile
+                      </button>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+                    <li>
+                      <button className="dropdown-item" onClick={handleLogout}>
+                        <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
+                        Logout
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+      </div>
+    </nav>
+  )}
       {/* Admin/Accounting Navbar */}
       {(userRole === 'admin' || userRole === 'accounting') && (
         <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
