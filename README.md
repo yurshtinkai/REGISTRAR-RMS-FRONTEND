@@ -19,6 +19,6 @@ CHAPTER 4: Ongoing <br>
 
 CHAPTER 5: Ongoing
 
-# https://ly-ann-kate-candido.vercel.app](https://ly-ann-kate-candido.onrender.com
+# https://ly-ann-kate-candido.onrender.com
 
 # https://github.com/paybackmaboi/RMS-FRONT.git
