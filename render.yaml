@@ -10,7 +10,7 @@ services:
       - key: REACT_APP_ENVIRONMENT
         value: production
       - key: CORS_ORIGIN
-        value: https://rms-back-bxkx.onrender.com
+        value: https://rms-front-0hm1.onrender.com
     routes:
       - type: rewrite
         source: "/*"
