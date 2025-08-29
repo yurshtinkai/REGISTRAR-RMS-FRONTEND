@@ -53,6 +53,7 @@ const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
 function App() {
   const [userRole, setUserRole] = useState(getUserRole());
   const [modalImage, setModalImage] = useState(null);
+  const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [documentModalData, setDocumentModalData] = useState(null);
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
