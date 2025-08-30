@@ -176,7 +176,7 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             name="middleName"
                             value={formData.middleName}
                             onChange={handleInputChange}
-                            placeholder="Enter your middle name (optional)"
+                            placeholder="Enter your middle name"
                         />
                     </div>
                 </div>

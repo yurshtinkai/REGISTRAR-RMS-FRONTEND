@@ -20,6 +20,8 @@ import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
 import StudentDetailView from './components/admin/StudentDetailView';
+import UploadDocuments from './components/admin/UploadDocuments';
+import DocumentViewer from './components/admin/DocumentViewer';
 import Dashboard from './components/admin/Dashboard';
 import SubjectSchedulesView from './components/admin/SubjectSchedulesView';
 import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
@@ -29,6 +31,7 @@ import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
 import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
 import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
+import SubjectEnrolledStudentsView from './components/admin/SubjectEnrolledStudentsView';
 import AccountManagementView from './components/admin/AccountManagementView';
 import NotificationBell from './components/common/NotificationBell'; 
 import StudentProfile  from './components/student/StudentProfile';
@@ -384,6 +387,8 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
+            <Route path="students/:idNo/upload-documents" element={<UploadDocuments />} />
+        <Route path="students/:idNo/view-document/:documentType" element={<DocumentViewer />} />
             <Route path="students/:idNo/edit" element={<EditStudentDetailView />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
@@ -399,6 +404,7 @@ function App() {
             <Route path="/admin/request-from-registrar" element={<RequestFromRegistrarView />} />
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
+            <Route path="manage/subject-schedules/:scheduleId/enrolled-students" element={<SubjectEnrolledStudentsView />} />
             <Route path="accounts" element={<AccountManagementView />} />
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />

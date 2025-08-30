@@ -7,7 +7,11 @@ function AllStudentsView({ enrolledStudents }) {
     const isAdmin = userRole === 'admin';
 
     console.log('AllStudentsView - enrolledStudents:', enrolledStudents); // Debug log
-    console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents.length); // Debug log
+    console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents?.length || 0); // Debug log
+    
+    // Ensure enrolledStudents is an array
+    const students = Array.isArray(enrolledStudents) ? enrolledStudents : [];
+    
     const [searchTerm, setSearchTerm] = useState('');
 
     const handleViewClick = (e) => {
@@ -18,7 +22,12 @@ function AllStudentsView({ enrolledStudents }) {
         }
     };
 
-    const filteredStudents = enrolledStudents.filter(student => {
+    const filteredStudents = students.filter(student => {
+        // Add null checks to prevent toLowerCase() errors
+        if (!student || !student.lastName || !student.firstName || !student.idNumber) {
+            return false; // Skip students with missing required data
+        }
+        
         const searchTermLower = searchTerm.toLowerCase();
         const nameLower = `${student.lastName}, ${student.firstName} ${student.middleName || ''}`.toLowerCase();
         const idNoLower = student.idNumber.toLowerCase();
@@ -67,23 +76,23 @@ function AllStudentsView({ enrolledStudents }) {
                             <tbody>
                                 {filteredStudents.length > 0 ? filteredStudents.map(student => (
                                     <tr key={student.id}>
-                                        <td>{student.idNumber}</td>
-                                        <td>{`${student.lastName}, ${student.firstName} ${student.middleName || ''}`.trim()}</td>
-                                        <td>{student.gender}</td>
-                                        <td>{student.course}</td>
+                                        <td>{student.idNumber || 'N/A'}</td>
+                                        <td>{student.lastName && student.firstName ? `${student.lastName}, ${student.firstName} ${student.middleName || ''}`.trim() : 'N/A'}</td>
+                                        <td>{student.gender || 'N/A'}</td>
+                                        <td>{student.course || 'N/A'}</td>
                                         <td>
                                             <span className={`badge ${student.registrationStatus === 'Enrolled' ? 'bg-success' : 'bg-warning'}`}>
-                                                {student.registrationStatus}
+                                                {student.registrationStatus || 'N/A'}
                                             </span>
                                         </td>
                                         <td>{student.registrationDate || 'N/A'}</td>
                                         <td>
                                             {/* Eye icon - View student details */}
-                                            <Link to={`/admin/students/${student.idNumber}`} className="btn btn-sm btn-info me-1" title="View Details">
+                                            <Link to={`/admin/students/${student.idNumber || '#'}`} className="btn btn-sm btn-info me-1" title="View Details">
                                                 <i className="fas fa-eye"></i>
                                             </Link>
                                             {/* Pencil icon - Edit student info */}
-                                            <Link to={`/admin/students/${student.idNumber}/edit`} className="btn btn-sm btn-primary" title="Edit Info">
+                                            <Link to={`/admin/students/${student.idNumber || '#'}/edit`} className="btn btn-sm btn-primary" title="Edit Info">
                                                 <i className="fas fa-pencil-alt"></i>
                                             </Link>
                                         </td>
