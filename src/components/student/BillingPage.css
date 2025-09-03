@@ -1,0 +1,33 @@
+.billing-page .card {
+    border: none;
+    border-radius: 0.75rem;
+}
+
+.billing-details p {
+    margin-bottom: 0.5rem;
+}
+
+.balance-display .balance-label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.balance-display .balance-amount.paid {
+    color: #198754; /* Green */
+    font-weight: 700;
+    font-size: 3.5rem;
+}
+
+.balance-display .balance-amount.unpaid {
+    color: #dc3545; /* Red */
+    font-weight: 700;
+    font-size: 3.5rem;
+}
+
+.balance-display .balance-status.paid {
+    color: #198754;
+}
+
+.balance-display .balance-status.unpaid {
+    color: #dc3545;
+}

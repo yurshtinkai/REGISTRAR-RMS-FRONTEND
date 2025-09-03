@@ -26,8 +26,11 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             // This is dummy data that mimics an API response.
             const dummyData = [
                 { id: 1, start_year: 2025, end_year: 2026, semester: '1st Semester' },
-                { id: 2, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
-                { id: 3, start_year: 2024, end_year: 2025, semester: '1st Semester' },
+                { id: 2, start_year: 2025, end_year: 2026, semester: '2nd Semester' },
+                { id: 3, start_year: 2025, end_year: 2026, semester: 'Summer' },
+                { id: 4, start_year: 2024, end_year: 2025, semester: '1st Semester' },
+                { id: 5, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
+                { id: 6, start_year: 2024, end_year: 2025, semester: 'Summer' },
             ];
             setSchoolYears(dummyData);
             // Set the default selected value to the most recent one

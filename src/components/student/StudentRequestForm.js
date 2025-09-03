@@ -9,6 +9,9 @@ function StudentRequestForm() {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [requests, setRequests] = useState([]);
+    const [balance, setBalance] = useState(0);
+    const [isBalanceLoading, setIsBalanceLoading] = useState(true);
+    const hasOutstandingBalance = parseFloat(balance) > 0;
 
     const fetchRequests = async () => {
         try {
@@ -33,6 +36,25 @@ function StudentRequestForm() {
         const interval = setInterval(fetchRequests, 10000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/students/me/balance`, {
+                    headers: { 'X-Session-Token': getSessionToken() }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setBalance(data.tuitionBalance);
+                }
+            } catch (err) {
+                console.error("Could not fetch balance for request form:", err);
+            } finally {
+                setIsBalanceLoading(false);
+            }
+        };
+        fetchBalance();
+    }, []);
     
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
@@ -51,6 +73,10 @@ function StudentRequestForm() {
         }
         if (!purpose.trim()) {
             setError('Please enter the purpose.');
+            return;
+        }
+        if (documentType === 'GOOD MORAL' && hasOutstandingBalance) {
+            setError('Cannot request Good Moral with an outstanding balance. Please settle your account first.');
             return;
         }
         // Require at least one file:
@@ -103,14 +129,32 @@ function StudentRequestForm() {
                 {/* Document Type */}
                 <div className="mb-4">
                   <label htmlFor="documentType" className="form-label">Document Type</label>
-                  <select className="form-select border border-2 rounded-pill" id="documentType" value={documentType} onChange={(e) => setDocumentType(e.target.value)} required>
-                    <option value="" disabled>Select...</option>
+                  <select 
+                    className="form-select border border-2 rounded-pill" 
+                    id="documentType" 
+                    value={documentType} 
+                    onChange={(e) => setDocumentType(e.target.value)} 
+                    required
+                    disabled={isBalanceLoading}
+                  >
+                    <option value="" disabled>{isBalanceLoading ? 'Checking balance...' : 'Select...'}</option>
                     <option value="TOR">TOR</option>
                     <option value="GRADE SLIP">GRADE SLIP</option>
-                    <option value="GOOD MORAL">GOOD MORAL</option>
+                    <option 
+                        value="GOOD MORAL"
+                        disabled={hasOutstandingBalance}
+                        style={hasOutstandingBalance ? { color: '#6c757d' } : {}}
+                    >
+                        GOOD MORAL {hasOutstandingBalance && "(Unavailable - Outstanding Balance)"}
+                    </option>
                     <option value="CERTIFICATION">CERTIFICATION</option>
                     <option value="DIPLOMA">DIPLOMA</option>
                   </select>
+                  {hasOutstandingBalance && (
+                    <div className="text-danger small mt-1 ps-2">
+                      Note: Good Moral requests are disabled due to an outstanding balance.
+                    </div>
+                  )}
                 </div>
 
                 {/* Purpose */}
