@@ -67,10 +67,14 @@ function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin, onS
         }
     };
 
+      // New Constant For Customizable Header
+const HEADER_TEXT = process.env.REACT_APP_STUDENT_LOGIN_HEADER || '🎓 Student Login';
+
+
     return (
         <div className="student-login-container">
             <div className="login-header">
-                <h2>🎓 Student Login</h2>
+                <h2>{HEADER_TEXT}</h2>
                 <p>Access your student dashboard with your School ID and password</p>
             </div>
 
