@@ -2,9 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Files to copy from public to build directory
-const filesToCopy = [
-  '_redirects'
-];
+
 
 // Copy each file
 filesToCopy.forEach(file => {
