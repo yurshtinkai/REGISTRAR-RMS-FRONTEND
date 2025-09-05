@@ -155,4 +155,111 @@
 
 .btn-admin:hover {
     color: #2980b9;
+<<<<<<< HEAD
 }
+=======
+}
+
+
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.header-title {
+  margin: 0;
+}
+.header-edit {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+:root {
+  --btn-radius: 0.5rem;    
+  --btn-h: 40px;          
+  --btn-font-size: 14px;      
+  --btn-ring: #3b82f6;        
+
+
+  --btn-primary-bg: #111827;    
+  --btn-primary-fg: #ffffff;
+  --btn-primary-hover: #1f2937;
+
+  --btn-secondary-bg: #e5e7eb;  
+  --btn-secondary-fg: #111827;  
+  --btn-secondary-hover: #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+
+    --btn-secondary-bg: #374151;  
+    --btn-secondary-fg: #e5e7eb;     
+    --btn-secondary-hover: #4b5563;  
+  }
+}
+
+
+.btn-save,
+.btn-secondary {
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--btn-h);
+  padding: 0 1rem;          
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
+  font-weight: 500;              
+  line-height: 1;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color .2s ease,
+    color .2s ease,
+    border-color .2s ease,
+    box-shadow .2s ease,
+    transform .05s ease;
+}
+
+.btn-save:focus-visible,
+.btn-secondary:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--btn-ring),
+    0 0 0 4px rgba(0,0,0,0.06);
+}
+
+.btn-save:active,
+.btn-secondary:active {
+  transform: translateY(0.5px) scale(0.99);
+}
+
+.btn-save:disabled,
+.btn-secondary:disabled {
+  opacity: .5;
+  pointer-events: none;         
+}
+
+
+.btn-save {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+}
+.btn-save:hover { background: var(--btn-primary-hover); }
+
+.btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+}
+.btn-secondary:hover { background: var(--btn-secondary-hover); }
+
+.btn-secondary {
+  border-color: color-mix(in srgb, var(--btn-secondary-fg) 12%, transparent);
+}
+>>>>>>> 42e55170ca950508604d79a900ea5f232cb0e4c4

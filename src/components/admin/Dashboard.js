@@ -3,6 +3,7 @@ import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
 import { Pie, Line, Bar } from 'react-chartjs-2';
 import './Dashboard.css';
+import { useFooter } from '../../contexts/FooterContext';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement);
@@ -23,6 +24,32 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showBsitDetails, setShowBsitDetails] = useState(false);
+    const [isEditingFooter, setIsEditingFooter] = useState(false);
+    const [editYear, setEditYear] = useState('2025');
+    const { footerYear, updateFooterYear } = useFooter();
+
+    // Function to handle footer editing
+    const handleEditFooter = () => {
+        setEditYear(footerYear); // Set current year for editing
+        setIsEditingFooter(true);
+    };
+
+    const handleSaveFooter = () => {
+        setIsEditingFooter(false);
+        // Update the footer year in the context
+        updateFooterYear(editYear);
+        console.log('Footer year updated to:', editYear);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditingFooter(false);
+        // Reset to current context value
+        setEditYear(footerYear);
+    };
+
+    const handleYearChange = (e) => {
+        setEditYear(e.target.value);
+    };
 
     // Function to update registration statuses
     const updateRegistrationStatuses = async () => {
@@ -38,17 +65,17 @@ function Dashboard() {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ Registration statuses updated:', data);
+                console.log('Registration statuses updated:', data);
                 alert(`Successfully updated ${data.updatedCount} registrations to "Enrolled" status!`);
                 // Refresh the page to show updated data
                 window.location.reload();
             } else {
                 const errorData = await response.json();
-                console.error('❌ Failed to update registration statuses:', errorData);
+                console.error('Failed to update registration statuses:', errorData);
                 alert('Failed to update registration statuses. Please try again.');
             }
         } catch (err) {
-            console.error('❌ Error updating registration statuses:', err);
+            console.error('Error updating registration statuses:', err);
             alert('Error updating registration statuses. Please try again.');
         } finally {
             setLoading(false);
@@ -700,6 +727,59 @@ function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Footer */}
+            <footer className="dashboard-footer">
+                <div className="text-center py-3">
+                    {!isEditingFooter ? (
+                        <div className="d-flex justify-content-center align-items-center">
+                            <p className="text-muted mb-0 me-3">
+                                <i className="fas fa-copyright me-1"></i>
+                                {footerYear} - Online Records Management System
+                            </p>
+                            <button 
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={handleEditFooter}
+                                title="Edit Footer"
+                            >
+                                <i className="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="d-flex justify-content-center align-items-center">
+                            <div className="d-flex align-items-center">
+                                <i className="fas fa-copyright me-2 text-muted"></i>
+                                <input
+                                    type="number"
+                                    className="form-control form-control-sm me-2"
+                                    value={editYear}
+                                    onChange={handleYearChange}
+                                    style={{ width: '80px', textAlign: 'center' }}
+                                    min="2000"
+                                    max="2100"
+                                />
+                                <span className="text-muted me-2">- Online Records Management System</span>
+                            </div>
+                            <div className="ms-3">
+                                <button 
+                                    className="btn btn-sm btn-success me-1"
+                                    onClick={handleSaveFooter}
+                                    title="Save"
+                                >
+                                    <i className="fas fa-check"></i>
+                                </button>
+                                <button 
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={handleCancelEdit}
+                                    title="Cancel"
+                                >
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </footer>
         </div>
     );
 }
