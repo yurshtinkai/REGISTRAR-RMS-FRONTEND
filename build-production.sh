@@ -10,6 +10,13 @@ npm install
 # Set production environment
 export REACT_APP_API_URL=https://rms-back-bxkx.onrender.com
 export REACT_APP_ENVIRONMENT=production
+export NODE_ENV=production
+
+# Verify environment variables
+echo "🔍 Environment variables:"
+echo "REACT_APP_API_URL: $REACT_APP_API_URL"
+echo "REACT_APP_ENVIRONMENT: $REACT_APP_ENVIRONMENT"
+echo "NODE_ENV: $NODE_ENV"
 
 # Build the project
 echo "🔨 Building React app..."
