@@ -5,6 +5,7 @@ import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
 import { getStudentProfileImage } from './utils/cleanupProfileImages';
+import { FooterProvider } from './contexts/FooterContext';
 
 // Import components
 import Login from './components/auth/Login';
@@ -41,6 +42,7 @@ import RequestFromRegistrarView from './components/admin/RequestFromRegistrarVie
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 import HeaderSettingsView from "./components/admin/HeaderSettingsView";
+
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
   <div className="admin-layout">
@@ -257,7 +259,8 @@ function App() {
   };
 
   return (
-    <div id="app-wrapper">
+    <FooterProvider>
+      <div id="app-wrapper">
       {/* Student Navbar */}
       {userRole === 'student' && (
         <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom-gradient shadow-sm" style={{ minHeight: '60px', zIndex: 1040 }}>
@@ -282,6 +285,7 @@ function App() {
                   onClick={() => navigate('/student/my-request')}
                 >My Request</button>
               </li>
+              
             </ul>
             <div className="ms-auto d-flex align-items-center">
               
@@ -368,6 +372,7 @@ function App() {
                      <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
            <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
+  
            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
                       <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
                       <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />
@@ -420,7 +425,8 @@ function App() {
       </div>
       {modalImage && <ImageViewModal imageUrl={modalImage} onClose={() => setModalImage(null)} />}
       {documentModalData && <DocumentViewModal modalData={documentModalData} onClose={closeDocumentModal} />}
-    </div>
+      </div>
+    </FooterProvider>
   );
 }
 

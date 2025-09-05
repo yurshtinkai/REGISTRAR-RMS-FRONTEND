@@ -9,6 +9,7 @@ services:
         value: https://rms-back-bxkx.onrender.com
       - key: REACT_APP_ENVIRONMENT
         value: production
+    
     routes:
       - type: rewrite
         source: "/*"
