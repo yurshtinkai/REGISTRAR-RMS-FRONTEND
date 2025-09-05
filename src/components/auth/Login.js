@@ -71,11 +71,16 @@ function Login({ onLoginSuccess }) {
                 {error}
               </div>
             )}
+
             
             {/* Sample Accounts Info */}
             <div className="text-center mt-3 text-white fs-6">
               <small>Sample Accounts: Student (2022-00037/password) | Admin (A001/adminpass) | Accounting (ACC01/accpass)</small>
             </div>
+
+            <footer className="text-center mt-4 text-muted">
+            © 2025 - Online Records Management System
+            </footer>
             
             {/* FIX: Removed the redundant buttons from here */}
           </div>
@@ -83,6 +88,9 @@ function Login({ onLoginSuccess }) {
       </div>
     </div>
   );
+
 }
+
+
 
 export default Login;
