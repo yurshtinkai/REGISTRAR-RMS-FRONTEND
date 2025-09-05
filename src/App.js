@@ -183,14 +183,32 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-      localStorage.removeItem('sessionToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('idNumber');
-      localStorage.removeItem('fullName');
-      localStorage.removeItem('userInfo');
-      setUserRole(null);
-      navigate('/login');
+  const handleLogout = async () => {
+      try {
+        // Call backend logout API to log the logout event
+        const sessionToken = getSessionToken();
+        if (sessionToken) {
+          await fetch(`${API_BASE_URL}/sessions/logout`, {
+            method: 'POST',
+            headers: {
+              'X-Session-Token': sessionToken,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error calling logout API:', error);
+        // Continue with logout even if API call fails
+      } finally {
+        // Clear local storage and redirect
+        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('idNumber');
+        localStorage.removeItem('fullName');
+        localStorage.removeItem('userInfo');
+        setUserRole(null);
+        navigate('/login');
+      }
   };
 
   const handleCompleteEnrollment = (enrolledStudent) => {

@@ -39,6 +39,45 @@ function StudentDetailView({ enrolledStudents }) {
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [announcementHistory, setAnnouncementHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Login history state
+  const [loginHistory, setLoginHistory] = useState([]);
+  const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
+  const [loginHistoryError, setLoginHistoryError] = useState('');
+
+  // Fetch student login history
+  const fetchLoginHistory = async (studentId) => {
+    try {
+      setLoadingLoginHistory(true);
+      setLoginHistoryError('');
+      
+      const sessionToken = getSessionToken();
+      if (!sessionToken) {
+        setLoginHistoryError('No session token found');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/sessions/student/${studentId}/history?limit=20`, {
+        headers: {
+          'X-Session-Token': sessionToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setLoginHistory(data.history || []);
+      } else {
+        const errorData = await response.json();
+        setLoginHistoryError(errorData.message || 'Failed to fetch login history');
+      }
+    } catch (err) {
+      console.error('Error fetching login history:', err);
+      setLoginHistoryError('Network error. Please check your connection and try again.');
+    } finally {
+      setLoadingLoginHistory(false);
+    }
+  };
 
   // Fetch student details from backend
   useEffect(() => {
@@ -58,6 +97,9 @@ function StudentDetailView({ enrolledStudents }) {
         console.log('🔍 Frontend - enrolledStudent.id:', enrolledStudent.id);
         console.log('🔍 Frontend - enrolledStudent.idNumber:', enrolledStudent.idNumber);
         setStudent(enrolledStudent);
+
+        // Fetch login history for this student
+        fetchLoginHistory(enrolledStudent.id);
 
         // Fetch user data with profile photo if not already present
         if (!enrolledStudent.profilePhoto) {
@@ -1309,6 +1351,64 @@ function StudentDetailView({ enrolledStudents }) {
                    </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Login/Logout History Section */}
+          <div className="card shadow-sm border-0 mb-4 login-history-section">
+            <div className="card-header bg-secondary text-white">
+              <h5 className="mb-0">
+                <i className="fas fa-sign-in-alt me-2"></i>
+                Login/Logout History
+              </h5>
+            </div>
+            <div className="card-body history-table-container">
+              {loadingLoginHistory ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="mt-3 text-muted">Loading login history...</p>
+                </div>
+              ) : loginHistoryError ? (
+                <div className="alert alert-danger">
+                  <h6>Error Loading History</h6>
+                  <p className="mb-0">{loginHistoryError}</p>
+                </div>
+              ) : (
+                <table className="table history-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loginHistory && loginHistory.length > 0 ? (
+                      loginHistory.map((entry, idx) => (
+                        <tr key={idx}>
+                          <td>{entry.date}</td>
+                          <td>{entry.time}</td>
+                          <td>
+                            <span 
+                              className={`badge ${entry.action === 'login' ? 'bg-success' : 'bg-danger'}`}
+                            >
+                              {entry.action === 'login' ? '🔓 LOGIN' : '🔒 LOGOUT'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="3" className="text-center text-muted">
+                          No login/logout history available.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
 
