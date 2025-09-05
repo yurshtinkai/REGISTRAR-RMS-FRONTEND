@@ -13,3 +13,8 @@ August 23-24, 2025 (Saturday-Sunday)
 
 August 29, 2025 (Friday)
 - Making the navbar responsive and user friendly.
+
+September 5, 2025 (Friday)
+- My code broke and laptop hanged, i decided to checkout my branch to Bufete's laptop(Thats why there is yurshtinkai account committed to my branch) and make the code there and push there for my Task 3.
+
+To view the task go to Students > All Students > click View Student Details Button and scroll below you will see the table for Login/Logout History. Every student has a history of their login/logout.

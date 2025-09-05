@@ -155,9 +155,6 @@
 
 .btn-admin:hover {
     color: #2980b9;
-<<<<<<< HEAD
-}
-=======
 }
 
 
@@ -262,4 +259,3 @@
 .btn-secondary {
   border-color: color-mix(in srgb, var(--btn-secondary-fg) 12%, transparent);
 }
->>>>>>> 42e55170ca950508604d79a900ea5f232cb0e4c4
