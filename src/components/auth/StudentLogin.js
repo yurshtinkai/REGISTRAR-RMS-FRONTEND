@@ -97,11 +97,20 @@ function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin, onS
                     onLoginSuccess(result);
                 }
             } else {
-                const errorData = await response.json();
-                setError(errorData.message || 'Login failed. Please check your credentials.');
+                try {
+                    const errorData = await response.json();
+                    setError(errorData.message || 'Login failed. Please check your credentials.');
+                } catch (parseError) {
+                    setError(`Login failed. Server returned ${response.status}: ${response.statusText}`);
+                }
             }
         } catch (err) {
-            setError('Network error. Please check your connection and try again.');
+            console.error('Login error:', err);
+            if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                setError('Network error. Please check your connection and try again.');
+            } else {
+                setError('An unexpected error occurred. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
