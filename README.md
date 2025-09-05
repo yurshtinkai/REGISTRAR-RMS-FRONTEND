@@ -13,3 +13,4 @@ August 23-24, 2025 (Saturday-Sunday)
 
 August 29, 2025 (Friday)
 - Making the navbar responsive and user friendly.
+

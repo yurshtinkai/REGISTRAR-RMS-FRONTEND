@@ -1040,7 +1040,7 @@ function StudentDetailView({ enrolledStudents }) {
           {/* Message Tracker */}
           <div className="mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="text-primary mb-0">Message Tracker</h6>
+              <h6 className="text-primary mb-0">Message Trackerrrrr</h6>
               <button 
                 className="btn btn-outline-primary btn-sm"
                 onClick={refreshAnnouncementHistory}
