@@ -40,6 +40,7 @@ import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
 import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
+import HeaderSettingsView from "./components/admin/HeaderSettingsView";
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
   <div className="admin-layout">
@@ -345,7 +346,7 @@ function App() {
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
                   <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
+                    <button className="dropdown-item" onClick={() => navigate('/admin/settings')}>
                       <i className="fa-solid fa-sliders fa-sm me-2"></i>
                       Settings
                     </button>
@@ -382,6 +383,7 @@ function App() {
             }
           >
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<HeaderSettingsView />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo/edit" element={<EditStudentDetailView />} />
