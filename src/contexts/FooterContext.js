@@ -11,10 +11,15 @@ export const useFooter = () => {
 };
 
 export const FooterProvider = ({ children }) => {
-    const [footerYear, setFooterYear] = useState('2025');
+    const [footerYear, setFooterYear] = useState(() => {
+        // Initialize from localStorage or default to '2025'
+        return localStorage.getItem('footerYear') || '2025';
+    });
 
     const updateFooterYear = (newYear) => {
         setFooterYear(newYear);
+        // Persist to localStorage
+        localStorage.setItem('footerYear', newYear);
     };
 
     return (

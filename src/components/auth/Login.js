@@ -3,10 +3,12 @@ import StudentLogin from './StudentLogin';
 import StudentRegistration from './StudentRegistration';
 import AdminLogin from './AdminLogin';
 import AccountingLogin from './AccountingLogin';
+import { useFooter } from '../../contexts/FooterContext';
 
 function Login({ onLoginSuccess }) {
   const [view, setView] = useState('student'); // 'student', 'register', 'admin', 'accounting'
   const [error, setError] = useState('');
+  const { footerYear } = useFooter();
 
   const handleLoginSuccess = (result) => {
     // Store session token and user info
@@ -79,7 +81,7 @@ function Login({ onLoginSuccess }) {
             </div>
 
             <footer className="text-center mt-4 text-muted">
-            © 2025 - Online Records Management System
+            © {footerYear} - Online Records Management System
             </footer>
             
             {/* FIX: Removed the redundant buttons from here */}
