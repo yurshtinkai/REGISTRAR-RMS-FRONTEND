@@ -480,3 +480,58 @@
 .message-history::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+.login-history-section {
+  margin-top: 20px;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.history-table th, 
+.history-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.history-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+/* Login History Section Styles */
+.login-history-section .card-header {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+}
+
+.history-table-container {
+  padding: 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.history-table {
+  margin-bottom: 0;
+}
+
+.history-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.history-table td {
+  vertical-align: middle;
+}
+
+.history-table .badge {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.history-table .font-monospace {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}

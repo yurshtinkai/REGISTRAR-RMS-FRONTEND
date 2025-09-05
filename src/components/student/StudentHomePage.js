@@ -325,6 +325,7 @@ function StudentHomePage() {
         </div>
     );
 
+
     if (loading) {
         return (
             <div className="student-homepage">

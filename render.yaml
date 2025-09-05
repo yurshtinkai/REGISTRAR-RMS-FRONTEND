@@ -6,9 +6,10 @@ services:
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://rms-back-bxkx.onrender.com
+        value: https://rms-back-r2ox.onrender.com
       - key: REACT_APP_ENVIRONMENT
         value: production
+    
     routes:
       - type: rewrite
         source: "/*"

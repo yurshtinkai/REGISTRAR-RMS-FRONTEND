@@ -5,6 +5,7 @@ import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
 import { getStudentProfileImage } from './utils/cleanupProfileImages';
+import { FooterProvider } from './contexts/FooterContext';
 
 // Import components
 import Login from './components/auth/Login';
@@ -41,6 +42,8 @@ import RequestFromRegistrarView from './components/admin/RequestFromRegistrarVie
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 import BillingPage from './components/student/BillingPage'; 
+import HeaderSettingsView from "./components/admin/HeaderSettingsView";
+
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
   <div className="admin-layout">
@@ -54,6 +57,7 @@ const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
 function App() {
   const [userRole, setUserRole] = useState(getUserRole());
   const [modalImage, setModalImage] = useState(null);
+  const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
   const [documentModalData, setDocumentModalData] = useState(null);
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
@@ -183,14 +187,32 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-      localStorage.removeItem('sessionToken');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('idNumber');
-      localStorage.removeItem('fullName');
-      localStorage.removeItem('userInfo');
-      setUserRole(null);
-      navigate('/login');
+  const handleLogout = async () => {
+      try {
+        // Call backend logout API to log the logout event
+        const sessionToken = getSessionToken();
+        if (sessionToken) {
+          await fetch(`${API_BASE_URL}/sessions/logout`, {
+            method: 'POST',
+            headers: {
+              'X-Session-Token': sessionToken,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error calling logout API:', error);
+        // Continue with logout even if API call fails
+      } finally {
+        // Clear local storage and redirect
+        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('idNumber');
+        localStorage.removeItem('fullName');
+        localStorage.removeItem('userInfo');
+        setUserRole(null);
+        navigate('/login');
+      }
   };
 
   const handleCompleteEnrollment = (enrolledStudent) => {
@@ -257,80 +279,89 @@ function App() {
   };
 
   return (
-    <div id="app-wrapper">
+    <FooterProvider>
+         <div id="app-wrapper">
       {/* Student Navbar */}
       {userRole === 'student' && (
         <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom-gradient shadow-sm" style={{ minHeight: '60px', zIndex: 1040 }}>
           <div className="container-fluid align-items-center">
             <img src="/benedicto2.png" style={logoStyle} alt="bclogo" />
-            <ul className="navbar-nav flex-row ms-3" style={{ gap: '0px' }}>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/home')}
-                >Home</button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/request')}
-                >Request</button>
-              </li>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/my-request')}
-                >My Request</button>
-              </li>
+            {/* Hamburger for mobile */}
+            <button className="navbar-toggler ms-2" type="button" style={{ border: 'none', background: 'transparent' }} onClick={() => setIsHamburgerOpen(!isHamburgerOpen)}>
+              <span><i className="fas fa-bars fa-lg text-white"></i></span>
+            </button>
+            {/* Main menu: collapses on mobile */}
+            <div className={`collapse navbar-collapse${isHamburgerOpen ? ' show' : ''}`} id="studentNavbarMenu">
+              <ul className="navbar-nav ms-3 mb-2 mb-lg-0">
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/home')}
+                  >Home</button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/request')}
+                  >Request</button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/my-request')}
+                  >My Request</button>
+                </li>
               <li className="nav-item">
                 <button
                   className={`student-navbar-btn${window.location.pathname === '/student/billing' ? ' active' : ''}`}
                   onClick={() => navigate('/student/billing')}
                 >Billing</button>
               </li>
+                
             </ul>
-            <div className="ms-auto d-flex align-items-center">
-              
-              {/* --- Add the NotificationBell here --- */}
-              <NotificationBell />
-              
-              {/* Profile Dropdown */}
-              <div className="dropdown me-3">
-                <button
-                  className="btn btn-link dropdown-toggle p-0 border-0 bg-transparent text-white"
-                  type="button"
-                  id="profileDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
-                >
-                  <img
-                    src={getStudentProfileImage(localStorage.getItem('idNumber')) || '/bc.png'}
-                    alt="Profile"
-                    style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
-                  />
-                </button>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                  <li>
-                    <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
-                      <i className="fa-regular fa-user me-2"></i>
-                      Profile
-                    </button>
-                  </li>
-                  <li><hr className="dropdown-divider" /></li>
-                  <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
-                      <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
-                      Logout
-                    </button>
-                  </li>
-                </ul>
-              </div>
             </div>
-          </div>
-        </nav>
-      )}
-
+            {/* Right side: bell and profile, hidden when hamburger is open */}
+            {!isHamburgerOpen && (
+              <div className="ms-auto d-flex align-items-center">
+                {/* --- Add the NotificationBell here --- */}
+                <NotificationBell />
+                {/* Profile Dropdown */}
+                <div className="dropdown me-3">
+                  <button
+                    className="btn btn-link dropdown-toggle p-0 border-0 bg-transparent text-white"
+                    type="button"
+                    id="profileDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
+                  >
+                    <img
+                      src={localStorage.getItem('profileImage') || '/bc.png'}
+                      alt="Profile"
+                      style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
+                    />
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
+                        <i className="fa-regular fa-user me-2"></i>
+                        Profile
+                      </button>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+                    <li>
+                      <button className="dropdown-item" onClick={handleLogout}>
+                        <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
+                        Logout
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            )}
+      </div>
+    </nav>
+  )}
       {/* Admin/Accounting Navbar */}
       {(userRole === 'admin' || userRole === 'accounting') && (
         <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
@@ -352,7 +383,7 @@ function App() {
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
                   <li>
-                    <button className="dropdown-item" onClick={handleLogout}>
+                    <button className="dropdown-item" onClick={() => navigate('/admin/settings')}>
                       <i className="fa-solid fa-sliders fa-sm me-2"></i>
                       Settings
                     </button>
@@ -375,6 +406,7 @@ function App() {
            <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
            <Route path="/student/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
+  
            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
                       <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
                       <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />
@@ -390,6 +422,7 @@ function App() {
             }
           >
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="settings" element={<HeaderSettingsView />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo/edit" element={<EditStudentDetailView />} />
@@ -426,7 +459,8 @@ function App() {
       </div>
       {modalImage && <ImageViewModal imageUrl={modalImage} onClose={() => setModalImage(null)} />}
       {documentModalData && <DocumentViewModal modalData={documentModalData} onClose={closeDocumentModal} />}
-    </div>
+      </div>
+    </FooterProvider>
   );
 }
 
