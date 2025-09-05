@@ -33,7 +33,6 @@ function StudentDetailView({ enrolledStudents }) {
     form137: false,
     idPicture: false
   });
-  const [requirementsModalOpen, setRequirementsModalOpen] = useState(false);
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
@@ -295,7 +294,7 @@ function StudentDetailView({ enrolledStudents }) {
     }
   };
 
-  const handlePhotoUpload = async () => {
+    const handlePhotoUpload = async () => {
     if (!selectedPhoto) return;
 
     try {
@@ -310,43 +309,43 @@ function StudentDetailView({ enrolledStudents }) {
         body: formData
       });
 
-             if (response.ok) {
-         const result = await response.json();
-         
-         console.log('📸 Photo upload successful:', result);
-         console.log('📸 New photo URL:', result.photoUrl);
-         
-                   // Update the user object with new photo URL
-          setStudent(prev => {
-            const updated = {
-              ...prev,
-              profilePhoto: result.photoUrl
-            };
-            console.log('📸 Updated student object:', updated);
-            console.log('📸 New profilePhoto value:', updated.profilePhoto);
-            return updated;
-          });
-         
-         // Also update the enrolledStudents array in the parent component
-         // This ensures the photo persists when navigating back to the list
-         if (window.updateEnrolledStudents) {
-           window.updateEnrolledStudents(prev => 
-             prev.map(s => 
-               s.id === student.id 
-                 ? { ...s, profilePhoto: result.photoUrl }
-                 : s
-             )
-           );
-         }
-         
-         // Close modal and reset states
-         setPhotoUploadModalOpen(false);
-         setSelectedPhoto(null);
-         setPhotoPreview(null);
-         
-         // Show success message
-         alert('Photo uploaded successfully!');
-       } else {
+      if (response.ok) {
+        const result = await response.json();
+        
+        console.log('📸 Photo upload successful:', result);
+        console.log('📸 New photo URL:', result.photoUrl);
+        
+        // Update the user object with new photo URL
+        setStudent(prev => {
+          const updated = {
+            ...prev,
+            profilePhoto: result.photoUrl
+          };
+          console.log('📸 Updated student object:', updated);
+          console.log('📸 New profilePhoto value:', updated.profilePhoto);
+          return updated;
+        });
+        
+        // Also update the enrolledStudents array in the parent component
+        // This ensures the photo persists when navigating back to the list
+        if (window.updateEnrolledStudents) {
+          window.updateEnrolledStudents(prev => 
+            prev.map(s => 
+              s.id === student.id 
+                ? { ...s, profilePhoto: result.photoUrl }
+                : s
+            )
+          );
+        }
+        
+        // Close modal and reset states
+        setPhotoUploadModalOpen(false);
+        setSelectedPhoto(null);
+        setPhotoPreview(null);
+        
+        // Show success message
+        alert('Photo uploaded successfully!');
+      } else {
         const error = await response.json();
         alert(`Upload failed: ${error.message}`);
       }
@@ -402,32 +401,7 @@ function StudentDetailView({ enrolledStudents }) {
     }));
   };
 
-  const handleDocumentUpload = async (requirementType, file) => {
-    try {
-      const formData = new FormData();
-      formData.append('document', file);
-      formData.append('requirementType', requirementType);
-      formData.append('studentId', student.id);
 
-      const response = await fetch(`${API_BASE_URL}/requirements/upload`, {
-        method: 'POST',
-        headers: { 'X-Session-Token': getSessionToken() },
-        body: formData
-      });
-
-      if (response.ok) {
-        // Update requirements state
-        handleRequirementToggle(requirementType);
-        alert(`${requirementType.toUpperCase()} document uploaded successfully!`);
-      } else {
-        const error = await response.json();
-        alert(`Upload failed: ${error.message}`);
-      }
-    } catch (error) {
-      console.error('Error uploading document:', error);
-      alert('Upload failed. Please try again.');
-    }
-  };
 
   const refreshAnnouncementHistory = async () => {
     if (!student?.id) return;
@@ -788,10 +762,13 @@ function StudentDetailView({ enrolledStudents }) {
         <i className="fas fa-clipboard-check me-2"></i>
         ENROLLMENT REQUIREMENTS
       </h5>
-      <button className="btn btn-sm btn-light" onClick={() => setRequirementsModalOpen(true)}>
+      <Link 
+        to={`/admin/students/${idNo}/upload-documents`}
+        className="btn btn-sm btn-light"
+      >
         <i className="fas fa-plus me-1"></i>
         Manage Requirements
-      </button>
+      </Link>
     </div>
     <div className="card-body">
       <div className="row">
@@ -877,13 +854,13 @@ function StudentDetailView({ enrolledStudents }) {
               <i className="fas fa-bell me-1"></i>
               Send Announcement
             </button>
-            <button 
+            <Link 
+              to={`/admin/students/${idNo}/upload-documents`}
               className="btn btn-info btn-sm w-100"
-              onClick={() => setRequirementsModalOpen(true)}
             >
               <i className="fas fa-upload me-1"></i>
               Upload Documents
-            </button>
+            </Link>
           </div>
 
           {/* Message Tracker */}
@@ -1578,167 +1555,12 @@ function StudentDetailView({ enrolledStudents }) {
           </div>
         )}
 
-        {/* Photo Preview Modal Backdrop */}
-        {photoPreviewModalOpen && (
-          <div className="modal-backdrop fade show"></div>
-        )}
+                 {/* Photo Preview Modal Backdrop */}
+         {photoPreviewModalOpen && (
+           <div className="modal-backdrop fade show"></div>
+         )}
 
-        {/* Requirements Management Modal */}
-        {requirementsModalOpen && (
-          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-            <div className="modal-dialog modal-lg modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header bg-primary text-white">
-                  <h5 className="modal-title">
-                    <i className="fas fa-clipboard-check me-2"></i>
-                    Manage Enrollment Requirements
-                  </h5>
-                  <button 
-                    type="button" 
-                    className="btn-close btn-close-white" 
-                    onClick={() => setRequirementsModalOpen(false)}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <div className="row">
-                    <div className="col-md-6">
-                      <h6 className="text-primary mb-3">Upload Documents</h6>
-                      <div className="mb-3">
-                        <label className="form-label">PSA Birth Certificate</label>
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            if (e.target.files[0]) {
-                              handleDocumentUpload('psa', e.target.files[0]);
-                            }
-                          }}
-                        />
-                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="form-label">Valid ID</label>
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            if (e.target.files[0]) {
-                              handleDocumentUpload('validId', e.target.files[0]);
-                            }
-                          }}
-                        />
-                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="form-label">Form 137</label>
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            if (e.target.files[0]) {
-                              handleDocumentUpload('form137', e.target.files[0]);
-                            }
-                          }}
-                        />
-                        <small className="text-muted">Accepted: PDF, JPG, PNG (Max 5MB)</small>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="form-label">2x2 ID Picture</label>
-                        <input
-                          type="file"
-                          className="form-control"
-                          accept=".jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            if (e.target.files[0]) {
-                              handleDocumentUpload('idPicture', e.target.files[0]);
-                            }
-                          }}
-                        />
-                        <small className="text-muted">Accepted: JPG, PNG (Max 5MB)</small>
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-6">
-                      <h6 className="text-primary mb-3">Requirements Status</h6>
-                      <div className="requirements-status">
-                        <div className="requirement-status-item mb-2">
-                          <span className="requirement-label">PSA Birth Certificate:</span>
-                          <span className={`badge ${requirements.psa ? 'bg-success' : 'bg-warning'}`}>
-                            {requirements.psa ? 'Submitted' : 'Pending'}
-                          </span>
-                        </div>
-                        <div className="requirement-status-item mb-2">
-                          <span className="requirement-label">Valid ID:</span>
-                          <span className={`badge ${requirements.validId ? 'bg-success' : 'bg-warning'}`}>
-                            {requirements.validId ? 'Submitted' : 'Pending'}
-                          </span>
-                        </div>
-                        <div className="requirement-status-item mb-2">
-                          <span className="requirement-label">Form 137:</span>
-                          <span className={`badge ${requirements.form137 ? 'bg-success' : 'bg-warning'}`}>
-                            {requirements.form137 ? 'Submitted' : 'Pending'}
-                          </span>
-                        </div>
-                        <div className="requirement-status-item mb-2">
-                          <span className="requirement-label">2x2 ID Picture:</span>
-                          <span className={`badge ${requirements.idPicture ? 'bg-success' : 'bg-warning'}`}>
-                            {requirements.idPicture ? 'Submitted' : 'Pending'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <h6 className="text-warning">Quick Actions</h6>
-                        <button 
-                          className="btn btn-warning btn-sm w-100 mb-2"
-                          onClick={() => {
-                            setRequirementsModalOpen(false);
-                            setAnnouncementModalOpen(true);
-                          }}
-                        >
-                          <i className="fas fa-bell me-1"></i>
-                          Send Reminder
-                        </button>
-                        <button 
-                          className="btn btn-info btn-sm w-100"
-                          onClick={() => {
-                            // Mark all as submitted (for testing)
-                            setRequirements({
-                              psa: true,
-                              validId: true,
-                              form137: true,
-                              idPicture: true
-                            });
-                          }}
-                        >
-                          <i className="fas fa-check me-1"></i>
-                          Mark All Complete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setRequirementsModalOpen(false)}
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Announcement Modal */}
+         {/* Announcement Modal */}
         {announcementModalOpen && (
           <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
             <div className="modal-dialog modal-dialog-centered">
@@ -1817,7 +1639,7 @@ function StudentDetailView({ enrolledStudents }) {
         )}
 
         {/* Modal Backdrops */}
-        {(requirementsModalOpen || announcementModalOpen) && (
+        {announcementModalOpen && (
           <div className="modal-backdrop fade show"></div>
         )}
 
