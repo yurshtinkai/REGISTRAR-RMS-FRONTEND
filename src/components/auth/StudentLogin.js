@@ -97,12 +97,8 @@ function StudentLogin({ onLoginSuccess, onSwitchToRegister, onSwitchToAdmin, onS
                     onLoginSuccess(result);
                 }
             } else {
-                try {
-                    const errorData = await response.json();
-                    setError(errorData.message || 'Login failed. Please check your credentials.');
-                } catch (parseError) {
-                    setError(`Login failed. Server returned ${response.status}: ${response.statusText}`);
-                }
+                const errorData = await response.json();
+                setError(errorData.message || 'Login failed. Please check your credentials.');
             }
         } catch (err) {
             console.error('Login error:', err);

@@ -32,8 +32,9 @@ function AccountingLogin({ onLoginSuccess, onSwitchToStudent }) {
         body: JSON.stringify(formData)
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
         if (data.user.role === 'accounting') {
           // Store session token using session manager
           sessionManager.setSessionToken(data.sessionToken);
@@ -46,12 +47,7 @@ function AccountingLogin({ onLoginSuccess, onSwitchToStudent }) {
           setError('This account is not an accounting user.');
         }
       } else {
-        try {
-          const errorData = await response.json();
-          setError(errorData.message || 'Login failed. Please check your credentials.');
-        } catch (parseError) {
-          setError(`Login failed. Server returned ${response.status}: ${response.statusText}`);
-        }
+        setError(data.message || 'Login failed. Please check your credentials.');
       }
     } catch (err) {
       console.error('Login error:', err);

@@ -32,8 +32,9 @@ function AdminLogin({ onLoginSuccess, onSwitchToStudent }) {
         body: JSON.stringify(formData)
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
         if (data.user.role === 'admin') {
           // Store session token using session manager
           sessionManager.setSessionToken(data.sessionToken);
