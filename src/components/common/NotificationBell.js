@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './NotificationBell.css';
 
 function NotificationBell() {
@@ -12,7 +13,7 @@ function NotificationBell() {
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/notifications`, {
-        headers: { 'X-Session-Token': getSessionToken() }
+        headers: { 'X-Session-Token': sessionManager.getSessionToken() }
       });
       if (response.ok) {
         const data = await response.json();
@@ -46,7 +47,7 @@ function NotificationBell() {
     try {
       await fetch(`${API_BASE_URL}/notifications/read`, {
         method: 'PATCH',
-        headers: { 'X-Session-Token': getSessionToken() },
+        headers: { 'X-Session-Token': sessionManager.getSessionToken() },
       });
       fetchNotifications();
     } catch (error) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
@@ -26,8 +27,11 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             // This is dummy data that mimics an API response.
             const dummyData = [
                 { id: 1, start_year: 2025, end_year: 2026, semester: '1st Semester' },
-                { id: 2, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
-                { id: 3, start_year: 2024, end_year: 2025, semester: '1st Semester' },
+                { id: 2, start_year: 2025, end_year: 2026, semester: '2nd Semester' },
+                { id: 3, start_year: 2025, end_year: 2026, semester: 'Summer' },
+                { id: 4, start_year: 2024, end_year: 2025, semester: '1st Semester' },
+                { id: 5, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
+                { id: 6, start_year: 2024, end_year: 2025, semester: 'Summer' },
             ];
             setSchoolYears(dummyData);
             // Set the default selected value to the most recent one
@@ -41,8 +45,16 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     useEffect(() => {
         const fetchPendingRequests = async () => {
             try {
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    console.error('Session expired. Please login again.');
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 const res = await fetch(`${API_BASE_URL}/requests`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionToken }
                 });
                 const data = await res.json();
                 if (res.ok) {

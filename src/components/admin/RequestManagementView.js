@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 // Simple CSS for the modal overlay and centering
 const modalStyles = `
@@ -42,7 +43,7 @@ function RequestManagementView({ setDocumentModalData }) {
             // --- FIX: Changed 'Authorization' header to 'X-Session-Token' ---
             const response = await fetch(`${API_BASE_URL}/requests`, { 
                 headers: { 
-                    'X-Session-Token': getSessionToken() 
+                    'X-Session-Token': sessionManager.getSessionToken() 
                 } 
             });
             const responseText = await response.text();
@@ -88,7 +89,7 @@ function RequestManagementView({ setDocumentModalData }) {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json', 
-                    'X-Session-Token': getSessionToken() 
+                    'X-Session-Token': sessionManager.getSessionToken() 
                 },
                 body: JSON.stringify({ status: 'rejected', notes: rejectionNotes }),
             });

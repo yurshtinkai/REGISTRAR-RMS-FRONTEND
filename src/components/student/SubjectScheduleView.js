@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './SubjectScheduleView.css';
 
 function SubjectScheduleView() {
@@ -15,8 +16,16 @@ function SubjectScheduleView() {
     const fetchScheduleData = async () => {
         try {
             setLoading(true);
-            const sessionToken = getSessionToken();
             
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
             if (!sessionToken) {
                 setError('No session token found. Please login again.');
                 setLoading(false);

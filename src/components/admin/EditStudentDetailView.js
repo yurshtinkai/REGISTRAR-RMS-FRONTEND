@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function EditStudentDetailView() {
     const { idNo } = useParams();
@@ -17,7 +18,7 @@ function EditStudentDetailView() {
             try {
                 // Fetch the list of available courses for the dropdown
                 const coursesResponse = await fetch(`${API_BASE_URL}/courses`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionManager.getSessionToken() }
                 });
                 if (coursesResponse.ok) {
                     setCourses(await coursesResponse.json());
@@ -27,7 +28,7 @@ function EditStudentDetailView() {
 
                 // First, get the user ID from the student's ID number
                 const userResponse = await fetch(`${API_BASE_URL}/students/search/${idNo}`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionManager.getSessionToken() }
                 });
                 
                 if (!userResponse.ok) {
@@ -39,7 +40,7 @@ function EditStudentDetailView() {
 
                 // Now fetch the student registration data using the user ID
                 const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${userId}`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionManager.getSessionToken() }
                 });
 
                 if (!registrationResponse.ok) {
@@ -103,7 +104,7 @@ function EditStudentDetailView() {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Session-Token': getSessionToken()
+                    'X-Session-Token': sessionManager.getSessionToken()
                 },
                 body: JSON.stringify(student)
             });

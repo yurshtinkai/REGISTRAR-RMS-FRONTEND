@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function DocumentViewModal({ modalData, onClose }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -13,7 +14,7 @@ function DocumentViewModal({ modalData, onClose }) {
 
         try {
             const response = await fetch(`${API_BASE_URL}/requests/${modalData.requestId}/document/${index}`, {
-                headers: { 'X-Session-Token': getSessionToken() },
+                headers: { 'X-Session-Token': sessionManager.getSessionToken() },
             });
 
             if (!response.ok) {

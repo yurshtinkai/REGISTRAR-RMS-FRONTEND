@@ -1,8 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
-import './StudentHomePage.css';
-import StudentRegistrationForm from './StudentRegistrationForm';
 import sessionManager from '../../utils/sessionManager';
+import StudentRegistrationForm from './StudentRegistrationForm';
+import './StudentHomePage.css';
+
+/**
+ * Student Home Page Component
+ * 
+ * Features:
+ * - Student dashboard with announcements
+ * - Real-time notifications from registrars
+ * - Session management and validation
+ * - Quick action buttons for common tasks
+ * 
+ * @component
+ */
 
 function StudentHomePage() {
     const [userData, setUserData] = useState({
@@ -78,6 +90,13 @@ function StudentHomePage() {
     useEffect(() => {
         const fetchAnnouncements = async () => {
             try {
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setAnnouncementsLoading(false);
+                    return;
+                }
+                
                 const sessionToken = sessionManager.getSessionToken();
                 if (!sessionToken) {
                     setAnnouncementsLoading(false);

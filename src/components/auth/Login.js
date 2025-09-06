@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import UnifiedLogin from './UnifiedLogin';
 import StudentRegistration from './StudentRegistration';
+import sessionManager from '../../utils/sessionManager';
 
 function Login({ onLoginSuccess }) {
   const [view, setView] = useState('login'); // 'login', 'register'
@@ -8,8 +9,10 @@ function Login({ onLoginSuccess }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleLoginSuccess = (result) => {
-    // Store session token and user info
-    localStorage.setItem('sessionToken', result.sessionToken);
+    // Store session token using session manager
+    sessionManager.setSessionToken(result.sessionToken);
+    
+    // Store user info
     localStorage.setItem('userRole', result.user.role);
     localStorage.setItem('idNumber', result.user.idNumber);
     localStorage.setItem('userId', result.user.id); // Store the actual user ID from database

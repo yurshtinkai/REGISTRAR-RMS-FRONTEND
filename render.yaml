@@ -6,7 +6,7 @@ services:
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://rms-back-ceuu.onrender.com
+        value: https://rms-back-bxkx.onrender.com
       - key: REACT_APP_ENVIRONMENT
         value: production
     routes:

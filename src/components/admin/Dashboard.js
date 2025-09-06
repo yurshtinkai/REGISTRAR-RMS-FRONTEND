@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from 'chart.js';
 import { Pie, Line, Bar } from 'react-chartjs-2';
+
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './Dashboard.css';
 
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement);
+
+/**
+ * Admin Dashboard Component
+ * 
+ * Features:
+ * - Real-time statistics from database
+ * - Interactive charts and graphs
+ * - Student enrollment analytics
+ * - Request management overview
+ * - Session-based authentication
+ * 
+ * @component
+ */
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -17,7 +32,29 @@ function Dashboard() {
         rejectedRequests: 0,
         newStudents: 0,
         activeStudents: 0,
-        inactiveStudents: 0
+        inactiveStudents: 0,
+        suspendedStudents: 0,
+        graduatedStudents: 0,
+        totalEnrolledStudents: 0,
+        bsitStudents: 0,
+        genderDistribution: {
+            male: 0,
+            female: 0,
+            other: 0
+        },
+        yearLevelDistribution: {
+            firstYear: 0,
+            secondYear: 0,
+            thirdYear: 0,
+            fourthYear: 0
+        },
+        semesterDistribution: {
+            firstSemester: 0,
+            secondSemester: 0,
+            summer: 0
+        },
+        courseDistribution: [],
+        monthlyEnrollments: []
     });
     
     const [loading, setLoading] = useState(true);
@@ -28,10 +65,20 @@ function Dashboard() {
     const updateRegistrationStatuses = async () => {
         try {
             setLoading(true);
+            
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
             const response = await fetch(`${API_BASE_URL}/students/update-registration-statuses`, {
                 method: 'PUT',
                 headers: { 
-                    'X-Session-Token': getSessionToken(),
+                    'X-Session-Token': sessionToken,
                     'Content-Type': 'application/json'
                 }
             });
@@ -58,15 +105,58 @@ function Dashboard() {
     // Fetch dashboard statistics
     const fetchDashboardStats = async () => {
         try {
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
             const response = await fetch(`${API_BASE_URL}/admin/dashboard/stats`, {
-                headers: { 'X-Session-Token': getSessionToken() }
+                headers: { 'X-Session-Token': sessionToken }
             });
             
             if (response.ok) {
                 const data = await response.json();
                 console.log('🔍 Dashboard data received:', data);
                 console.log('🔍 Year level distribution:', data.yearLevelDistribution);
-                setStats(data);
+                
+                // Ensure all properties have default values to prevent null errors
+                setStats({
+                    totalStudents: data.totalStudents || 0,
+                    totalCourses: data.totalCourses || 0,
+                    totalRequests: data.totalRequests || 0,
+                    pendingRequests: data.pendingRequests || 0,
+                    approvedRequests: data.approvedRequests || 0,
+                    rejectedRequests: data.rejectedRequests || 0,
+                    newStudents: data.newStudents || 0,
+                    activeStudents: data.activeStudents || 0,
+                    inactiveStudents: data.inactiveStudents || 0,
+                    suspendedStudents: data.suspendedStudents || 0,
+                    graduatedStudents: data.graduatedStudents || 0,
+                    totalEnrolledStudents: data.totalEnrolledStudents || 0,
+                    bsitStudents: data.bsitStudents || 0,
+                    genderDistribution: {
+                        male: data.genderDistribution?.male || 0,
+                        female: data.genderDistribution?.female || 0,
+                        other: data.genderDistribution?.other || 0
+                    },
+                    yearLevelDistribution: {
+                        firstYear: data.yearLevelDistribution?.firstYear || 0,
+                        secondYear: data.yearLevelDistribution?.secondYear || 0,
+                        thirdYear: data.yearLevelDistribution?.thirdYear || 0,
+                        fourthYear: data.yearLevelDistribution?.fourthYear || 0
+                    },
+                    semesterDistribution: {
+                        firstSemester: data.semesterDistribution?.firstSemester || 0,
+                        secondSemester: data.semesterDistribution?.secondSemester || 0,
+                        summer: data.semesterDistribution?.summer || 0
+                    },
+                    courseDistribution: data.courseDistribution || [],
+                    monthlyEnrollments: data.monthlyEnrollments || []
+                });
             } else {
                         // If endpoint doesn't exist, use mock data for now
         setStats({
@@ -287,6 +377,20 @@ function Dashboard() {
         );
     }
 
+    // Additional safety check to prevent rendering with incomplete data
+    if (!stats || typeof stats.totalStudents === 'undefined') {
+        return (
+            <div className="dashboard-container">
+                <div className="loading-container">
+                    <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <p className="mt-3">Initializing dashboard data...</p>
+                </div>
+            </div>
+        );
+    }
+
     if (error) {
         return (
             <div className="dashboard-container">
@@ -332,7 +436,7 @@ function Dashboard() {
                                         Total Students
                                     </div>
                                     <div className="h5 mb-0 font-weight-bold text-gray-800">
-                                        {stats.totalStudents.toLocaleString()}
+                                        {stats.totalStudents?.toLocaleString() || '0'}
                                     </div>
                                 </div>
                                 <div className="col-auto">
@@ -352,7 +456,7 @@ function Dashboard() {
                                         Active Students
                                     </div>
                                     <div className="h5 mb-0 font-weight-bold text-gray-800">
-                                        {stats.activeStudents.toLocaleString()}
+                                        {stats.activeStudents?.toLocaleString() || '0'}
                                     </div>
                                 </div>
                                 <div className="col-auto">
@@ -372,7 +476,7 @@ function Dashboard() {
                                         Pending Requests
                                     </div>
                                     <div className="h5 mb-0 font-weight-bold text-gray-800">
-                                        {stats.pendingRequests.toLocaleString()}
+                                        {stats.pendingRequests?.toLocaleString() || '0'}
                                     </div>
                                 </div>
                                 <div className="col-auto">
@@ -392,7 +496,7 @@ function Dashboard() {
                                         Total Courses
                                     </div>
                                     <div className="h5 mb-0 font-weight-bold text-gray-800">
-                                        {stats.totalCourses.toLocaleString()}
+                                        {stats.totalCourses?.toLocaleString() || '0'}
                                     </div>
                                 </div>
                                 <div className="col-auto">
@@ -423,25 +527,25 @@ function Dashboard() {
                                     <div className="row">
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-success">{stats.bsitStudents ? stats.bsitStudents.toLocaleString() : '0'}</div>
+                                                <div className="h4 mb-1 text-success">{stats.bsitStudents?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">Total Students</small>
                                             </div>
                                         </div>
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-info">{stats.genderDistribution ? stats.genderDistribution.male.toLocaleString() : '0'}</div>
+                                                <div className="h4 mb-1 text-info">{stats.genderDistribution?.male?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">Male</small>
                                             </div>
                                         </div>
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-warning">{stats.genderDistribution ? stats.genderDistribution.female.toLocaleString() : '0'}</div>
+                                                <div className="h4 mb-1 text-warning">{stats.genderDistribution?.female?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">Female</small>
                                             </div>
                                         </div>
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-primary">{stats.yearLevelDistribution ? stats.yearLevelDistribution.firstYear.toLocaleString() : '0'}</div>
+                                                <div className="h4 mb-1 text-primary">{stats.yearLevelDistribution?.firstYear?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">1st Year</small>
                                             </div>
                                         </div>
@@ -478,25 +582,25 @@ function Dashboard() {
                                         <div className="row">
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-success">{stats.yearLevelDistribution ? stats.yearLevelDistribution.firstYear.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-success">{stats.yearLevelDistribution?.firstYear?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">1st Year</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-warning">{stats.yearLevelDistribution ? stats.yearLevelDistribution.secondYear.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-warning">{stats.yearLevelDistribution?.secondYear?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">2nd Year</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-info">{stats.yearLevelDistribution ? stats.yearLevelDistribution.thirdYear.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-info">{stats.yearLevelDistribution?.thirdYear?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">3rd Year</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-primary">{stats.yearLevelDistribution ? stats.yearLevelDistribution.fourthYear.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-primary">{stats.yearLevelDistribution?.fourthYear?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">4th Year</small>
                                                 </div>
                                             </div>
@@ -507,25 +611,25 @@ function Dashboard() {
                                         <div className="row">
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-success">{stats.semesterDistribution ? stats.semesterDistribution.firstSemester.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-success">{stats.semesterDistribution?.firstSemester?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">1st Semester</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-warning">{stats.semesterDistribution ? stats.semesterDistribution.secondSemester.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-warning">{stats.semesterDistribution?.secondSemester?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">2nd Semester</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-info">{stats.semesterDistribution ? stats.semesterDistribution.summer.toLocaleString() : '0'}</div>
+                                                    <div className="h5 mb-1 text-info">{stats.semesterDistribution?.summer?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">Summer</small>
                                                 </div>
                                             </div>
                                             <div className="col-6 mb-3">
                                                 <div className="text-center p-3 bg-light rounded">
-                                                    <div className="h5 mb-1 text-secondary">{stats.totalRequests.toLocaleString()}</div>
+                                                    <div className="h5 mb-1 text-secondary">{stats.totalRequests?.toLocaleString() || '0'}</div>
                                                     <small className="text-muted">Total Requests</small>
                                                 </div>
                                             </div>

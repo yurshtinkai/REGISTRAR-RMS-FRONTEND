@@ -25,6 +25,11 @@ function StudentDetailView({ enrolledStudents }) {
   const userRole = localStorage.getItem('userRole');
   const [requestToPrint, setRequestToPrint] = useState(null);
   const componentRef = useRef();
+
+  const [balance, setBalance] = useState(0);
+  const [isBalanceModalOpen, setBalanceModalOpen] = useState(false);
+  const [newBalance, setNewBalance] = useState('');
+  const [updatingBalance, setUpdatingBalance] = useState(false);
   
   // Requirements state
   const [requirements, setRequirements] = useState({
@@ -163,6 +168,21 @@ function StudentDetailView({ enrolledStudents }) {
         } finally {
           setLoadingHistory(false);
         }
+
+        if (enrolledStudent) {
+          try {
+            const balanceResponse = await fetch(`${API_BASE_URL}/accounting/${enrolledStudent.id}/balance`, {
+                headers: { 'X-Session-Token': getSessionToken() }
+            });
+            if (balanceResponse.ok) {
+                const balanceData = await balanceResponse.json();
+                setBalance(balanceData.tuitionBalance);
+                setNewBalance(balanceData.tuitionBalance.toString()); // Pre-fill modal input
+            }
+          } catch (err) {
+            console.error("Could not fetch student balance:", err);
+          }
+        }
         // --- END: Fetch announcement history ---
       } catch (error) {
         console.error('Error fetching student details:', error);
@@ -264,6 +284,36 @@ function StudentDetailView({ enrolledStudents }) {
         return 'bg-danger';
       default:
         return 'bg-secondary';
+    }
+  };
+
+  const handleUpdateBalance = async () => {
+    if (!student || newBalance === '') return;
+    setUpdatingBalance(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/accounting/${student.id}/balance`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': getSessionToken(),
+        },
+        body: JSON.stringify({ newBalance: parseFloat(newBalance) })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setBalance(result.updatedBalance);
+        alert('Balance updated successfully!');
+        setBalanceModalOpen(false);
+      } else {
+        const error = await response.json();
+        alert(`Failed to update balance: ${error.message}`);
+      }
+    } catch (err) {
+      alert('An error occurred while updating the balance.');
+      console.error(err);
+    } finally {
+      setUpdatingBalance(false);
     }
   };
 
@@ -556,6 +606,65 @@ function StudentDetailView({ enrolledStudents }) {
           </div>
         </div>
       </div>
+
+      {(userRole === 'accounting') && (
+        <div className="card shadow-sm mb-4">
+          <div className="card-header bg-success text-white">
+            <h5 className="mb-0"><i className="fas fa-money-bill-wave me-2"></i>Accounting Details</h5>
+          </div>
+          <div className="card-body d-flex justify-content-between align-items-center">
+            <div>
+              <h6 className="card-title mb-1">Current Balance:</h6>
+              <p className="card-text fs-4 fw-bold mb-0">₱ {parseFloat(balance).toFixed(2)}</p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setBalanceModalOpen(true)}>
+              <i className="fas fa-edit me-2"></i>Update Balance
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isBalanceModalOpen && (
+        <>
+          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Update Student Balance</h5>
+                  <button type="button" className="btn-close" onClick={() => setBalanceModalOpen(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <p>Enter the new outstanding balance for {student.firstName} {student.lastName}.</p>
+                  <div className="mb-3">
+                    <label htmlFor="newBalanceAmount" className="form-label">New Balance Amount</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      id="newBalanceAmount"
+                      value={newBalance}
+                      onChange={(e) => setNewBalance(e.target.value)}
+                      placeholder="0.00"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setBalanceModalOpen(false)}>Cancel</button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleUpdateBalance}
+                    disabled={updatingBalance}
+                  >
+                    {updatingBalance ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="modal-backdrop fade show"></div>
+        </>
+      )}
 
       {(userRole === 'admin') && (
       <div className="row">

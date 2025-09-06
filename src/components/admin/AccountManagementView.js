@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function AccountManagementView() {
     const [accounts, setAccounts] = useState([]);
@@ -18,7 +19,13 @@ function AccountManagementView() {
             setDebugInfo({});
             
             try {
-                const sessionToken = getSessionToken();
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    throw new Error('Session expired. Please login again.');
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 console.log('Session Token:', sessionToken ? 'Exists' : 'Missing');
                 
                 if (!sessionToken) {

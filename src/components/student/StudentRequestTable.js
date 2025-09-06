@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function StudentRequestTable({ refresh }) {
     const [requests, setRequests] = useState([]);
@@ -7,7 +8,15 @@ function StudentRequestTable({ refresh }) {
 
     const fetchRequests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'X-Session-Token': getSessionToken() } });
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                console.error('Session expired. Please login again.');
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
+            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'X-Session-Token': sessionToken } });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to fetch');
             setRequests(data);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 // The generateDocumentContent function remains the same and is omitted for brevity...
 const generateDocumentContent = (request) => {
@@ -307,7 +308,7 @@ function DocumentApprovalForm() {
             setLoading(true);
             try {
                 // --- FIX: Changed 'Authorization' header to 'X-Session-Token' ---
-                const response = await fetch(`${API_BASE_URL}/requests/${requestId}`, { headers: { 'X-Session-Token': getSessionToken() } });
+                const response = await fetch(`${API_BASE_URL}/requests/${requestId}`, { headers: { 'X-Session-Token': sessionManager.getSessionToken() } });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Failed to fetch');
                 setRequest(data);
@@ -335,7 +336,7 @@ function DocumentApprovalForm() {
                 method: 'PATCH', 
                 headers: { 
                     'Content-Type': 'application/json', 
-                    'X-Session-Token': getSessionToken() 
+                    'X-Session-Token': sessionManager.getSessionToken() 
                 }, 
                 body: JSON.stringify({ status: 'ready for pick-up', notes: 'Document is ready.' }) 
             });

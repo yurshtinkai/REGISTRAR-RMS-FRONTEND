@@ -5,6 +5,7 @@ import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
 import { getStudentProfileImage } from './utils/cleanupProfileImages';
+import sessionManager from './utils/sessionManager';
 
 // Import components
 import Login from './components/auth/Login';
@@ -43,6 +44,7 @@ import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
 import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
+import BillingPage from './components/student/BillingPage'; 
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
   <div className="admin-layout">
@@ -64,12 +66,26 @@ function App() {
 
   const navigate = useNavigate();
 
+  // Initialize session manager on app start
+  useEffect(() => {
+    sessionManager.init();
+  }, []);
+
   // Function to fetch students from backend
   const fetchStudents = async () => {
     try {
       console.log('Fetching students from backend...'); // Debug log
       console.log('API_BASE_URL:', API_BASE_URL); // Debug log
-      console.log('Session Token:', getSessionToken() ? 'Session token exists' : 'No session token'); // Debug log
+      
+      // Validate and refresh session first
+      const sessionValid = await sessionManager.validateAndRefreshSession();
+      if (!sessionValid) {
+        console.error('Session expired. Please login again.');
+        return;
+      }
+      
+      const sessionToken = sessionManager.getSessionToken();
+      console.log('Session Token:', sessionToken ? 'Session token exists' : 'No session token'); // Debug log
       
       // Use /api/accounts for admin users to get comprehensive student data
       const endpoint = userRole === 'admin' ? '/accounts' : '/students';
@@ -77,7 +93,7 @@ function App() {
       
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
-          'X-Session-Token': getSessionToken(),
+          'X-Session-Token': sessionToken,
           'Content-Type': 'application/json'
         }
       });
@@ -284,6 +300,12 @@ function App() {
                   onClick={() => navigate('/student/my-request')}
                 >My Request</button>
               </li>
+              <li className="nav-item">
+                <button
+                  className={`student-navbar-btn${window.location.pathname === '/student/billing' ? ' active' : ''}`}
+                  onClick={() => navigate('/student/billing')}
+                >Billing</button>
+              </li>
             </ul>
             <div className="ms-auto d-flex align-items-center">
               
@@ -370,6 +392,7 @@ function App() {
                      <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
            <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
+           <Route path="/student/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
                       <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
                       <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />

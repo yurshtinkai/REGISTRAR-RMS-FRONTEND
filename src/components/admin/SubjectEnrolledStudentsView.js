@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function SubjectEnrolledStudentsView() {
     const { scheduleId } = useParams();
@@ -19,11 +20,21 @@ function SubjectEnrolledStudentsView() {
 
     const fetchScheduleDetails = async () => {
         try {
-            const sessionToken = getSessionToken();
-            if (!sessionToken) {
-                setError('No session token found. Please login again.');
-                return;
-            }
+            // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setError('Session expired. Please login again.');
+                    setLoading(false);
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
+                
+                if (!sessionToken) {
+                    setError('No session token found. Please login again.');
+                    setLoading(false);
+                    return;
+                }
 
             const response = await fetch(`${API_BASE_URL}/schedules/admin/all`, {
                 headers: {
@@ -65,11 +76,21 @@ function SubjectEnrolledStudentsView() {
 
     const fetchEnrolledStudents = async () => {
         try {
-            const sessionToken = getSessionToken();
-            if (!sessionToken) {
-                setError('No session token found. Please login again.');
-                return;
-            }
+            // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setError('Session expired. Please login again.');
+                    setLoading(false);
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
+                
+                if (!sessionToken) {
+                    setError('No session token found. Please login again.');
+                    setLoading(false);
+                    return;
+                }
 
             const response = await fetch(`${API_BASE_URL}/schedules/admin/enrolled-students/${scheduleId}`, {
                 headers: {
