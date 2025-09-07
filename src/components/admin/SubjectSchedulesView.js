@@ -280,9 +280,9 @@ function SubjectSchedulesView() {
                                         </td>
                                         <td>
                                             <Link
-                                                to={`/admin/manage/subject-schedules/${schedule.id}`}
+                                                to={`/admin/manage/subject-schedules/${schedule.id}/enrolled-students`}
                                                 className="btn btn-sm btn-outline-primary"
-                                                title="View Details"
+                                                title="View Enrolled Students"
                                                 onClick={handleViewClick}
                                             >
                                                 <i className="fas fa-eye"></i>

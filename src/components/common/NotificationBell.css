@@ -6,15 +6,20 @@
 .notification-badge {
   position: absolute;
   top: 2px;
-  right: 16px;
+  right: 26px;
   transform: translate(50%, -50%);
   font-size: 0.7rem;
   font-weight: bold;
-  padding: 3px 6px;
-  border-radius: 4px;
-  min-width: 20px;
+  padding: 0; /* Remove padding for perfect circle */
+  border-radius: 70%; /* Make it a perfect circle */
+  min-width: 20px; /* Set equal width and height for circle */
+  width: 19px; /* Fixed width for circle */
+  height: 20px; /* Fixed height for circle */
   text-align: center;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* src/components/common/NotificationBell.css */

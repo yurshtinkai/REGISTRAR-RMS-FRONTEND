@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import StudentLogin from './StudentLogin';
+import React, { useState} from 'react';
+import UnifiedLogin from './UnifiedLogin';
 import StudentRegistration from './StudentRegistration';
-import AdminLogin from './AdminLogin';
-import AccountingLogin from './AccountingLogin';
 import { useFooter } from '../../contexts/FooterContext';
 
 function Login({ onLoginSuccess }) {
-  const [view, setView] = useState('student'); // 'student', 'register', 'admin', 'accounting'
+  const [view, setView] = useState('login'); // 'login', 'register'
   const [error, setError] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { footerYear } = useFooter();
 
   const handleLoginSuccess = (result) => {
@@ -29,30 +28,50 @@ function Login({ onLoginSuccess }) {
 
   const handleRegistrationSuccess = () => {
     // After successful registration, switch to login
-    setView('student');
+    setView('login');
     setError('');
     // Show success message
     alert('Registration successful! You can now login with your School ID and password.');
   };
 
+  const switchToRegister = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setView('register');
+      setIsTransitioning(false);
+    }, 150);
+  };
+
+  const switchToLogin = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setView('login');
+      setIsTransitioning(false);
+    }, 150);
+  };
+
   const renderCurrentView = () => {
+    const formClass = `form-view ${isTransitioning ? 'fade-out' : 'fade-in'}`;
+    
     switch (view) {
-      case 'admin':
-        return <AdminLogin onLoginSuccess={handleLoginSuccess} onSwitchToStudent={() => setView('student')} />;
-      case 'accounting':
-        return <AccountingLogin onLoginSuccess={handleLoginSuccess} onSwitchToStudent={() => setView('student')} />;
       case 'register':
-        return <StudentRegistration onRegistrationSuccess={handleRegistrationSuccess} onSwitchToLogin={() => setView('student')} />;
-      case 'student':
-      default:
-        // FIX: Pass the required props to StudentLogin
         return (
-          <StudentLogin 
-            onLoginSuccess={handleLoginSuccess} 
-            onSwitchToRegister={() => setView('register')}
-            onSwitchToAdmin={() => setView('admin')}
-            onSwitchToAccounting={() => setView('accounting')}
-          />
+          <div className={formClass}>
+            <StudentRegistration 
+              onRegistrationSuccess={handleRegistrationSuccess} 
+              onSwitchToLogin={switchToLogin} 
+            />
+          </div>
+        );
+      case 'login':
+      default:
+        return (
+          <div className={formClass}>
+            <UnifiedLogin 
+              onLoginSuccess={handleLoginSuccess} 
+              onSwitchToRegister={switchToRegister}
+            />
+          </div>
         );
     }
   };
@@ -73,12 +92,6 @@ function Login({ onLoginSuccess }) {
                 {error}
               </div>
             )}
-
-            
-            {/* Sample Accounts Info */}
-            <div className="text-center mt-3 text-white fs-6">
-              <small>Sample Accounts: Student (2022-00037/password) | Admin (A001/adminpass) | Accounting (ACC01/accpass)</small>
-            </div>
 
             <footer className="text-center mt-4 text-muted">
             © {footerYear} - Online Records Management System

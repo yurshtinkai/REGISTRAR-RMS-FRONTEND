@@ -34,11 +34,25 @@ footer {
   border: none;
   border-radius: 1.25rem;
   min-height: 320px; /* Adjust as needed for your design */
-  background-color: #f0f2f5;
+  background-color: transparent;
   color: #fff;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  position: relative;
+}
+
+/* Form switching animations */
+.form-view {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.form-view.fade-in {
+  opacity: 1;
+}
+
+.form-view.fade-out {
+  opacity: 0;
 }
 /* Custom outline and hover for login button (orange) */
 .btn-outline-orange {
@@ -856,6 +870,9 @@ footer {
 
 .approval-form-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+.header-notification-profile {
+  gap: 1rem; /* Adjust this value to control the gap between notification bell and profile picture */
 }
 
 
