@@ -541,45 +541,59 @@ function StudentDetailView({ enrolledStudents }) {
   };
 
   const handleConfirmRequest = async (requestData) => {
-    // Create a new request object with default values
-    const newRequest = {
-      id: Date.now(), // Temporary ID for frontend
-      documentType: requestData.documentType,
-      schoolYear: requestData.schoolYear,
-      semester: requestData.semester,
-      amount: requestData.amount,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    // Optimistically add to table
-    setDocumentRequests(prev => [...prev, newRequest]);
-
-    // Send to backend
     try {
-      const response = await fetch(`${API_BASE_URL}/requests`, {
+      // First create the student's request
+      const createResponse = await fetch(`${API_BASE_URL}/requests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Session-Token': getSessionToken(),
         },
         body: JSON.stringify({
-          ...requestData,
           studentId: student.id,
+          documentType: requestData.documentType,
+          purpose: `${requestData.documentType} for ${requestData.schoolYear} ${requestData.semester}`,
         }),
       });
-      if (response.ok) {
-        const savedRequest = await response.json();
-        // Replace the temporary request with the one from backend (if needed)
-        setDocumentRequests(prev =>
-          prev.map(r => r.id === newRequest.id ? savedRequest : r)
-        );
-        alert('Request submitted successfully!');
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to create request');
+      }
+
+      const createdRequest = await createResponse.json();
+
+      // Then request the document from accounting
+      const accountingResponse = await fetch(`${API_BASE_URL}/requests/${createdRequest.id}/request-document`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': getSessionToken(),
+        },
+        body: JSON.stringify({
+          amount: requestData.amount,
+        }),
+      });
+
+      if (accountingResponse.ok) {
+        // Update the local state
+        const updatedRequest = {
+          id: createdRequest.id,
+          documentType: requestData.documentType,
+          schoolYear: requestData.schoolYear,
+          semester: requestData.semester,
+          amount: requestData.amount,
+          status: 'payment_required',
+          createdAt: new Date().toISOString(),
+        };
+        
+        setDocumentRequests(prev => [...prev, updatedRequest]);
+        alert('Document request sent to accounting for payment processing!');
       } else {
-        alert('Failed to submit request.');
+        throw new Error('Failed to request document from accounting');
       }
     } catch (error) {
-      alert('Error submitting request.');
+      console.error('Error processing request:', error);
+      alert('Error processing request: ' + error.message);
     }
   };
 
