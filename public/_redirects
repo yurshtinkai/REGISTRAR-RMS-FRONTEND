@@ -1,8 +1,8 @@
-# SPA routing for React Router
+# SPA routing for React Router - Render static site configuration
 /*    /index.html   200
 
-# API routes (if any) - these should be handled by your backend
-/api/*    https://rms-back-bxkx.onrender.com/api/:splat    200
+# Fallback for any 404 errors
+/404    /index.html   200
 
-# Static assets
-/static/*    /static/:splat    200
+# API routes should go to backend
+/api/*    https://rms-back-bxkx.onrender.com/api/:splat    200
