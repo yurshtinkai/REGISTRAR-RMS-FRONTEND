@@ -46,7 +46,6 @@ import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 import BillingPage from './components/student/BillingPage'; 
 import HeaderSettingsView from "./components/admin/HeaderSettingsView";
-import EmailTestView from './components/admin/EmailTestView';
 
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
@@ -326,7 +325,7 @@ function App() {
             </div>
             {/* Right side: bell and profile, hidden when hamburger is open */}
             {!isHamburgerOpen && (
-              <div className="ms-auto d-flex align-items-center header-notification-profile">
+              <div className="ms-auto d-flex align-items-center">
                 {/* --- Add the NotificationBell here --- */}
                 <NotificationBell />
                 {/* Profile Dropdown */}
@@ -452,7 +451,6 @@ function App() {
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />
             <Route path="manage/encode-enrollments" element={<EncodeEnrollmentView onEncodeStudent={handleEncodeStudent} />} />
-            <Route path="email-test" element={<EmailTestView />} />
 
           </Route>
 

@@ -871,9 +871,9 @@ footer {
 .approval-form-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
-.header-notification-profile {
-  gap: 1rem; /* Adjust this value to control the gap between notification bell and profile picture */
-}
+/* .header-notification-profile {
+  gap: 1rem; 
+} adjust gap between number and nofication bell*/
 
 
 
