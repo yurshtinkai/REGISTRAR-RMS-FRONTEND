@@ -7,6 +7,7 @@ import NewRequestModal from './NewRequestModal';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import { getStudentAvatar } from '../../utils/avatarUtils';
 import GradeSlipContent from './GradeSlipContent'; // Make sure this file exists and is exported
+import ActivityLogs from './ActivityLogs';
 
 function StudentDetailView({ enrolledStudents }) {
   const { idNo } = useParams();
@@ -1035,6 +1036,16 @@ function StudentDetailView({ enrolledStudents }) {
       </div>
     </div>
   </div>
+
+  {/* Activity Logs Section */}
+  {student && (
+    <div className="mb-4">
+      <ActivityLogs 
+        userId={student.id} 
+        studentName={`${details.firstName} ${details.lastName}`} 
+      />
+    </div>
+  )}
 
   <div className="card shadow-sm border-0">
             <div className="card-header bg-white d-flex justify-content-between align-items-center">

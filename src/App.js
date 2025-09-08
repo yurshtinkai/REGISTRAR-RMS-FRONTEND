@@ -42,6 +42,7 @@ import EnrollmentStatusView from './components/student/EnrollmentStatusView';
 import SubjectScheduleView from './components/student/SubjectScheduleView';
 import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
 import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
+import SettingsPage from './components/admin/SettingsPage';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 import BillingPage from './components/student/BillingPage'; 
@@ -429,6 +430,7 @@ function App() {
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
             <Route path="manage/subject-schedules/:scheduleId/enrolled-students" element={<SubjectEnrolledStudentsView />} />
             <Route path="accounts" element={<AccountManagementView />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />
             <Route path="manage/view-grades" element={<ViewGradesView />} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import sessionManager from '../../utils/sessionManager';
 import './UnifiedLogin.css';
@@ -10,6 +10,32 @@ function UnifiedLogin({ onLoginSuccess, onSwitchToRegister }) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [loginTitle, setLoginTitle] = useState('🔐 Welcome Back');
+    const [loginSubtitle, setLoginSubtitle] = useState('Sign in to your account with your ID and password');
+
+    // Fetch login settings on component mount
+    useEffect(() => {
+        const fetchLoginSettings = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings?category=ui`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const settings = data.data || [];
+                    
+                    const titleSetting = settings.find(s => s.key === 'login_title');
+                    const subtitleSetting = settings.find(s => s.key === 'login_subtitle');
+                    
+                    if (titleSetting) setLoginTitle(titleSetting.value);
+                    if (subtitleSetting) setLoginSubtitle(subtitleSetting.value);
+                }
+            } catch (error) {
+                console.error('Error fetching login settings:', error);
+                // Keep default values if fetch fails
+            }
+        };
+
+        fetchLoginSettings();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -91,8 +117,8 @@ function UnifiedLogin({ onLoginSuccess, onSwitchToRegister }) {
     return (
         <div className="unified-login-container">
             <div className="login-header">
-                <h2>🔐 Welcome Back</h2>
-                <p>Sign in to your account with your ID and password</p>
+                <h2>{loginTitle}</h2>
+                <p>{loginSubtitle}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">

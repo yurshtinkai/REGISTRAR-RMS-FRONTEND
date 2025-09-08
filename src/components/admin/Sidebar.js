@@ -112,7 +112,8 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             { name: 'Encode Enrollments', path: '/admin/manage/encode-enrollments' }
           ]
         },
-        { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' }
+        { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' },
+        { name: 'Settings', path: '/admin/settings', icon: 'fa-cog' }
     ];
 
     // Function to handle photo preview
