@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
-import { getStudentProfileImage } from './utils/cleanupProfileImages';
+// import { getStudentProfileImage } from './utils/cleanupProfileImages';
 import { FooterProvider } from './contexts/FooterContext';
 
 // Import components
@@ -36,7 +36,7 @@ import SubjectEnrolledStudentsView from './components/admin/SubjectEnrolledStude
 import AccountManagementView from './components/admin/AccountManagementView';
 import NotificationBell from './components/common/NotificationBell'; 
 import StudentProfile  from './components/student/StudentProfile';
-import StudentRegistrationForm from './components/student/StudentRegistrationForm';
+// import StudentRegistrationForm from './components/student/StudentRegistrationForm';
 import EditStudentDetailView from './components/admin/EditStudentDetailView';
 import EnrollmentStatusView from './components/student/EnrollmentStatusView';
 import SubjectScheduleView from './components/student/SubjectScheduleView';

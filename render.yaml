@@ -1,18 +1,10 @@
 services:
   - type: web
-    name: rms-frontend
+    name: rms-front
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./build
-    envVars:
-      - key: REACT_APP_API_URL
-        value: https://rms-back-bxkx.onrender.com
-      - key: REACT_APP_ENVIRONMENT
-        value: production
-      - key: REACT_APP_STUDENT_LOGIN_HEADER
-        value: "🎓 Student Login"
-    
     routes:
       - type: rewrite
-        source: "/*"
-        destination: "/index.html"
+        source: /*
+        destination: /index.html
