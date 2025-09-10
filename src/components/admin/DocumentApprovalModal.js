@@ -24,23 +24,89 @@ const generateDocumentContent = (request) => {
 
     switch (request.documentType.toUpperCase()) {
         
-        case 'GOOD MORAL':
+        case 'GOOD MORAL FOR GRADUATES':
             return `
                 <style>
                     .good-moral-preview { font-family: serif; }
-                    .good-moral-preview .print-container { border: 1px solid #000; padding: 30px; }
-                    .good-moral-preview .header h1 { text-align: center; font-size: 18pt; }
-                    .good-moral-preview .date { text-align: right; margin-top: 40px; }
-                    .good-moral-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; }
-                    .good-moral-preview .signature-block { margin-top: 80px; text-align: right; }
+                    .good-moral-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .good-moral-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .good-moral-preview .date { text-align: right; margin-top: 10px; padding-bottom: 55px; }
+                    .good-moral-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .good-moral-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: center; }
+                    .good-moral-preview .signature-block { margin-top: 80px; text-align: center; padding: 85px; }
                 </style>
                 <div class="good-moral-preview">
                     <div class="print-container">
-                        <div class="header"><h1>CERTIFICATE OF GOOD MORAL CHARACTER</h1></div>
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATE OF GOOD MORAL CHARACTER</div>
                         <p class="date">${today}</p>
-                        <p class="body-text">This is to certify that <b>${studentName}</b>, a student of <b>${studentCourse}</b> for Academic Year ${academicYear}, is of good moral character.</p>
-                        <p class="body-text">This certification is issued upon the request of the student for <b>${request.purpose}</b> purposes only.</p>
-                        <div class="signature-block"><p><b>WENELITO M. LAYSON</b></p><p>School Registrar</p></div>
+                        <p class="body-text">THIS IS TO CERTIFY THAT <b>${studentName}</b>, was graduate of the degree of <b>${studentCourse}</b> on "Date Here" with Special
+                        Order No. 50-5140101-0135 s. 2025 issued by the Commission on Higher Education on ${today}</p>
+
+                        <p class="body-text1">During his/her stay in Benedicto College, he/she did not commit any infraction against the school's
+                        rules and regulations nor was he/she involved in any immoral illegal activity that would mar his/her reputation as a person.</p>
+
+                        <p class="body-text1">This certification is issued upon the request of the above mentioned graduate for <b>${request.purpose}</b> purposes only.</p>
+                        <div class="signature-block"><p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p><p>School Registrar</p></div>
+                    </div>
+                </div>
+            `;
+    case 'GOOD MORAL FOR NON-GRADUATES':
+            return `
+                <style>
+                    .good-moral-preview { font-family: serif; }
+                    .good-moral-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .good-moral-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .good-moral-preview .date { text-align: right; margin-top: 10px; padding-bottom: 55px; }
+                    .good-moral-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .good-moral-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: center; }
+                    .good-moral-preview .signature-block { margin-top: 80px; text-align: center; padding: 85px; }
+                </style>
+                <div class="good-moral-preview">
+                    <div class="print-container">
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATE OF GOOD MORAL CHARACTER</div>
+                        <p class="date">${today}</p>
+                        <p class="body-text">THIS IS TO CERTIFY THAT <b>${studentName}</b>, was enrolled in the <b>${studentCourse}</b> during the
+                        first semester of School Year Here</p>
+
+                        <p class="body-text1">During his/her stay in Benedicto College, he/she did not commit any infraction against the school's
+                        rules and regulations nor was he/she involved in any immoral illegal activity that would mar his/her reputation as a person.</p>
+
+                        <p class="body-text1">This certification is issued upon the request of the above mentioned graduate for <b>${request.purpose}</b> purposes only.</p>
+                        <div class="signature-block"><p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p><p>School Registrar</p></div>
                     </div>
                 </div>
             `;
@@ -91,6 +157,48 @@ const generateDocumentContent = (request) => {
                             <tbody>${currentSemesterGrades.subjects.map(sub => `<tr><td>${sub.code}</td><td>${sub.desc}</td><td class="text-center">${sub.units}</td><td class="text-center">${sub.grade}</td></tr>`).join('')}</tbody>
                             <tfoot><tr><td colspan="2" class="text-right"><strong>TOTAL UNITS:</strong></td><td class="text-center"><strong>${totalUnits}</strong></td><td></td></tr><tr><td colspan="2" class="text-right"><strong>WEIGHTED AVERAGE:</strong></td><td colspan="2" class="text-center"><strong>${weightedAverage}</strong></td></tr></tfoot>
                         </table>
+                    </div>
+                </div>
+            `;
+        case 'GWA CERTIFICATE':
+            return `
+                <style>
+                    .gwaCert-preview { font-family: serif; }
+                    .gwaCert-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .gwaCert-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .gwaCert-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .gwaCert-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .gwaCert-preview .signature-block { margin-top: 80px; text-align: center; padding: 85px; }
+                </style>
+                <div class="gwaCert-preview">
+                    <div class="print-container">
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATION</div>
+                        
+                        <p class="body-text">This is to certify that according to the records available in this office, <b>${studentName}</b>, was conferred the degree <b>${studentCourse}</b> 
+                        during the graduation ceremony help on "INSERT DATE HERE" with Special Order No. 50-5140101-0135 s. 2025 issued by the Commission on Higher Education on ${today}
+                        at the Benedicto College, Inc., Mandaue City, Cebu. This is to certify further that she received a <b>General Weighted Average</b> of <b>"Insert Grade Here"</b></p>
+
+                        <p class="body-text1">This certification is issued upon the request of the above mentioned graduate for <b>${request.purpose}</b> purposes only.</p>
+
+                        <p class="body-text1">Issued on the "INSERT DATE HERE", at Mandaue City,Cebu.</p>
+                        <div class="signature-block"><p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p><p>School Registrar</p></div>
                     </div>
                 </div>
             `;
@@ -281,13 +389,158 @@ const generateDocumentContent = (request) => {
                 </div>
             `;
         
-        case 'CERTIFICATION':
-            const certificationContent = `<div style="border:1px solid #000; padding:40px;"><h2 style="text-align:center;">CERTIFICATION</h2><p style="margin-top:40px;">This is to certify that <strong>${studentName.toUpperCase()}</strong>, a student of the <strong>${studentCourse}</strong> program, has met the necessary qualifications as required.</p><p style="margin-top:20px;">This certification is issued upon the request of the student for the purpose of <strong>${request.purpose}</strong>.</p></div>`;
-            return `<div style="font-family:serif;">${certificationContent}</div>`
+        case 'CERTIFICATE OF ENROLLMENT':
+            return `
+            <style>
+                    .certificateofEnrollment-preview { font-family: serif; }
+                    .certificateofEnrollment-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .certificateofEnrollment-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .certificateofEnrollment-preview .date { text-align: right; margin-top: 10px; padding-bottom: 55px; }
+                    .certificateofEnrollment-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .certificateofEnrollment-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: center; }
+                    .certificateofEnrollment-preview .signature-block { margin-top: 80px; text-align: right; padding: 85px; }
+                </style>
+                <div class="certificateofEnrollment-preview">
+                    <div class="print-container">
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATION</div>
+                        
+                        <p class="body-text">This is to certify that according to our records <b>${studentName}</b>, is officially enrolled as a "Year lvl here" in the <b>${studentCourse}</b> 
+                        program of Benedicto College Inc. this 1st Semester of School Year 2025-2026.</p>
+
+
+                        <p class="body-text1">This certification is issued upon the request of the above mentioned graduate for <b>${request.purpose}</b> purposes only.</p>
+
+                        <p class="body-text1">Issued this 3rd day of September, 2025 at Mandaue City, Cebu, Philippines.</p>
+                        <div class="signature-block">
+                            <div style="display:inline-block;text-align:center;">
+                                <p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p>
+                                <p style="margin:0;text-align:center;">School Registrar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+
+        case 'CERTIFICATE OF GRADUATION':
+            return `
+            <style>
+                    .certificateofGraduation-preview { font-family: serif; }
+                    .certificateofGraduation-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .certificateofGraduation-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .certificateofGraduation-preview .body-text2 { text-align: left; margin-top: 10px; padding-bottom: 25px; font-size: 14pt;}
+                    .certificateofGraduation-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .certificateofGraduation-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: center; }
+                    .certificateofGraduation-preview .signature-block { margin-top: 80px; text-align: right; padding: 85px; }
+                </style>
+                <div class="certificateofGraduation-preview">
+                    <div class="print-container">
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATION</div>
+                        <p class="body-text2">To Whom it May Concern:</p>
+
+                        <p class="body-text">This is to certify that <b>${studentName}</b> satisfactorily completed the four-year course
+                        in College of Computer Studies at Benedicto College, Inc. leading to the degree of <b>${studentCourse}</b> in accordance 
+                        with the policies and standards of the <b>Commission on Higher Education (CHED)</b>, and the requirements prescribed by
+                        the institution. The degree was conferred on him/her on "Date of Graduation here".</p>
+
+
+                        <p class="body-text1">This certification is issued upon the request for <b>${request.purpose}</b> purposes only.</p>
+
+                        <p class="body-text1">Given this 3rd day of September, 2025 at the Benedicto College, Inc. Mandaue City, Cebu.</p>
+                        <div class="signature-block">
+                            <div style="display:inline-block;text-align:center;">
+                                <p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p>
+                                <p style="margin:0;text-align:center;">School Registrar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
+        case 'CERTIFICATE OF GRADUATION WITH HONORS':
+            return `
+            <style>
+                    .certificateofGraduation-preview { font-family: serif; }
+                    .certificateofGraduation-preview .header-row {
+                        display: flex;
+                        align-items: center;
+                        margin-bottom: 0px;
+                    }
+                    .print-container {
+                    padding:15px;
+                    }
+                    .certificateofGraduation-preview .cert-title {
+                        text-align: center;
+                        font-size: 20pt;
+                        font-weight: bold;
+                        margin: 18px 0 10px 0;
+                        letter-spacing: 2px;
+                        padding: 80px 20px 80px 20px;
+                    }
+                    .certificateofGraduation-preview .body-text { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .certificateofGraduation-preview .body-text1 { line-height: 1.8; text-indent: 40px; margin-top: 20px; font-size: 14pt; text-align: left; }
+                    .certificateofGraduation-preview .signature-block { margin-top: 80px; text-align: right; padding: 85px; }
+                </style>
+                <div class="certificateofGraduation-preview">
+                    <div class="print-container">
+                        <div class="header-row">
+                            <div class="headerlogo"><img src="/bcformat.png" alt="Logo" style="width:100%;height:100%"></div>
+                        </div>
+                        <div class="cert-title">CERTIFICATION</div>
+
+                        <p class="body-text"><b>THIS IS TO CERTIFY</b> that according to the records available in this office,<b>${studentName}</b> was conferred
+                        the degree of <b>${studentCourse}</b> on "INSERT DATE HERE" at the Benedicto College A.S Fortuna St. Mandaue City.</p>
+
+
+                        <p class="body-text1">This is to certify further that she received an academic award for being a "INSERT LATIN HONORS HERE".</p>
+
+                        <p class="body-text1">This certification is issued upon the request of the above mentioned student for whatever legal purposes it may
+                        serve him/her.</p>
+
+                         <p class="body-text1">Issued on the "INSERT DATE HERE", at Mandaue City, Cebu.</p>
+                        <div class="signature-block">
+                            <div style="display:inline-block;text-align:center;">
+                                <p style="border-bottom:1px solid #222;display:inline-block;padding:0 40px 2px 40px;"><b>WENELITO M. LAYSON</b></p>
+                                <p style="margin:0;text-align:center;">School Registrar</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`
 
         default:
             return `<div style="font-family: sans-serif; padding: 20px;"><h1 style="color: #dc3545;">Template Not Available</h1><p>A template for "<strong>${request.documentType}</strong>" has not been created.</p></div>`;
     }
+
 };
 
 function DocumentApprovalForm() {
@@ -300,6 +553,9 @@ function DocumentApprovalForm() {
     const [error, setError] = useState('');
     
     const previewRef = useRef(null);
+    const selectionRef = useRef(null);
+
+    // Removed font/size UI controls per request
 
     useEffect(() => {
         const fetchRequestDetails = async () => {
@@ -326,6 +582,35 @@ function DocumentApprovalForm() {
             }
         }
     }, [isEditing]);
+
+    // Removed local font enumeration per request
+
+    // Preserve selection when toolbar is used
+    const saveSelection = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            selectionRef.current = selection.getRangeAt(0);
+        }
+    };
+
+    const restoreSelection = () => {
+        const selection = window.getSelection();
+        if (selection && selectionRef.current) {
+            selection.removeAllRanges();
+            selection.addRange(selectionRef.current);
+        }
+    };
+
+    const exec = (command, value = null) => {
+        restoreSelection();
+        document.execCommand('styleWithCSS', false, true);
+        document.execCommand(command, false, value);
+        saveSelection();
+        // Sync content state while editing so Save captures latest
+        if (previewRef.current) setContent(previewRef.current.innerHTML);
+    };
+
+    // Removed font/size apply helpers per request
 
     const handleFinalizeAndPrint = async () => {
         if (!request) return;
@@ -366,6 +651,16 @@ function DocumentApprovalForm() {
                     </button>
                 </div>
                 <div className="card-body">
+                    {isEditing && (
+                        <div className="d-flex align-items-center flex-wrap gap-2 mb-3 p-2 border rounded bg-light">
+                            <button type="button" className="btn btn-sm btn-outline-dark me-1 fw-bold" title="Bold" onClick={() => exec('bold')}>B</button>
+                            <button type="button" className="btn btn-sm btn-outline-dark me-1 fst-italic" title="Italic" onClick={() => exec('italic')}>I</button>
+                            <button type="button" className="btn btn-sm btn-outline-dark me-2 text-decoration-underline" title="Underline" onClick={() => exec('underline')}>U</button>
+                            <button type="button" className="btn btn-sm btn-outline-dark me-2" title="Strikethrough" onClick={() => exec('strikeThrough')}>ab</button>
+                            <button type="button" className="btn btn-sm btn-outline-dark me-1" title="Subscript" onClick={() => exec('subscript')}>x<sub>2</sub></button>
+                            <button type="button" className="btn btn-sm btn-outline-dark" title="Superscript" onClick={() => exec('superscript')}>x<sup>2</sup></button>
+                        </div>
+                    )}
                     <div 
                         ref={previewRef}
                         className="border p-4" 
@@ -376,6 +671,8 @@ function DocumentApprovalForm() {
                             outline: isEditing ? '2px solid #0d6efd' : 'none',
                             cursor: isEditing ? 'text' : 'default'
                         }}
+                        onKeyUp={saveSelection}
+                        onMouseUp={saveSelection}
                         suppressContentEditableWarning={true}
                         dangerouslySetInnerHTML={{ __html: content }} 
                     />
