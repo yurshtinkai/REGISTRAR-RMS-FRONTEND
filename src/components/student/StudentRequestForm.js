@@ -140,14 +140,12 @@ function StudentRequestForm() {
                     <option value="" disabled>{isBalanceLoading ? 'Checking balance...' : 'Select...'}</option>
                     <option value="TOR">TOR</option>
                     <option value="GRADE SLIP">GRADE SLIP</option>
-                    <option 
-                        value="GOOD MORAL"
-                        disabled={hasOutstandingBalance}
-                        style={hasOutstandingBalance ? { color: '#6c757d' } : {}}
-                    >
-                        GOOD MORAL {hasOutstandingBalance && "(Unavailable - Outstanding Balance)"}
-                    </option>
-                    <option value="CERTIFICATION">CERTIFICATION</option>
+                    <option value="GWA CERTIFICATE">GWA CERTIFICATE</option>
+                    <option value="GOOD MORAL FOR GRADUATES">GOOD MORAL FOR GRADUATES</option>
+                    <option value="GOOD MORAL FOR NON-GRADUATES">GOOD MORAL FOR NON-GRADUATES</option>
+                    <option value="CERTIFICATE OF ENROLLMENT">CERTIFICATE OF ENROLLMENT</option>
+                    <option value="CERTIFICATE OF GRADUATION">CERTIFICATE OF GRADUATION</option>
+                    <option value="CERTIFICATE OF GRADUATION WITH HONORS">CERTIFICATE OF GRADUATION WITH HONORS</option>
                     <option value="DIPLOMA">DIPLOMA</option>
                   </select>
                   {hasOutstandingBalance && (

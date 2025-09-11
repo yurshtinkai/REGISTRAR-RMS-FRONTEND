@@ -153,7 +153,9 @@ function RequestManagementView({ setDocumentModalData }) {
                                         <td>{req.notes || 'N/A'}</td>
                                         <td>{new Date(req.createdAt).toISOString().split('T')[0]}</td>
                                         <td>{req.filePath && req.filePath.length > 0 ? (
-                                            <button className="btn btn-sm btn-info" onClick={() => handleViewDocument(req)}>View</button>
+                                            <button className="btn btn-sm btn-info" title="View Document" onClick={() => handleViewDocument(req)}>
+                                                <i className="fas fa-eye"></i>
+                                            </button>
                                         ) : 'N/A'}</td>
                                         <td>
                                             <div className="d-flex">
