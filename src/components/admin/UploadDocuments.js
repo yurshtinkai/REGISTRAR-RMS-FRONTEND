@@ -21,6 +21,7 @@ function UploadDocuments() {
   });
   const [uploadProgress, setUploadProgress] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [initialLoad, setInitialLoad] = useState(true);
 
 
   useEffect(() => {
@@ -31,29 +32,50 @@ function UploadDocuments() {
 
   const fetchRequirementsStatus = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/students/${idNo}/requirements`, {
+      console.log('🔍 Fetching requirements status for student:', idNo);
+      console.log('🔍 API URL:', `${API_BASE_URL}/requirements/status/${idNo}`);
+      
+      const response = await fetch(`${API_BASE_URL}/requirements/status/${idNo}`, {
         headers: {
           'X-Session-Token': localStorage.getItem('sessionToken'),
           'Content-Type': 'application/json'
         }
       });
 
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response ok:', response.ok);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 Requirements data received:', data);
+        
         setRequirements(data.requirements || {});
         
         // If we have detailed requirements data, update document details
         if (data.requirementsDetails) {
           setDocumentDetails(data.requirementsDetails);
         }
+        
+        // Clear any previous error messages
+        setMessage({ type: '', text: '' });
+        setInitialLoad(false);
+        console.log('✅ Requirements status fetched successfully');
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error fetching requirements status:', errorData);
+        setMessage({ type: 'error', text: errorData.message || 'Failed to fetch requirements status' });
       }
     } catch (error) {
-      console.error('Error fetching requirements status:', error);
+      console.error('❌ Network error fetching requirements status:', error);
+      setMessage({ type: 'error', text: 'Network error. Please try again.' });
     }
   };
 
   const handleDocumentUpload = async (documentType, file) => {
     if (!file) return;
+
+    console.log('🔍 Starting file upload for:', documentType);
+    console.log('🔍 File details:', { name: file.name, size: file.size, type: file.type });
 
     // Validate file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
@@ -81,9 +103,17 @@ function UploadDocuments() {
     const formData = new FormData();
     formData.append('document', file);
     formData.append('requirementType', documentType);
+    formData.append('studentId', idNo);
+
+    console.log('🔍 FormData prepared:', {
+      document: file.name,
+      requirementType: documentType,
+      studentId: idNo
+    });
 
     try {
-      const response = await fetch(`${API_BASE_URL}/students/${idNo}/upload-document`, {
+      console.log('🔍 Sending upload request to:', `${API_BASE_URL}/requirements/upload`);
+      const response = await fetch(`${API_BASE_URL}/requirements/upload`, {
         method: 'POST',
         headers: {
           'X-Session-Token': localStorage.getItem('sessionToken')
@@ -91,8 +121,13 @@ function UploadDocuments() {
         body: formData
       });
 
+      console.log('🔍 Upload response status:', response.status);
+      console.log('🔍 Upload response ok:', response.ok);
+
       if (response.ok) {
         const result = await response.json();
+        console.log('✅ Upload successful, result:', result);
+        
         setRequirements(prev => ({ ...prev, [documentType]: true }));
         
         // Update document details with the uploaded file info
@@ -108,14 +143,18 @@ function UploadDocuments() {
         
         setMessage({ type: 'success', text: `${documentType} uploaded successfully!` });
         
+        // Refresh requirements status after successful upload
+        await fetchRequirementsStatus();
+        
         // Clear message after 5 seconds
         setTimeout(() => setMessage({ type: '', text: '' }), 5000);
       } else {
         const errorData = await response.json();
+        console.error('❌ Upload failed:', errorData);
         setMessage({ type: 'error', text: errorData.message || 'Upload failed' });
       }
     } catch (error) {
-      console.error('Error uploading document:', error);
+      console.error('❌ Error uploading document:', error);
       setMessage({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setLoading(false);
@@ -258,7 +297,7 @@ function UploadDocuments() {
 
 
         {/* Message Display */}
-        {message.text && (
+        {message.text && !initialLoad && (
           <div className={`alert alert-${message.type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`}>
             {message.text}
             <button 

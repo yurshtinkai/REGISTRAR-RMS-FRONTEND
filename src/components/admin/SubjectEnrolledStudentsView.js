@@ -10,6 +10,30 @@ function SubjectEnrolledStudentsView() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const formatTime = (time) => {
+        if (!time) return 'TBA';
+        
+        // Handle different time formats
+        let timeStr = time.toString();
+        
+        // If it's already in HH:MM AM/PM format, use it directly
+        if (/^\d{1,2}:\d{2}[AP]M$/i.test(timeStr)) {
+            return timeStr;
+        }
+        
+        // If it's in HH:MM format without AM/PM, add AM/PM
+        if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+            const [hours, minutes] = timeStr.split(':');
+            const hour24 = parseInt(hours);
+            const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${minutes}${ampm}`;
+        }
+        
+        // For any other format, return as-is
+        return timeStr;
+    };
+
     useEffect(() => {
         if (scheduleId) {
             fetchScheduleDetails();
@@ -34,28 +58,51 @@ function SubjectEnrolledStudentsView() {
 
             if (response.ok) {
                 const data = await response.json();
-                // Find the specific schedule details
-                let foundSchedule = null;
-                data.forEach(yearGroup => {
-                    yearGroup.subjects.forEach(subject => {
-                        if (subject.hasSchedule) {
-                            subject.schedules.forEach(schedule => {
-                                if (schedule.id == scheduleId) {
-                                    foundSchedule = {
-                                        ...schedule,
-                                        subject: subject.courseCode,
-                                        description: subject.courseDescription,
-                                        units: subject.units,
-                                        courseType: subject.courseType,
-                                        yearLevel: yearGroup.yearLevel,
-                                        semester: yearGroup.semester
-                                    };
-                                }
-                            });
-                        }
+                
+                // Handle new response format with scheduleDetails
+                if (data.scheduleDetails) {
+                    console.log('📅 Using schedule details from API response:', data.scheduleDetails);
+                    setScheduleDetails({
+                        id: data.scheduleDetails.id,
+                        subject: data.scheduleDetails.courseCode,
+                        description: data.scheduleDetails.courseDescription,
+                        units: data.scheduleDetails.units,
+                        courseType: data.scheduleDetails.courseType,
+                        yearLevel: data.scheduleDetails.yearLevel,
+                        semester: data.scheduleDetails.semester,
+                        day: data.scheduleDetails.dayOfWeek,
+                        startTime: data.scheduleDetails.startTime,
+                        endTime: data.scheduleDetails.endTime,
+                        room: data.scheduleDetails.room,
+                        capacity: data.scheduleDetails.maxStudents,
+                        enrolled: data.scheduleDetails.currentEnrolled,
+                        schoolYear: data.scheduleDetails.schoolYear,
+                        instructor: 'TBA'
                     });
-                });
-                setScheduleDetails(foundSchedule);
+                } else {
+                    // Fallback to old format (for backward compatibility)
+                    let foundSchedule = null;
+                    data.forEach(yearGroup => {
+                        yearGroup.subjects.forEach(subject => {
+                            if (subject.hasSchedule) {
+                                subject.schedules.forEach(schedule => {
+                                    if (schedule.id == scheduleId) {
+                                        foundSchedule = {
+                                            ...schedule,
+                                            subject: subject.courseCode,
+                                            description: subject.courseDescription,
+                                            units: subject.units,
+                                            courseType: subject.courseType,
+                                            yearLevel: yearGroup.yearLevel,
+                                            semester: yearGroup.semester
+                                        };
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    setScheduleDetails(foundSchedule);
+                }
             }
         } catch (err) {
             console.error('Error fetching schedule details:', err);
@@ -87,7 +134,15 @@ function SubjectEnrolledStudentsView() {
                 // Handle different response formats from backend
                 let allStudents = [];
                 
-                if (Array.isArray(data)) {
+                if (data.students && Array.isArray(data.students)) {
+                    // New format with students array
+                    console.log('📋 Processing new format with students array');
+                    data.students.forEach(yearGroup => {
+                        if (yearGroup.students && Array.isArray(yearGroup.students)) {
+                            allStudents = [...allStudents, ...yearGroup.students];
+                        }
+                    });
+                } else if (Array.isArray(data)) {
                     // If it's an array, check if it has year groups or direct students
                     if (data.length > 0 && data[0].yearLevel && data[0].students) {
                         // Grouped by year level format
@@ -212,15 +267,7 @@ function SubjectEnrolledStudentsView() {
                                     </div>
                                     <div className="col-6">
                                         <strong>Time:</strong> {scheduleDetails.startTime && scheduleDetails.endTime ? 
-                                            `${new Date(`2000-01-01T${scheduleDetails.startTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })} - ${new Date(`2000-01-01T${scheduleDetails.endTime}`).toLocaleTimeString('en-US', {
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                hour12: true
-                                            })}` : 'TBA'}
+                                            `${formatTime(scheduleDetails.startTime)} - ${formatTime(scheduleDetails.endTime)}` : 'TBA'}
                                     </div>
                                 </div>
                                 <div className="row mt-2">
@@ -281,20 +328,20 @@ function SubjectEnrolledStudentsView() {
                                     {enrolledStudents.map((student, index) => (
                                         <tr key={student.id || index}>
                                             <td>
-                                                <span className="badge bg-secondary">{student.idNumber || 'N/A'}</span>
+                                                {student.idNumber || 'N/A'}
                                             </td>
                                             <td>
                                                 <div><strong>{student.fullName || `${student.lastName || ''}, ${student.firstName || ''}`}</strong></div>
-                                                <small className="text-muted">{student.middleName || 'No middle name'}</small>
+                                                {student.middleName && <small className="text-muted">{student.middleName}</small>}
                                             </td>
                                             <td>
-                                                <span className="badge bg-info">{student.gender || 'N/A'}</span>
+                                                {student.gender || 'N/A'}
                                             </td>
                                             <td>
-                                                <span className="badge bg-primary">{student.yearLevel || 'N/A'}</span>
+                                                {student.yearLevel || 'N/A'}
                                             </td>
                                             <td>
-                                                <span className="badge bg-warning">{student.semester || 'N/A'}</span>
+                                                {student.semester || 'N/A'}
                                             </td>
                                             <td>
                                                 {student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : 'N/A'}

@@ -427,10 +427,10 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="settings" element={<HeaderSettingsView />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
-            <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
+            <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} onStudentUpdated={fetchStudents} />} />
             <Route path="students/:idNo/upload-documents" element={<UploadDocuments />} />
         <Route path="students/:idNo/view-document/:documentType" element={<DocumentViewer />} />
-            <Route path="students/:idNo/edit" element={<EditStudentDetailView />} />
+            <Route path="students/:idNo/edit" element={<EditStudentDetailView onStudentUpdated={fetchStudents} />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"

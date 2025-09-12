@@ -43,6 +43,9 @@ function StudentDetailView({ enrolledStudents }) {
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [announcementHistory, setAnnouncementHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [subjectDetailsModalOpen, setSubjectDetailsModalOpen] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [enrolledSubjectsExpanded, setEnrolledSubjectsExpanded] = useState(true);
   
   // Login history state
   const [loginHistory, setLoginHistory] = useState([]);
@@ -83,6 +86,39 @@ function StudentDetailView({ enrolledStudents }) {
     }
   };
 
+  // Fetch requirements status
+  const fetchRequirementsStatus = async (studentId) => {
+    try {
+      const sessionToken = getSessionToken();
+      if (!sessionToken) {
+        console.error('No session token found');
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/requirements/status/${studentId}`, {
+        headers: {
+          'X-Session-Token': sessionToken,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRequirements(data.requirements || {
+          psa: false,
+          validId: false,
+          form137: false,
+          idPicture: false
+        });
+        console.log('✅ Requirements status fetched:', data.requirements);
+      } else {
+        console.error('Failed to fetch requirements status');
+      }
+    } catch (err) {
+      console.error('Error fetching requirements status:', err);
+    }
+  };
+
   // Fetch student details from backend
   useEffect(() => {
     const fetchStudentDetails = async () => {
@@ -104,6 +140,9 @@ function StudentDetailView({ enrolledStudents }) {
 
         // Fetch login history for this student
         fetchLoginHistory(enrolledStudent.id);
+
+        // Fetch requirements status for this student
+        fetchRequirementsStatus(enrolledStudent.id);
 
         // Fetch user data with profile photo if not already present
         if (!enrolledStudent.profilePhoto) {
@@ -165,6 +204,10 @@ function StudentDetailView({ enrolledStudents }) {
               console.log('📋 Enrolled Subjects Data:', subjectsData);
               // Set the entire subjects data (includes yearLevel, semester, totalUnits, subjects array)
               setEnrolledSubjects(subjectsData);
+              // Automatically set the current semester when data loads
+              if (subjectsData && subjectsData.yearLevel && subjectsData.semester) {
+                  setCurrentSemester('current');
+              }
           } else {
               console.error("Failed to fetch enrolled subjects. Status:", subjectsResponse.status);
           }
@@ -256,7 +299,7 @@ function StudentDetailView({ enrolledStudents }) {
 
   // Requirements summary calculations
   const submittedCount = Object.values(requirements).filter(Boolean).length;
-  const pendingCount = Object.values(requirements).filter(Boolean => !Boolean).length;
+  const pendingCount = 4 - submittedCount; // Total requirements (4) minus submitted
 
   const studentDetails = useMemo(() => {
     if (!student) return null;
@@ -493,6 +536,17 @@ function StudentDetailView({ enrolledStudents }) {
     }));
   };
 
+  // Subject details handling
+  const handleViewSubjectDetails = (subject) => {
+    setSelectedSubject(subject);
+    setSubjectDetailsModalOpen(true);
+  };
+
+  // Toggle enrolled subjects card
+  const toggleEnrolledSubjects = () => {
+    setEnrolledSubjectsExpanded(!enrolledSubjectsExpanded);
+  };
+
 
 
   const refreshAnnouncementHistory = async () => {
@@ -651,7 +705,7 @@ function StudentDetailView({ enrolledStudents }) {
 
       {(userRole === 'accounting') && (
         <div className="card shadow-sm mb-4">
-          <div className="card-header bg-success text-white">
+          <div className="card-header bg-white text-dark">
             <h5 className="mb-0"><i className="fas fa-money-bill-wave me-2"></i>Accounting Details</h5>
           </div>
           <div className="card-body d-flex justify-content-between align-items-center">
@@ -1066,7 +1120,16 @@ function StudentDetailView({ enrolledStudents }) {
 
   <div className="card shadow-sm border-0">
             <div className="card-header bg-white d-flex justify-content-between align-items-center">
-                <h5 className="mb-0">Enrolled Subjects</h5>
+                <div className="d-flex align-items-center">
+                    <h5 className="mb-0 me-3">Enrolled Subjects</h5>
+                    <button 
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={toggleEnrolledSubjects}
+                        title={enrolledSubjectsExpanded ? "Collapse" : "Expand"}
+                    >
+                        <i className={`fas fa-chevron-${enrolledSubjectsExpanded ? 'up' : 'down'}`}></i>
+                    </button>
+                </div>
                 <div className="d-flex align-items-center">
                                          <select 
                          className="form-select form-select-sm me-2" 
@@ -1074,7 +1137,6 @@ function StudentDetailView({ enrolledStudents }) {
                          value={currentSemester}
                          onChange={(e) => setCurrentSemester(e.target.value)}
                      >
-                         <option value="">Select Semester</option>
                          {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 ? (
                              <option value="current">{enrolledSubjects.yearLevel} Year - {enrolledSubjects.semester} Semester</option>
                          ) : (
@@ -1084,12 +1146,13 @@ function StudentDetailView({ enrolledStudents }) {
                                          <button onClick={() => setCurriculumModalOpen(true)} className="btn btn-sm btn-info">View BSIT Prospectus</button>
                 </div>
             </div>
-            <div className="card-body">
+            {enrolledSubjectsExpanded ? (
+            <div className="card-body collapse show">
               <div className="table-responsive">
                 <table className="table table-hover table-sm">
                                      <thead>
                      <tr>
-                       <th>Course Code & Title</th>
+                       <th>Subjects</th>
                        <th className="text-center">Units</th>
                        <th className="text-center">Final Grade</th>
                        <th className="text-center">Status</th>
@@ -1110,14 +1173,19 @@ function StudentDetailView({ enrolledStudents }) {
                            <td className="text-center">{subject.units}</td>
                            <td className="text-center">{subject.finalGrade}</td>
                            <td className="text-center">
-                             <span className={`badge ${subject.isEnrolled ? 'bg-success' : 'bg-secondary'}`}>
+                             <span className="badge bg-primary">
                                {subject.status}
                              </span>
                            </td>
                            <td>
-                                                           <button className="btn btn-sm btn-warning" title="View Course Details">
-                                <i className="fas fa-info-circle"></i>
-                              </button>
+                             <button 
+                               className="btn btn-sm btn-outline-info" 
+                               title="View More Info"
+                               onClick={() => handleViewSubjectDetails(subject)}
+                             >
+                               <i className="fas fa-info-circle me-1"></i>
+                               More Info
+                             </button>
                            </td>
                          </tr>
                        ))
@@ -1144,11 +1212,25 @@ function StudentDetailView({ enrolledStudents }) {
                 </table>
               </div>
             </div>
+            ) : (
+            <div className="card-body text-center text-muted py-3">
+              <i className="fas fa-chevron-down me-2"></i>
+              Click the arrow above to view enrolled subjects
+              {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 && (
+                <div className="mt-2">
+                  <small>
+                    {enrolledSubjects.subjects.length} subject{enrolledSubjects.subjects.length !== 1 ? 's' : ''} enrolled
+                    ({enrolledSubjects.totalUnits} total units)
+                  </small>
+                </div>
+              )}
+            </div>
+            )}
           </div>
 
           {/* Personal Information */}
           <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-info text-white">
+            <div className="card-header bg-white text-dark">
               <h5 className="mb-0">
                 <i className="fas fa-user me-2"></i>
                 Personal Information
@@ -1216,7 +1298,7 @@ function StudentDetailView({ enrolledStudents }) {
 
           {/* Family Background */}
           <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-warning text-dark">
+            <div className="card-header bg-white text-dark">
               <h5 className="mb-0">
                 <i className="fas fa-users me-2"></i>
                 Family Background
@@ -1299,7 +1381,7 @@ function StudentDetailView({ enrolledStudents }) {
 
           {/* Academic Background */}
           <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-success text-white">
+            <div className="card-header bg-white text-dark">
               <h5 className="mb-0">
                 <i className="fas fa-graduation-cap me-2"></i>
                 Academic Background
@@ -1367,7 +1449,7 @@ function StudentDetailView({ enrolledStudents }) {
 
           {/* Academic History */}
           <div className="card shadow-sm border-0 mb-4">
-            <div className="card-header bg-secondary text-white">
+            <div className="card-header bg-white text-dark">
               <h5 className="mb-0">
                 <i className="fas fa-history me-2"></i>
                 Academic History
@@ -1442,7 +1524,7 @@ function StudentDetailView({ enrolledStudents }) {
 
           {/* Login/Logout History Section */}
           <div className="card shadow-sm border-0 mb-4 login-history-section">
-            <div className="card-header bg-secondary text-white">
+            <div className="card-header bg-white text-dark">
               <h5 className="mb-0">
                 <i className="fas fa-sign-in-alt me-2"></i>
                 Login/Logout History
@@ -1501,7 +1583,7 @@ function StudentDetailView({ enrolledStudents }) {
           {/* Additional Academic Information */}
           {(details.ncaeGrade || details.specialization || details.lastCollegeAttended) && (
             <div className="card shadow-sm border-0 mb-4">
-              <div className="card-header bg-dark text-white">
+              <div className="card-header bg-white text-dark">
                 <h5 className="mb-0">
                   <i className="fas fa-info-circle me-2"></i>
                   Additional Academic Information
@@ -1861,6 +1943,119 @@ function StudentDetailView({ enrolledStudents }) {
        <div style={{ display: 'none' }}>
         <GradeSlipContent ref={componentRef} request={requestToPrint} student={student} />
       </div>
+
+      {/* Subject Details Modal */}
+      {subjectDetailsModalOpen && selectedSubject && (
+        <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="fas fa-book me-2"></i>
+                  Subject Details
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => setSubjectDetailsModalOpen(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <div className="row">
+                  <div className="col-md-6">
+                    <h6 className="text-primary">Course Information</h6>
+                    <table className="table table-sm">
+                      <tbody>
+                        <tr>
+                          <td><strong>Course Code:</strong></td>
+                          <td>{selectedSubject.courseCode}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Course Title:</strong></td>
+                          <td>{selectedSubject.courseTitle}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Units:</strong></td>
+                          <td>{selectedSubject.units}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Type:</strong></td>
+                          <td>{selectedSubject.courseType}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Year Level:</strong></td>
+                          <td>{selectedSubject.yearLevel}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Semester:</strong></td>
+                          <td>{selectedSubject.semester}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="col-md-6">
+                    <h6 className="text-primary">Enrollment Information</h6>
+                    <table className="table table-sm">
+                      <tbody>
+                        <tr>
+                          <td><strong>Status:</strong></td>
+                          <td>
+                            <span className="badge bg-primary">{selectedSubject.status}</span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><strong>Final Grade:</strong></td>
+                          <td>{selectedSubject.finalGrade}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Enrollment Date:</strong></td>
+                          <td>
+                            {selectedSubject.enrollmentDate ? 
+                              new Date(selectedSubject.enrollmentDate).toLocaleDateString() : 
+                              'N/A'
+                            }
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                {selectedSubject.schedule && (
+                  <div className="mt-3">
+                    <h6 className="text-primary">Schedule Information</h6>
+                    <table className="table table-sm">
+                      <tbody>
+                        <tr>
+                          <td><strong>Day:</strong></td>
+                          <td>{selectedSubject.schedule.day}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Time:</strong></td>
+                          <td>{selectedSubject.schedule.startTime} - {selectedSubject.schedule.endTime}</td>
+                        </tr>
+                        <tr>
+                          <td><strong>Room:</strong></td>
+                          <td>{selectedSubject.schedule.room}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={() => setSubjectDetailsModalOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
      </div>
    );
  }

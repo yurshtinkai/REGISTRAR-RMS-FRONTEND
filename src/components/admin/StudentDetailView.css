@@ -1,6 +1,15 @@
 .student-detail-view {
-  background-color: #f8f9fa;
+  background-color: white;
   min-height: 100vh;
+}
+
+/* Ensure all sections have white background */
+.student-detail-view .row,
+.student-detail-view .col,
+.student-detail-view .col-lg-4,
+.student-detail-view .col-lg-8,
+.student-detail-view .col-12 {
+  background-color: white;
 }
 
 .student-detail-view .card {
@@ -17,6 +26,45 @@
   border-radius: 12px 12px 0 0 !important;
   border-bottom: none;
   font-weight: 600;
+  background-color: white !important;
+  color: #212529 !important;
+}
+
+/* Ensure all card headers have white background */
+.student-detail-view .card .card-header,
+.student-detail-view .card-header,
+.student-detail-view .card .bg-white,
+.student-detail-view .bg-white,
+.student-detail-view .card .bg-primary,
+.student-detail-view .bg-primary {
+  background-color: white !important;
+  color: #212529 !important;
+}
+
+/* Ensure all containers and cards have white background */
+.student-detail-view .card {
+  background-color: white !important;
+}
+
+.student-detail-view .container,
+.student-detail-view .container-fluid {
+  background-color: white !important;
+}
+
+/* Override any colored headers to be white */
+.student-detail-view .card-header.bg-primary,
+.student-detail-view .card-header.bg-info,
+.student-detail-view .card-header.bg-secondary,
+.student-detail-view .card-header.bg-dark {
+  background-color: white !important;
+  color: #212529 !important;
+}
+
+/* Ensure all header elements have white background */
+.student-detail-view .card .card-header h5,
+.student-detail-view .card .card-header h6,
+.student-detail-view .card .card-header .mb-0 {
+  color: #212529 !important;
 }
 
 .profile-avatar {
@@ -505,7 +553,8 @@
 
 /* Login History Section Styles */
 .login-history-section .card-header {
-  background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+  background: white !important;
+  color: #212529 !important;
 }
 
 .history-table-container {

@@ -49,28 +49,50 @@ function SubjectSchedulesView() {
                 console.log('📅 Admin schedules data received:', data);
                 
                 // Transform the data to match the table structure
+                // Each subject (lecture/lab) will be a separate row based on courseType
                 const transformedSchedules = [];
+                
                 data.forEach(yearGroup => {
                     yearGroup.subjects.forEach(subject => {
-                        if (subject.hasSchedule) {
-                            subject.schedules.forEach(schedule => {
-                                transformedSchedules.push({
-                                    id: schedule.id,
-                                    subject: subject.courseCode,
-                                    description: subject.courseDescription,
-                                    days: schedule.day || 'TBA',
-                                    time: schedule.startTime && schedule.endTime ? 
-                                        `${formatTime(schedule.startTime)} - ${formatTime(schedule.endTime)}` : 'TBA',
-                                    room: schedule.room || 'TBA',
-                                    enrollees: `${schedule.currentEnrollment}/${schedule.maxStudents}`,
-                                    yearLevel: yearGroup.yearLevel,
-                                    semester: yearGroup.semester,
-                                    schoolYear: schedule.schoolYear,
-                                    instructor: schedule.instructor || 'TBA',
-                                    status: schedule.scheduleStatus || 'Open',
-                                    units: subject.units,
-                                    courseType: subject.courseType
-                                });
+                        if (subject.hasSchedule && subject.schedules && subject.schedules.length > 0) {
+                            // Each subject already represents a unique courseType (Lecture/Lab)
+                            // So we create one row per subject
+                            const firstSchedule = subject.schedules[0];
+                            
+                            transformedSchedules.push({
+                                id: firstSchedule.id, // Use actual schedule ID
+                                subject: subject.courseCode,
+                                description: subject.courseDescription,
+                                days: firstSchedule.day || 'TBA',
+                                time: firstSchedule.startTime && firstSchedule.endTime ? 
+                                    `${formatTime(firstSchedule.startTime)} - ${formatTime(firstSchedule.endTime)}` : 'TBA',
+                                room: firstSchedule.room || 'TBA',
+                                enrollees: `${firstSchedule.currentEnrollment || 0}/${firstSchedule.maxStudents || 40}`,
+                                yearLevel: yearGroup.yearLevel,
+                                semester: yearGroup.semester,
+                                schoolYear: firstSchedule.schoolYear || '2025-2026',
+                                instructor: firstSchedule.instructor || 'TBA',
+                                status: firstSchedule.scheduleStatus || 'Open',
+                                units: subject.units,
+                                courseType: subject.courseType
+                            });
+                        } else if (!subject.hasSchedule) {
+                            // If subject has no schedule, show it as TBA
+                            transformedSchedules.push({
+                                id: `no-schedule-${subject.subjectId}`,
+                                subject: subject.courseCode,
+                                description: subject.courseDescription,
+                                days: 'TBA',
+                                time: 'TBA',
+                                room: 'TBA',
+                                enrollees: '0/40',
+                                yearLevel: yearGroup.yearLevel,
+                                semester: yearGroup.semester,
+                                schoolYear: '2025-2026',
+                                instructor: 'TBA',
+                                status: 'No Schedule',
+                                units: subject.units,
+                                courseType: subject.courseType
                             });
                         }
                     });
@@ -92,11 +114,38 @@ function SubjectSchedulesView() {
 
     const formatTime = (time) => {
         if (!time) return 'TBA';
-        return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
+        
+        // Handle different time formats
+        let timeStr = time.toString();
+        
+        // If it's already in HH:MM format, use it directly
+        if (/^\d{1,2}:\d{2}[AP]M$/.test(timeStr)) {
+            return timeStr;
+        }
+        
+        // If it's in HH:MM format without AM/PM, add AM/PM
+        if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+            const [hours, minutes] = timeStr.split(':');
+            const hour24 = parseInt(hours);
+            const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+            const ampm = hour24 >= 12 ? 'PM' : 'AM';
+            return `${hour12}:${minutes}${ampm}`;
+        }
+        
+        // Try to parse as a date and format
+        try {
+            const date = new Date(`2000-01-01T${timeStr}`);
+            if (isNaN(date.getTime())) {
+                return timeStr; // Return original if can't parse
+            }
+            return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch (error) {
+            return timeStr; // Return original if error
+        }
     };
 
     const filteredSchedules = schedules.filter(schedule =>
@@ -113,6 +162,95 @@ function SubjectSchedulesView() {
 
     const handleRefresh = () => {
         fetchSchedules();
+    };
+
+    const handleUpdateEnrollments = async () => {
+        try {
+            setLoading(true);
+            const sessionToken = getSessionToken();
+            
+            if (!sessionToken) {
+                setError('No session token found. Please login again.');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/schedules/admin/update-enrollment-counts`, {
+                method: 'POST',
+                headers: {
+                    'X-Session-Token': sessionToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Enrollment counts updated:', data);
+                // Refresh the schedules to show updated counts
+                await fetchSchedules();
+                alert('Enrollment counts updated successfully!');
+            } else {
+                const errorData = await response.json();
+                setError(`Failed to update enrollment counts: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('❌ Error updating enrollment counts:', error);
+            setError(`Error updating enrollment counts: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleExportAll = () => {
+        // TODO: Implement export functionality
+        alert('Export functionality will be implemented soon!');
+    };
+
+    const handlePrintAll = () => {
+        // TODO: Implement print functionality
+        alert('Print functionality will be implemented soon!');
+    };
+
+    const handleCheckStats = async () => {
+        try {
+            setLoading(true);
+            const sessionToken = getSessionToken();
+            
+            if (!sessionToken) {
+                setError('No session token found. Please login again.');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/schedules/admin/enrollment-stats`, {
+                headers: {
+                    'X-Session-Token': sessionToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📊 Enrollment statistics:', data);
+                
+                // Show stats in an alert for now
+                let statsMessage = `Total Enrollments: ${data.totalEnrollments}\n\n`;
+                statsMessage += `Students with Enrollments: ${data.studentsWithEnrollments.length}\n\n`;
+                statsMessage += `Schedule Details:\n`;
+                data.enrollmentsBySchedule.forEach(schedule => {
+                    const isCorrect = schedule.currentEnrolled == schedule.actualEnrolled;
+                    statsMessage += `- ${schedule.courseCode} (${schedule.courseType}): ${schedule.currentEnrolled}/${schedule.actualEnrolled} ${isCorrect ? '✅' : '❌'}\n`;
+                });
+                
+                alert(statsMessage);
+            } else {
+                const errorData = await response.json();
+                setError(`Failed to get enrollment stats: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('❌ Error getting enrollment stats:', error);
+            setError(`Error getting enrollment stats: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading) {
@@ -161,11 +299,17 @@ function SubjectSchedulesView() {
                         <button className="btn btn-outline-primary me-2" onClick={handleRefresh}>
                             <i className="fas fa-sync-alt me-1"></i> Refresh
                         </button>
-                        <button className="btn btn-outline-primary me-2">
+                        <button className="btn btn-outline-success me-2" onClick={handleUpdateEnrollments} disabled={loading}>
+                            <i className="fas fa-users me-1"></i> Update Enrollments
+                        </button>
+                        <button className="btn btn-outline-primary me-2" onClick={handleExportAll}>
                             <i className="fas fa-file-export me-1"></i> Export All
                         </button>
-                        <button className="btn btn-outline-secondary">
+                        <button className="btn btn-outline-secondary me-2" onClick={handlePrintAll}>
                             <i className="fas fa-print me-1"></i> Print All
+                        </button>
+                        <button className="btn btn-outline-info" onClick={handleCheckStats} disabled={loading}>
+                            <i className="fas fa-chart-bar me-1"></i> Check Stats
                         </button>
                     </div>
                 </div>
@@ -230,7 +374,7 @@ function SubjectSchedulesView() {
 
 
 
-                    <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 500px)', overflowY: 'auto' }}>
+                    <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
                         <table className="table table-hover">
                             <thead className="table-light sticky-top">
                                 <tr>
@@ -253,7 +397,9 @@ function SubjectSchedulesView() {
                                             <div><strong>{schedule.subject}</strong></div>
                                             <small className="text-muted">{schedule.description}</small>
                                             <br />
-                                            <small className="badge bg-secondary">{schedule.courseType}</small>
+                                            <small className={`badge ${schedule.courseType === 'Lecture' ? 'bg-primary' : schedule.courseType === 'Laboratory' ? 'bg-success' : 'bg-secondary'}`}>
+                                                {schedule.courseType}
+                                            </small>
                                         </td>
                                         <td>
                                             <span className="badge bg-primary">{schedule.yearLevel}</span>

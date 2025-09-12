@@ -48,7 +48,7 @@ function StudentRegistrationForm() {
         
         // Academic Information
         yearLevel: '',
-        semester: '1st',
+        semester: '',
         schoolYear: '2025-2026',
         applicationType: 'Freshmen',
         studentType: 'First',
@@ -87,6 +87,10 @@ function StudentRegistrationForm() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [semesters, setSemesters] = useState([]);
+    const [loadingSemesters, setLoadingSemesters] = useState(true);
+    const [curriculum, setCurriculum] = useState(null);
+    const [loadingCurriculum, setLoadingCurriculum] = useState(false);
     
     // Get session token from localStorage
     const sessionToken = localStorage.getItem('sessionToken');
@@ -101,18 +105,113 @@ function StudentRegistrationForm() {
         { value: '4th', label: '4th Year' }
     ];
 
-    const semesters = [
-        { value: '1st', label: '1st Semester' },
-        { value: '2nd', label: '2nd Semester' },
-        { value: 'Summer', label: 'Summer' }
-    ];
+    // Fetch semesters from API
+    useEffect(() => {
+        const fetchSemesters = async () => {
+            try {
+                setLoadingSemesters(true);
+                const response = await fetch(`${API_BASE_URL}/semesters`, {
+                    headers: {
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const semestersData = await response.json();
+                    console.log('📅 Fetched semesters:', semestersData);
+                    
+                    // Transform the data to match the expected format
+                    const transformedSemesters = semestersData.map(semester => ({
+                        value: semester.code.toLowerCase(),
+                        label: semester.name,
+                        id: semester.id,
+                        code: semester.code,
+                        name: semester.name,
+                        description: semester.description
+                    }));
+                    
+                    setSemesters(transformedSemesters);
+                } else {
+                    console.error('Failed to fetch semesters:', response.status);
+                    // Fallback to hardcoded semesters if API fails
+                    setSemesters([
+                        { value: '1st', label: '1st Semester' },
+                        { value: '2nd', label: '2nd Semester' },
+                        { value: 'sum', label: 'Summer' }
+                    ]);
+                }
+            } catch (error) {
+                console.error('Error fetching semesters:', error);
+                // Fallback to hardcoded semesters if API fails
+                setSemesters([
+                    { value: '1st', label: '1st Semester' },
+                    { value: '2nd', label: '2nd Semester' },
+                    { value: 'sum', label: 'Summer' }
+                ]);
+            } finally {
+                setLoadingSemesters(false);
+            }
+        };
+
+        if (sessionToken) {
+            fetchSemesters();
+        }
+    }, [sessionToken]);
+
+    // Fetch curriculum when year level or semester changes
+    const fetchCurriculum = async (yearLevel, semester) => {
+        console.log('🔄 fetchCurriculum called with:', { yearLevel, semester });
+        
+        if (!yearLevel || !semester) {
+            console.log('❌ Missing yearLevel or semester, clearing curriculum');
+            setCurriculum(null);
+            return;
+        }
+
+        try {
+            setLoadingCurriculum(true);
+            const url = `${API_BASE_URL}/curriculum/curriculum?yearLevel=${yearLevel}&semester=${semester}`;
+            console.log('📡 Fetching curriculum from:', url);
+            
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const curriculumData = await response.json();
+                console.log('✅ Curriculum data received:', curriculumData);
+                setCurriculum(curriculumData);
+            } else {
+                console.error('❌ Failed to fetch curriculum:', response.status);
+                setCurriculum(null);
+            }
+        } catch (error) {
+            console.error('❌ Error fetching curriculum:', error);
+            setCurriculum(null);
+        } finally {
+            setLoadingCurriculum(false);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        
+        setFormData(prev => {
+            const newFormData = {
+                ...prev,
+                [name]: value
+            };
+
+            // Fetch curriculum when year level or semester changes
+            if (name === 'yearLevel' || name === 'semester') {
+                fetchCurriculum(newFormData.yearLevel, newFormData.semester);
+            }
+
+            return newFormData;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -159,7 +258,7 @@ function StudentRegistrationForm() {
                         motherName: '', motherAddress: '', motherOccupation: '', motherCompany: '',
                         motherContactNumber: '', motherIncome: '', guardianName: '', guardianAddress: '',
                         guardianOccupation: '', guardianCompany: '', guardianContactNumber: '', guardianIncome: '',
-                        yearLevel: '', semester: '1st', schoolYear: '2025-2026', applicationType: 'Freshmen',
+                        yearLevel: '', semester: '', schoolYear: '2025-2026', applicationType: 'Freshmen',
                         studentType: 'First', elementarySchool: '', elementaryAddress: '', elementaryHonor: '',
                         elementaryYearGraduated: '', juniorHighSchool: '', juniorHighAddress: '', juniorHighHonor: '',
                         juniorHighYearGraduated: '', seniorHighSchool: '', seniorHighAddress: '', seniorHighStrand: '',
@@ -535,12 +634,18 @@ function StudentRegistrationForm() {
                             name="semester"
                             value={formData.semester}
                             onChange={handleInputChange}
+                            disabled={loadingSemesters}
                         >
-                            {semesters.map(sem => (
-                                <option key={sem.value} value={sem.value}>
-                                    {sem.label}
-                                </option>
-                            ))}
+                            <option value="">Select Semester</option>
+                            {loadingSemesters ? (
+                                <option value="" disabled>Loading semesters...</option>
+                            ) : (
+                                semesters.map(sem => (
+                                    <option key={sem.value} value={sem.value}>
+                                        {sem.label}
+                                    </option>
+                                ))
+                            )}
                         </select>
                     </div>
                 </div>
@@ -549,10 +654,109 @@ function StudentRegistrationForm() {
                     <h5>Registration Summary</h5>
                     <p><strong>Name:</strong> {formData.firstName} {formData.middleName} {formData.lastName}</p>
                     <p><strong>Course:</strong> {formData.course}</p>
-                    <p><strong>Year Level:</strong> {formData.yearLevel || 'Not selected'}</p>
-                    <p><strong>Semester:</strong> {formData.semester}</p>
+                    <p><strong>Year Level:</strong> {formData.yearLevel ? yearLevels.find(level => level.value === formData.yearLevel)?.label || formData.yearLevel : 'Not selected'}</p>
+                    <p><strong>Semester:</strong> {formData.semester ? semesters.find(sem => sem.value === formData.semester)?.label || formData.semester : 'Not selected'}</p>
                     <p><strong>School Year:</strong> {formData.schoolYear}</p>
                 </div>
+
+                {/* Curriculum Display */}
+                {formData.yearLevel && formData.semester && (
+                    <div className="curriculum-display mt-4">
+                        <h5 className="mb-3">
+                            <i className="fas fa-book me-2"></i>
+                            Your Subjects and Schedule
+                        </h5>
+                        
+                        
+                        {loadingCurriculum ? (
+                            <div className="text-center py-3">
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">Loading subjects...</span>
+                                </div>
+                                <p className="mt-2 text-muted">Loading your subjects and schedule...</p>
+                            </div>
+                        ) : curriculum && curriculum.subjects && curriculum.subjects.length > 0 ? (
+                            <div className="table-responsive">
+                                <table className="table table-bordered table-hover">
+                                    <thead className="table-primary">
+                                        <tr>
+                                            <th>COURSE CODE</th>
+                                            <th>COURSE DESCRIPTION</th>
+                                            <th>NO. OF UNITS</th>
+                                            <th>DAY</th>
+                                            <th>TIME</th>
+                                            <th>ROOM</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {curriculum.subjects.map((subject) => (
+                                            <tr key={subject.courseCode}>
+                                                <td><strong>{subject.courseCode}</strong></td>
+                                                <td>{subject.courseDescription}</td>
+                                                <td className="text-center">{subject.units}</td>
+                                                <td className="text-center">
+                                                    {subject.schedules.map((schedule, idx) => (
+                                                        <React.Fragment key={schedule.id || idx}>
+                                                            {schedule.dayOfWeek}
+                                                            {idx < subject.schedules.length - 1 && <br />}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </td>
+                                                <td className="text-center">
+                                                     {subject.schedules.map((schedule, idx) => (
+                                                        <React.Fragment key={schedule.id || idx}>
+                                                            {schedule.startTime} - {schedule.endTime}
+                                                            {schedule.courseType && <span className="badge bg-secondary ms-1">{schedule.courseType}</span>}
+                                                            {idx < subject.schedules.length - 1 && <br />}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </td>
+                                                <td className="text-center">
+                                                     {subject.schedules.map((schedule, idx) => (
+                                                        <React.Fragment key={schedule.id || idx}>
+                                                            {schedule.room || 'TBA'}
+                                                            {idx < subject.schedules.length - 1 && <br />}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="table-light">
+                                        <tr>
+                                            <td colSpan="2" className="text-end fw-bold">
+                                                <strong>Total Number of Units &gt;&gt;&gt;</strong>
+                                            </td>
+                                            <td className="text-center fw-bold">{curriculum.totalUnits}</td>
+                                            <td colSpan="3"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                                
+                                <div className="curriculum-info mt-3">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <p className="mb-1"><strong>Year Level:</strong> {curriculum.yearLevel}</p>
+                                            <p className="mb-1"><strong>Semester:</strong> {curriculum.semester}</p>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <p className="mb-1"><strong>Total Subjects:</strong> {curriculum.totalSubjects}</p>
+                                            <p className="mb-1"><strong>Total Units:</strong> {curriculum.totalUnits}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="alert alert-info">
+                                <i className="fas fa-info-circle me-2"></i>
+                                {formData.semester === 'sum' || formData.semester === 'Summer' ? 
+                                    'No subjects for summer' : 
+                                    `No subjects found for ${formData.yearLevel} - ${formData.semester}. Please select a different year level or semester.`
+                                }
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

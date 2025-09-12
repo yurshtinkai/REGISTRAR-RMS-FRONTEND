@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
-function EditStudentDetailView() {
+function EditStudentDetailView({ onStudentUpdated }) {
     const { idNo } = useParams();
     const navigate = useNavigate();
     
     const [student, setStudent] = useState(null);
     const [courses, setCourses] = useState([]); // State for the course dropdown
+    const [semesters, setSemesters] = useState([]); // State for the semester dropdown
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -23,6 +24,23 @@ function EditStudentDetailView() {
                     setCourses(await coursesResponse.json());
                 } else {
                     console.error("Failed to fetch courses.");
+                }
+
+                // Fetch the list of available semesters for the dropdown
+                const semestersResponse = await fetch(`${API_BASE_URL}/semesters`, {
+                    headers: { 'X-Session-Token': getSessionToken() }
+                });
+                if (semestersResponse.ok) {
+                    const semestersData = await semestersResponse.json();
+                    setSemesters(semestersData);
+                } else {
+                    console.error("Failed to fetch semesters.");
+                    // Fallback to hardcoded semesters if API fails
+                    setSemesters([
+                        { id: 1, name: 'First Semester', code: '1ST' },
+                        { id: 2, name: 'Second Semester', code: '2ND' },
+                        { id: 3, name: 'Summer', code: 'SUM' }
+                    ]);
                 }
 
                 // First, get the user ID from the student's ID number
@@ -124,6 +142,10 @@ function EditStudentDetailView() {
 
     const handleSuccessModalClose = () => {
         setShowSuccessModal(false);
+        // Refresh the student data in the parent component
+        if (onStudentUpdated) {
+            onStudentUpdated();
+        }
         navigate(`/admin/students/${idNo}`);
     };
 
@@ -295,9 +317,11 @@ function EditStudentDetailView() {
                                   <label className="form-label">Semester/Entry *</label>
                                   <select className="form-select" name="semester" value={student.semester || ''} onChange={handleInputChange}>
                                       <option value="">Select Semester</option>
-                                      <option value="First Semester">First Semester</option>
-                                      <option value="Second Semester">Second Semester</option>
-                                      <option value="Summer">Summer</option>
+                                      {semesters.map(semester => (
+                                          <option key={semester.id} value={semester.name}>
+                                              {semester.name}
+                                          </option>
+                                      ))}
                                   </select>
                               </div>
                               <div className="col-md-4 mb-3">
