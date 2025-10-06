@@ -35,6 +35,16 @@ function AllStudentsView({ enrolledStudents }) {
         return nameLower.includes(searchTermLower) || idNoLower.includes(searchTermLower);
     });
 
+    // Abbreviate course name for list view only
+    const abbreviateCourse = (courseName) => {
+        if (!courseName) return 'N/A';
+        const normalized = String(courseName).trim().toLowerCase();
+        if (normalized === 'bachelor of science in information technology' || normalized === 'bs in information technology' || normalized === 'bs information technology') {
+            return 'BSIT';
+        }
+        return courseName;
+    };
+
     return (
         <div className="container-fluid">
             <div className="d-flex justify-content-between align-items-center mb-2">
@@ -79,7 +89,7 @@ function AllStudentsView({ enrolledStudents }) {
                                         <td>{student.idNumber || 'N/A'}</td>
                                         <td>{student.lastName && student.firstName ? `${student.lastName}, ${student.firstName} ${student.middleName || ''}`.trim() : 'N/A'}</td>
                                         <td>{student.gender || 'N/A'}</td>
-                                        <td>{student.course || 'N/A'}</td>
+                                        <td>{abbreviateCourse(student.course)}</td>
                                         <td>
                                             <span className={`badge ${student.registrationStatus === 'Enrolled' ? 'bg-success' : 'bg-warning'}`}>
                                                 {student.registrationStatus || 'N/A'}

@@ -2,6 +2,14 @@ import { API_BASE_URL } from './api';
 
 /**
  * Session Manager - Handles session token management and automatic refresh
+ * 
+ * Features:
+ * - Automatic session refresh every 12 hours
+ * - On-demand session validation
+ * - Secure token storage in localStorage
+ * - Error handling and cleanup
+ * 
+ * @class SessionManager
  */
 class SessionManager {
     constructor() {
@@ -9,25 +17,46 @@ class SessionManager {
         this.init();
     }
 
+    /**
+     * Initialize the session manager
+     * Checks for existing token and starts auto-refresh if found
+     */
     init() {
-        // Check if we have a session token
         const token = this.getSessionToken();
         if (token) {
-            // Start automatic refresh
             this.startAutoRefresh();
         }
     }
 
+    /**
+     * Get the current session token from localStorage
+     * @returns {string|null} The session token or null if not found
+     */
     getSessionToken() {
-        return localStorage.getItem('sessionToken');
+        const token = localStorage.getItem('sessionToken');
+        console.log('📥 SessionManager: Getting token from localStorage:', token ? 'TOKEN_EXISTS' : 'NO_TOKEN');
+        // Return null if token is null, undefined, or the string 'null'
+        return (token && token !== 'null') ? token : null;
     }
 
+    /**
+     * Set a new session token and start auto-refresh
+     * @param {string} token - The session token to store
+     */
     setSessionToken(token) {
-        localStorage.setItem('sessionToken', token);
-        // Start auto-refresh when token is set
-        this.startAutoRefresh();
+        console.log('🔑 SessionManager: Setting token:', token ? 'TOKEN_PROVIDED' : 'NO_TOKEN');
+        if (token) {
+            localStorage.setItem('sessionToken', token);
+            console.log('✅ SessionManager: Token stored in localStorage');
+            this.startAutoRefresh();
+        } else {
+            console.log('❌ SessionManager: No token provided');
+        }
     }
 
+    /**
+     * Clear the session token and stop auto-refresh
+     */
     clearSessionToken() {
         localStorage.removeItem('sessionToken');
         this.stopAutoRefresh();
@@ -50,6 +79,8 @@ class SessionManager {
 
             if (response.ok) {
                 const result = await response.json();
+                // Store the new session token
+                this.setSessionToken(result.sessionToken);
                 console.log('✅ Session refreshed:', result.message);
                 return true;
             } else {

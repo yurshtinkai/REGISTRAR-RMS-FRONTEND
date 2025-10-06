@@ -101,14 +101,7 @@ export const createDummySubjectSchedules = () => {
 // FIX: Added function to generate dummy data for school years and semesters
 export const createDummySchoolYears = () => {
     return [
-        { id: 1, schoolYear: '2024 - 2025', semester: 'Summer', status: 'Current' },
-        { id: 2, schoolYear: '2024 - 2025', semester: '2nd Semester', status: 'Open' },
-        { id: 3, schoolYear: '2024 - 2025', semester: '1st Semester', status: 'Open' },
-        { id: 4, schoolYear: '2023 - 2024', semester: 'Summer', status: 'Closed' },
-        { id: 5, schoolYear: '2023 - 2024', semester: '2nd Semester', status: 'Closed' },
-        { id: 6, schoolYear: '2023 - 2024', semester: '1st Semester', status: 'Closed' },
-        { id: 7, schoolYear: '2022 - 2023', semester: 'Summer', status: 'Closed' },
-        { id: 8, schoolYear: '2022 - 2023', semester: '2nd Semester', status: 'Closed' },
+        { id: 1, schoolYear: '2025 - 2026', semester: '1st', status: 'Current' },
     ];
 };
 
@@ -212,8 +205,15 @@ export const getDummyGradesForSemester = () => [
 ];
 
 export const getDocumentTypes = () => [
-  { name: 'Final Grade', amount: 50.00 },
+  // Keep this list in sync with StudentRequestForm document types
   { name: 'Transcript of Records', amount: 150.00 },
-  { name: 'Certificate of Enrollment', amount: 30.00 },
-  { name: 'Certificate of Graduation', amount: 100.00 },
+  { name: 'GRADE SLIP', amount: 0.00 },
+  { name: 'GWA CERTIFICATE', amount: 0.00 },
+  { name: 'GOOD MORAL FOR GRADUATES', amount: 0.00 },
+  { name: 'GOOD MORAL FOR NON-GRADUATES', amount: 0.00 },
+  { name: 'CERTIFICATE OF ENROLLMENT', amount: 30.00 },
+  { name: 'CERTIFICATE OF GRADUATION', amount: 100.00 },
+  { name: 'CERTIFICATE OF GRADUATION WITH HONORS', amount: 120.00 },
+  { name: 'CERTIFICATE OF TRANSFER CREDENTIALS', amount: 0.00 },
+  { name: 'DIPLOMA', amount: 0.00 },
 ];

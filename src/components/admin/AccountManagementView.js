@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function AccountManagementView() {
     const [accounts, setAccounts] = useState([]);
@@ -18,7 +19,13 @@ function AccountManagementView() {
             setDebugInfo({});
             
             try {
-                const sessionToken = getSessionToken();
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    throw new Error('Session expired. Please login again.');
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 console.log('Session Token:', sessionToken ? 'Exists' : 'Missing');
                 
                 if (!sessionToken) {
@@ -153,14 +160,14 @@ function AccountManagementView() {
             <h2 className="mb-4">Account Management</h2>
             
             {/* Debug Information */}
-            {process.env.NODE_ENV === 'development' && (
+            {/* {process.env.NODE_ENV === 'development' && (
                 <div className="alert alert-info mb-4">
                     <h5>Debug Info:</h5>
                     <pre className="mb-0">
                         {JSON.stringify(debugInfo, null, 2)}
                     </pre>
                 </div>
-            )}
+            )} */}
             
             {/* Registration Statistics */}
             <div className="row mb-4">
@@ -230,8 +237,6 @@ function AccountManagementView() {
                                     <th>Year Level</th>
                                     <th>Semester</th>
                                     <th>Registration Status</th>
-                                    <th>Enrollment Count</th>
-                                    <th>Total Units</th>
                                     <th>Registration Date</th>
                                     <th>Actions</th>
                                 </tr>
@@ -261,16 +266,6 @@ function AccountManagementView() {
                                                 {acc.registrationStatus === 'Approved' ? 'Enrolled' : acc.registrationStatus}
                                             </span>
                                         </td>
-                                        <td>
-                                            <span className={`badge ${acc.enrollmentCount > 0 ? 'bg-success' : 'bg-secondary'}`}>
-                                                {acc.enrollmentCount} courses
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className="badge bg-info">
-                                                {acc.totalUnits} units
-                                            </span>
-                                        </td>
                                         <td>{acc.registrationDate || 'Not registered'}</td>
                                         <td>
                                             <button 
@@ -284,7 +279,7 @@ function AccountManagementView() {
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan="10" className="text-center text-muted">
+                                        <td colSpan="8" className="text-center text-muted">
                                             <div className="py-4">
                                                 <h5>No students found</h5>
                                                 <p className="text-muted mb-0">

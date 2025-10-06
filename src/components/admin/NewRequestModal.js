@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, Row, Col } from 'react-bootstrap';
 import { createDummySchoolYears, getDocumentTypes } from '../../data/dummyData';
 
-function NewRequestModal({ isOpen, onClose, onConfirm }) {
+function NewRequestModal({ isOpen, onClose, onConfirm, expectedDocumentType }) {
     const schoolYearsData = createDummySchoolYears();
     const documentTypes = getDocumentTypes();
 
@@ -12,13 +12,39 @@ function NewRequestModal({ isOpen, onClose, onConfirm }) {
     const [amount, setAmount] = useState(documentTypes[0].amount);
 
     useEffect(() => {
+        console.log('🔍 NewRequestModal - useEffect triggered');
+        console.log('🔍 expectedDocumentType:', expectedDocumentType);
+        console.log('🔍 requestType:', requestType);
+        
+        // If a specific type is expected (coming from student's original request), lock to that
+        if (expectedDocumentType) {
+            console.log('🔍 Setting requestType to expectedDocumentType:', expectedDocumentType);
+            setRequestType(expectedDocumentType);
+            const selectedType = documentTypes.find(doc => doc.name === expectedDocumentType);
+            if (selectedType) {
+                console.log('🔍 Setting amount to:', selectedType.amount);
+                setAmount(selectedType.amount);
+            }
+        }
         const selectedType = documentTypes.find(doc => doc.name === requestType);
         if (selectedType) {
             setAmount(selectedType.amount);
         }
-    }, [requestType, documentTypes]);
+    }, [requestType, documentTypes, expectedDocumentType]);
 
     const handleSubmit = () => {
+        console.log('🔍 NewRequestModal - handleSubmit called');
+        console.log('🔍 expectedDocumentType:', expectedDocumentType);
+        console.log('🔍 requestType:', requestType);
+        console.log('🔍 Are they equal?', requestType === expectedDocumentType);
+        
+        if (expectedDocumentType && requestType !== expectedDocumentType) {
+            console.log('❌ Validation failed - types don\'t match');
+            alert(`Your request is incorrect because student requested ${expectedDocumentType} not ${requestType}.`);
+            return;
+        }
+        
+        console.log('✅ Validation passed - proceeding with request');
         onConfirm({
             documentType: requestType,
             schoolYear,
@@ -40,11 +66,14 @@ function NewRequestModal({ isOpen, onClose, onConfirm }) {
                     <Form.Group as={Row} className="mb-3" controlId="formRequestType">
                         <Form.Label column sm={4}>Request Type</Form.Label>
                         <Col sm={8}>
-                            <Form.Select value={requestType} onChange={e => setRequestType(e.target.value)}>
+                            <Form.Select value={requestType} onChange={e => setRequestType(e.target.value)} disabled={!!expectedDocumentType}>
                                 {documentTypes.map(doc => (
                                     <option key={doc.name} value={doc.name}>{doc.name}</option>
                                 ))}
                             </Form.Select>
+                            {expectedDocumentType && (
+                                <small className="text-muted">Request type locked to match the student's original request.</small>
+                            )}
                         </Col>
                     </Form.Group>
                     <Form.Group as={Row} className="mb-3" controlId="formSchoolYear">

@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
-// import { getStudentProfileImage } from './utils/cleanupProfileImages';
+import { getStudentProfileImage } from './utils/cleanupProfileImages';
 import { FooterProvider } from './contexts/FooterContext';
 
 // Import components
@@ -12,6 +12,7 @@ import Login from './components/auth/Login';
 import StudentRequestForm from './components/student/StudentRequestForm';
 import StudentRequestTable from './components/student/StudentRequestTable';
 import StudentHomePage from './components/student/StudentHomePage';
+import StudentSidebar from './components/student/StudentSidebar';
 import Sidebar from './components/admin/Sidebar';
 import AllRegistrationsView from './components/admin/AllRegistrationsView';
 import UnenrolledRegistrationsView from './components/admin/UnenrolledRegistrationsView';
@@ -21,10 +22,9 @@ import ImageViewModal from './components/common/ImageViewModal';
 import DocumentViewModal from './components/common/DocumentViewModal';
 import AllStudentsView from './components/admin/AllStudentsView';
 import StudentDetailView from './components/admin/StudentDetailView';
-import UploadDocuments from './components/admin/UploadDocuments';
-import DocumentViewer from './components/admin/DocumentViewer';
 import Dashboard from './components/admin/Dashboard';
 import SubjectSchedulesView from './components/admin/SubjectSchedulesView';
+import SubjectEnrolledStudentsView from './components/admin/SubjectEnrolledStudentsView';
 import ScheduleDetailsView from './components/admin/ScheduleDetailsView';
 import SchoolYearSemesterView from './components/admin/SchoolYearSemesterView';
 import ViewGradesView from './components/admin/ViewGradesView';
@@ -32,11 +32,10 @@ import EncodeEnrollmentView from './components/admin/EncodeEnrollmentView';
 import UnassessedStudentView from './components/admin/UnassessedStudentView';
 import ViewAssessmentView from './components/admin/ViewAssessmentView'
 import SubjectScheduleDetailView  from './components/admin/SubjectScheduleDetailView';
-import SubjectEnrolledStudentsView from './components/admin/SubjectEnrolledStudentsView';
 import AccountManagementView from './components/admin/AccountManagementView';
 import NotificationBell from './components/common/NotificationBell'; 
 import StudentProfile  from './components/student/StudentProfile';
-// import StudentRegistrationForm from './components/student/StudentRegistrationForm';
+import StudentRegistrationForm from './components/student/StudentRegistrationForm';
 import EditStudentDetailView from './components/admin/EditStudentDetailView';
 import EnrollmentStatusView from './components/student/EnrollmentStatusView';
 import SubjectScheduleView from './components/student/SubjectScheduleView';
@@ -44,8 +43,9 @@ import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
 import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
-import BillingPage from './components/student/BillingPage'; 
 import HeaderSettingsView from "./components/admin/HeaderSettingsView";
+import BillingPage from './components/student/BillingPage';
+import UploadDocuments from './components/admin/UploadDocuments';
 
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
@@ -60,12 +60,20 @@ const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
 function App() {
   const [userRole, setUserRole] = useState(getUserRole());
   const [modalImage, setModalImage] = useState(null);
-  const [isHamburgerOpen, setIsHamburgerOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [documentModalData, setDocumentModalData] = useState(null);
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [assessment, setAssessment] = useState([])
+
+   // Responsive logo switching
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 991);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 991);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const navigate = useNavigate();
 
@@ -264,6 +272,24 @@ function App() {
     }, 1000);
   };
 
+  // Reflect edits from EditStudentDetailView in the Student List immediately
+  const handleStudentListUpdate = (updated) => {
+    if (!updated) return;
+    setEnrolledStudents(prev => prev.map(s => {
+      if (!s) return s;
+      if (String(s.idNumber) === String(updated.idNumber)) {
+        return {
+          ...s,
+          firstName: updated.firstName || s.firstName,
+          lastName: updated.lastName || s.lastName,
+          middleName: updated.middleName || s.middleName,
+          gender: updated.gender || s.gender
+        };
+      }
+      return s;
+    }));
+  };
+
   const closeDocumentModal = () => {
     setDocumentModalData(null);
   };
@@ -284,87 +310,84 @@ function App() {
   return (
     <FooterProvider>
          <div id="app-wrapper">
-      {/* Student Navbar */}
+      {/* Student Navbar - Responsive logo switching */}
       {userRole === 'student' && (
-        <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom-gradient shadow-sm" style={{ minHeight: '60px', zIndex: 1040 }}>
-          <div className="container-fluid align-items-center">
-            <img src="/benedicto2.png" style={logoStyle} alt="bclogo" />
-            {/* Hamburger for mobile */}
-            <button className="navbar-toggler ms-2" type="button" style={{ border: 'none', background: 'transparent' }} onClick={() => setIsHamburgerOpen(!isHamburgerOpen)}>
-              <span><i className="fas fa-bars fa-lg text-white"></i></span>
-            </button>
-            {/* Main menu: collapses on mobile */}
-            <div className={`collapse navbar-collapse${isHamburgerOpen ? ' show' : ''}`} id="studentNavbarMenu">
-              <ul className="navbar-nav ms-3 mb-2 mb-lg-0">
-                <li className="nav-item">
+        <>
+          <nav className="navbar navbar-expand-lg navbar-dark fixed-top navbar-custom-gradient shadow-sm" style={{ minHeight: '60px', zIndex: 1040 }}>
+            <div className="container-fluid align-items-center p-0">
+              <div className="d-flex align-items-center w-100" style={{ gap: '8px', minWidth: 0 }}>
+                {/* Desktop/Laptop logo only */}
+                {!isMobile && (
+                  <img
+                    src={'/benedicto2.png'}
+                    className={"student-navbar-logo"}
+                    alt="bclogo"
+                  />
+                )}
+                {/* Hamburger on mobile shows circular BC logo */}
+                {isMobile && (
+                  <button className="navbar-toggler d-lg-none" type="button" style={{ border: 'none', background: 'transparent', padding: '0 4px' }} onClick={() => setIsSidebarOpen(true)}>
+                    <span><i className="fas fa-bars fa-lg text-white"></i></span>
+                  </button>
+                )}
+                {/* Menu items for desktop/laptop */}
+                <div className="d-none d-lg-flex flex-row align-items-center ms-3">
                   <button
-                    className={`student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
+                    className={`btn btn-link text-white student-navbar-btn${window.location.pathname === '/student/home' ? ' active' : ''}`}
                     onClick={() => navigate('/student/home')}
                   >Home</button>
-                </li>
-                <li className="nav-item">
                   <button
-                    className={`student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
+                    className={`btn btn-link text-white student-navbar-btn${window.location.pathname === '/student/request' ? ' active' : ''}`}
                     onClick={() => navigate('/student/request')}
                   >Request</button>
-                </li>
-                <li className="nav-item">
                   <button
-                    className={`student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
+                    className={`btn btn-link text-white student-navbar-btn${window.location.pathname === '/student/my-request' ? ' active' : ''}`}
                     onClick={() => navigate('/student/my-request')}
                   >My Request</button>
-                </li>
-              <li className="nav-item">
-                <button
-                  className={`student-navbar-btn${window.location.pathname === '/student/billing' ? ' active' : ''}`}
-                  onClick={() => navigate('/student/billing')}
-                >Billing</button>
-              </li>
-                
-            </ul>
-            </div>
-            {/* Right side: bell and profile, hidden when hamburger is open */}
-            {!isHamburgerOpen && (
-              <div className="ms-auto d-flex align-items-center">
-                {/* --- Add the NotificationBell here --- */}
-                <NotificationBell />
-                {/* Profile Dropdown */}
-                <div className="dropdown me-3">
                   <button
-                    className="btn btn-link dropdown-toggle p-0 border-0 bg-transparent text-white"
-                    type="button"
-                    id="profileDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                    style={{ outline: 'none', boxShadow: 'none', color: '#fff' }}
-                  >
-                    <img
-                      src={localStorage.getItem('profileImage') || '/bc.png'}
-                      alt="Profile"
-                      style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #fff', background: '#eee' }}
-                    />
-                  </button>
-                  <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
-                    <li>
-                      <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
-                        <i className="fa-regular fa-user me-2"></i>
-                        Profile
-                      </button>
-                    </li>
-                    <li><hr className="dropdown-divider" /></li>
-                    <li>
-                      <button className="dropdown-item" onClick={handleLogout}>
-                        <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
-                        Logout
-                      </button>
-                    </li>
-                  </ul>
+                    className={`btn btn-link text-white student-navbar-btn${window.location.pathname === '/student/billing' ? ' active' : ''}`}
+                    onClick={() => navigate('/student/billing')}
+                  >Billing</button>
+                </div>
+                <div className="ms-auto d-flex align-items-center justify-content-center" style={{ gap: '8px', height: '40px' }}>
+                  <div className="d-flex align-items-center justify-content-center" style={{ height: '100%', marginRight: '13px' }}>
+                    <NotificationBell />
+                  </div>
+                  <div className="dropdown d-flex align-items-center justify-content-center" style={{ height: '100%', marginRight: '35px' }}>
+                    <button
+                      className="btn btn-link p-0 border-0 bg-transparent text-white"
+                      type="button"
+                      id="settingsDropdown"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                      style={{ outline: 'none', boxShadow: 'none', color: '#fff', minWidth: 0 }}
+                    >
+                      <i className="fa-solid fa-gear fa-lg" style={{ verticalAlign: 'middle' }}></i>
+                    </button>
+                    <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                      <li>
+                        <button className="dropdown-item" onClick={() => navigate('/student/profile')}>
+                          <i className="fa-regular fa-user me-2"></i>
+                          Profile
+                        </button>
+                      </li>
+                      <li><hr className="dropdown-divider" /></li>
+                      <li>
+                        <button className="dropdown-item" onClick={handleLogout}>
+                          <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
+                          Logout
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-            )}
-      </div>
-    </nav>
-  )}
+            </div>
+          </nav>
+          {/* Sidebar only on mobile */}
+          <StudentSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} navigate={navigate} />
+        </>
+      )}
       {/* Admin/Accounting Navbar */}
       {(userRole === 'admin' || userRole === 'accounting') && (
         <nav className={`navbar navbar-expand-lg navbar-dark fixed-top ${userRole ? 'navbar-custom-gradient shadow-sm' : ''}`}>
@@ -376,7 +399,7 @@ function App() {
               </span>
               <div className="dropdown">
                 <button
-                  className="btn btn-link dropdown-toggle text-white"
+                  className="btn dropdown-toggle text-white"
                   type="button"
                   id="settingsDropdown"
                   data-bs-toggle="dropdown"
@@ -408,13 +431,13 @@ function App() {
                      <Route path="/student/home" element={<ProtectedRoute><StudentHomePage /></ProtectedRoute>} />
            <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
-           <Route path="/student/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
   
            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
                       <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
                       <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />
            <Route path="/student/grades" element={<ProtectedRoute><div className="text-center py-5"><h3>Grades View</h3><p>This feature is coming soon.</p></div></ProtectedRoute>} />
            <Route path="/student/requests" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
+           <Route path="/student/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
            {/* Registration is now handled within the Login component */}
           <Route
             path="/admin"
@@ -427,10 +450,9 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="settings" element={<HeaderSettingsView />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
-            <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} onStudentUpdated={fetchStudents} />} />
+            <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo/upload-documents" element={<UploadDocuments />} />
-        <Route path="students/:idNo/view-document/:documentType" element={<DocumentViewer />} />
-            <Route path="students/:idNo/edit" element={<EditStudentDetailView onStudentUpdated={fetchStudents} />} />
+            <Route path="students/:idNo/edit" element={<EditStudentDetailView onStudentUpdated={handleStudentListUpdate} />} />
             <Route path="all-registrations" element={<AllRegistrationsView registrations={registrations} setRegistrations={setRegistrations} />} />
             <Route
               path="enrollment/unenrolled"
@@ -445,7 +467,7 @@ function App() {
             <Route path="/admin/request-from-registrar" element={<RequestFromRegistrarView />} />
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
-            <Route path="manage/subject-schedules/:scheduleId/enrolled-students" element={<SubjectEnrolledStudentsView />} />
+            <Route path="/admin/manage/subject-schedules/:scheduleId/enrolled-students" element={<ProtectedRoute><SubjectEnrolledStudentsView /></ProtectedRoute>} />
             <Route path="accounts" element={<AccountManagementView />} />
             <Route path="manage/subject-schedules/:id" element={<ScheduleDetailsView />} />
             <Route path="manage/school-year-semester" element={<SchoolYearSemesterView />} />

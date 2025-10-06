@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function StudentRequestTable({ refresh }) {
     const [requests, setRequests] = useState([]);
@@ -7,7 +8,15 @@ function StudentRequestTable({ refresh }) {
 
     const fetchRequests = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'X-Session-Token': getSessionToken() } });
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                console.error('Session expired. Please login again.');
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
+            const response = await fetch(`${API_BASE_URL}/requests/my-requests`, { headers: { 'X-Session-Token': sessionToken } });
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Failed to fetch');
             setRequests(data);
@@ -24,6 +33,20 @@ function StudentRequestTable({ refresh }) {
         fetchRequests();
     }, [refresh]);
 
+    const getReleaseDate = (req) => {
+        // Only show a release date if the status is 'ready for pick-up'
+        if (req.status !== 'ready for pick-up') {
+            return '—'; // Use a dash for items not yet ready
+        }
+        // The backend provides a `printedAt` field which is the actual release date
+        if (!req.printedAt) {
+            // Fallback in case `printedAt` is missing
+            return new Date(req.updatedAt).toLocaleDateString();
+        }
+        // Format and return the actual date the document was marked as printed
+        return new Date(req.printedAt).toLocaleDateString();
+    };
+
     return (
          <div className="container-fluid mt-5 position-relative py-2 px-4">
             <div className="row justify-content-center">
@@ -33,7 +56,7 @@ function StudentRequestTable({ refresh }) {
                         <div className="table-responsive" style={{maxHeight: '450px', overflowY: 'auto'}}>
                             <table className="table table-hover">
                                 <thead className="table-dark sticky-top">
-                                    <tr><th>Doc Type</th><th>Purpose</th><th>Status</th><th>Notes</th><th>Date</th></tr>
+                                    <tr><th>Doc Type</th><th>Purpose</th><th>Status</th><th>Notes</th><th>Date</th><th>Release Date</th></tr>
                                 </thead>
                                 <tbody>
                                     {requests.map((req) => (
@@ -43,6 +66,7 @@ function StudentRequestTable({ refresh }) {
                                             <td><span className={`badge ${getStatusBadge(req.status)}`}>{req.status}</span></td>
                                             <td>{req.notes || 'N/A'}</td>
                                             <td>{new Date(req.createdAt).toLocaleDateString()}</td>
+                                            <td>{getReleaseDate(req)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSubjectsForEnrollment } from '../../data/dummyData';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import CustomAlert from '../../CustomAlert';
 
 function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setStudentToEnroll }) {
@@ -69,7 +70,7 @@ function NewEnrollmentView({ student, onCompleteEnrollment, registrations, setSt
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Session-Token': getSessionToken()
+                    'X-Session-Token': sessionManager.getSessionToken()
                 },
                 body: JSON.stringify(newStudentInfo)
             });

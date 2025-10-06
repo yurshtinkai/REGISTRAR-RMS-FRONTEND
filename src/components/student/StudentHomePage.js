@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
-import './StudentHomePage.css';
-import StudentRegistrationForm from './StudentRegistrationForm';
 import sessionManager from '../../utils/sessionManager';
+import StudentRegistrationForm from './StudentRegistrationForm';
+import './StudentHomePage.css';
+import CustomAlert from '../../CustomAlert';
+
+/**
+ * Student Home Page Component
+ * 
+ * Features:
+ * - Student dashboard with announcements
+ * - Real-time notifications from registrars
+ * - Session management and validation
+ * - Quick action buttons for common tasks
+ * 
+ * @component
+ */
 
 function StudentHomePage() {
     const [userData, setUserData] = useState({
@@ -15,6 +28,7 @@ function StudentHomePage() {
     const [announcements, setAnnouncements] = useState([]);
     const [announcementsLoading, setAnnouncementsLoading] = useState(true);
     const [expandedAnnouncements, setExpandedAnnouncements] = useState(new Set());
+    const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
     // Fetch user data from database using session token
     useEffect(() => {
@@ -74,10 +88,27 @@ function StudentHomePage() {
         fetchUserData();
     }, []);
 
+    // After first login (post-registration), show guided welcome modal
+    useEffect(() => {
+        try {
+            const shouldShow = localStorage.getItem('showWelcomeRegistrationPrompt') === '1';
+            if (shouldShow) {
+                setShowWelcomeModal(true);
+            }
+        } catch (_) {}
+    }, []);
+
     // Fetch announcements from database
     useEffect(() => {
         const fetchAnnouncements = async () => {
             try {
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setAnnouncementsLoading(false);
+                    return;
+                }
+                
                 const sessionToken = sessionManager.getSessionToken();
                 if (!sessionToken) {
                     setAnnouncementsLoading(false);
@@ -360,6 +391,43 @@ function StudentHomePage() {
 
     return (
         <div className="student-homepage">
+            {/* Welcome Modal shown after first login following registration */}
+            <CustomAlert
+                isOpen={showWelcomeModal}
+                onClose={() => {
+                    setShowWelcomeModal(false);
+                    try { localStorage.removeItem('showWelcomeRegistrationPrompt'); } catch (_) {}
+                }}
+                hideDefaultButton={true}
+                contentStyle={{ maxWidth: '720px', width: '92%' }}
+            >
+                <div style={{ lineHeight: 1.7 }}>
+                    <p style={{ marginBottom: 12, fontWeight: 800 }}>
+                        {`Welcome ${localStorage.getItem('registeredStudentName') || userData.fullName}.`}
+                    </p>
+                    <p style={{ marginBottom: 12 }}>
+                        To complete your student onboarding, please open the Registration Form and provide your permanent student record.
+                    </p>
+                    <p style={{ marginBottom: 12 }}>
+                        Make sure to enter your personal information accurately. Review your details before submitting to avoid delays in processing.
+                    </p>
+                    <p style={{ marginBottom: 18 }}>
+                        Once your registration is submitted, you may request school documents anytime from your dashboard.
+                    </p>
+                    <div>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                setActiveTab('registration');
+                                setShowWelcomeModal(false);
+                                try { localStorage.removeItem('showWelcomeRegistrationPrompt'); } catch (_) {}
+                            }}
+                        >
+                            Go to Registration Form →
+                        </button>
+                    </div>
+                </div>
+            </CustomAlert>
             {/* Header Section */}
             <div className="header-section">
                 <div className="container">

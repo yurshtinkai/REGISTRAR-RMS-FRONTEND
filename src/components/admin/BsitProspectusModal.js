@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './BsitProspectusModal.css';
 
 function BsitProspectusModal({ isOpen, onClose, studentName }) {
@@ -18,7 +19,7 @@ function BsitProspectusModal({ isOpen, onClose, studentName }) {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/bsit-curriculum`, {
         headers: {
-          'X-Session-Token': getSessionToken()
+          'X-Session-Token': sessionManager.getSessionToken()
         }
       });
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './StudentProfile.css';
 import { cleanupSharedProfileImages, getStudentProfileImage, setStudentProfileImage } from '../../utils/cleanupProfileImages';
+import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function StudentProfile({ onProfileClick }) {
     // Load profilePic from localStorage on mount for persistence
@@ -8,13 +9,38 @@ function StudentProfile({ onProfileClick }) {
     const storedProfilePic = getStudentProfileImage(studentId);
     const [profilePic, setProfilePic] = useState(storedProfilePic);
     const fullName = localStorage.getItem('fullName');
-    const email = localStorage.getItem('email') || 'formetera@email.com';
+    const [profile, setProfile] = useState(null);
+    const [loginHistory, setLoginHistory] = useState([]);
+    const email = profile?.email || profile?.registration?.email || localStorage.getItem('email') || '';
     const country = 'Philippines';
-    const timezone = 'Asia/Hong_Kong';
 
     // Clean up shared profile images on mount
     useEffect(() => {
         cleanupSharedProfileImages();
+    }, []);
+
+    // Fetch live profile and login activity
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const headers = { 'X-Session-Token': getSessionToken() };
+                const [pRes, hRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/students/profile`, { headers }),
+                    fetch(`${API_BASE_URL}/sessions/history`, { headers })
+                ]);
+                if (pRes.ok) {
+                    const pJson = await pRes.json();
+                    setProfile(pJson);
+                }
+                if (hRes.ok) {
+                    const hJson = await hRes.json();
+                    setLoginHistory(hJson.history || []);
+                }
+            } catch (e) {
+                // silent fail in UI
+            }
+        };
+        fetchData();
     }, []);
 
     // Sync profilePic to navbar by updating localStorage with student-specific key
@@ -92,9 +118,11 @@ function StudentProfile({ onProfileClick }) {
                 <div className="student-profile-card">
                     <div className="student-profile-card-title">User details <span className="student-profile-edit">Edit profile</span></div>
                     <div className="student-profile-card-content">
-                        <div><b>Email address</b><br /><span className="student-profile-email">{email}</span> <span className="student-profile-note">(Visible to other course participants)</span></div>
+                        <div><b>Student ID</b><br />{profile?.idNumber || studentId}</div>
+                        <div style={{ marginTop: '10px' }}><b>Email address</b><br /><span className="student-profile-email">{email || '—'}</span></div>
+                        <div style={{ marginTop: '10px' }}><b>Gender</b><br />{profile?.registration?.gender || '—'}</div>
+                        <div style={{ marginTop: '10px' }}><b>Nationality</b><br />{profile?.registration?.nationality || '—'}</div>
                         <div style={{ marginTop: '10px' }}><b>Country</b><br />{country}</div>
-                        <div style={{ marginTop: '10px' }}><b>Timezone</b><br />{timezone}</div>
                     </div>
                 </div>
                 <div className="student-profile-card">
@@ -107,8 +135,14 @@ function StudentProfile({ onProfileClick }) {
                 <div className="student-profile-card">
                     <div className="student-profile-card-title">Login activity</div>
                     <div className="student-profile-card-content">
-                        <div><b>First access to site</b><br />Friday, 31 January 2025, 9:01 AM  (184 days 10 hours)</div>
-                        <div style={{ marginTop: '10px' }}><b>Last access to site</b><br />Sunday, 3 August 2025, 7:41 PM  (8 secs)</div>
+                        {loginHistory && loginHistory.length > 0 ? (
+                            <>
+                                <div><b>Last access to site</b><br />{`${loginHistory[0].date} ${loginHistory[0].time}`}</div>
+                                <div style={{ marginTop: '10px' }}><b>Total logins (last {Math.min(loginHistory.length, 50)})</b><br />{loginHistory.filter(h => h.action === 'login').length}</div>
+                            </>
+                        ) : (
+                            <div>No recent login activity found.</div>
+                        )}
                     </div>
                 </div>
                 <div className="student-profile-card">

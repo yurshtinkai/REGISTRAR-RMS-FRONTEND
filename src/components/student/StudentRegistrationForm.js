@@ -91,6 +91,7 @@ function StudentRegistrationForm() {
     const [loadingSemesters, setLoadingSemesters] = useState(true);
     const [curriculum, setCurriculum] = useState(null);
     const [loadingCurriculum, setLoadingCurriculum] = useState(false);
+    const [isRegistered, setIsRegistered] = useState(false);
     
     // Get session token from localStorage
     const sessionToken = localStorage.getItem('sessionToken');
@@ -157,6 +158,26 @@ function StudentRegistrationForm() {
         if (sessionToken) {
             fetchSemesters();
         }
+    }, [sessionToken]);
+
+    // Check registration status on mount
+    useEffect(() => {
+        const checkRegistration = async () => {
+            try {
+                if (!sessionToken) return;
+                const resp = await fetch(`${API_BASE_URL}/students/registration/${localStorage.getItem('userId') || ''}`, {
+                    headers: { 'X-Session-Token': sessionToken }
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    // If any registration record exists, consider registered
+                    setIsRegistered(!!data && !!data.id);
+                }
+            } catch (e) {
+                // Non-blocking
+            }
+        };
+        checkRegistration();
     }, [sessionToken]);
 
     // Fetch curriculum when year level or semester changes
@@ -781,46 +802,55 @@ function StudentRegistrationForm() {
                 </div>
             </div>
 
-            {/* Step Indicator */}
-            {renderStepIndicator()}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="registration-form">
-                {renderCurrentStep()}
-
-                {/* Navigation Buttons */}
-                <div className="form-navigation">
-                    {currentStep > 1 && (
-                        <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={prevStep}
-                            disabled={loading}
-                        >
-                            ← Previous
-                        </button>
-                    )}
-                    
-                    {currentStep < 4 ? (
-                        <button
-                            type="button"
-                            className="btn btn-primary"
-                            onClick={nextStep}
-                            disabled={loading}
-                        >
-                            Next →
-                        </button>
-                    ) : (
-                        <button
-                            type="submit"
-                            className="btn btn-success"
-                            disabled={loading}
-                        >
-                            {loading ? 'Submitting...' : 'Submit Registration'}
-                        </button>
-                    )}
+            {/* If already registered, show message and hide form */}
+            {isRegistered ? (
+                <div className="alert alert-success mt-3">
+                    <strong>You have already registered.</strong> You cannot register again. Your registration form is hidden.
                 </div>
-            </form>
+            ) : (
+                <>
+                    {/* Step Indicator */}
+                    {renderStepIndicator()}
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="registration-form">
+                        {renderCurrentStep()}
+
+                        {/* Navigation Buttons */}
+                        <div className="form-navigation">
+                            {currentStep > 1 && (
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={prevStep}
+                                    disabled={loading}
+                                >
+                                    ← Previous
+                                </button>
+                            )}
+                            
+                            {currentStep < 4 ? (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={nextStep}
+                                    disabled={loading}
+                                >
+                                    Next →
+                                </button>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    className="btn btn-success"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Submitting...' : 'Submit Registration'}
+                                </button>
+                            )}
+                        </div>
+                    </form>
+                </>
+            )}
 
             {/* Messages */}
             {error && (

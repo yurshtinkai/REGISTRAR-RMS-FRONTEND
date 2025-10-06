@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const location = useLocation();
     const [pendingRequestCount, setPendingRequestCount] = useState(0);
+    const [pendingRegistrarCount, setPendingRegistrarCount] = useState(0);
     
     const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
     const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
@@ -28,9 +30,6 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                 { id: 1, start_year: 2025, end_year: 2026, semester: '1st Semester' },
                 { id: 2, start_year: 2025, end_year: 2026, semester: '2nd Semester' },
                 { id: 3, start_year: 2025, end_year: 2026, semester: 'Summer' },
-                { id: 4, start_year: 2024, end_year: 2025, semester: '1st Semester' },
-                { id: 5, start_year: 2024, end_year: 2025, semester: '2nd Semester' },
-                { id: 6, start_year: 2024, end_year: 2025, semester: 'Summer' },
             ];
             setSchoolYears(dummyData);
             // Set the default selected value to the most recent one
@@ -44,12 +43,27 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     useEffect(() => {
         const fetchPendingRequests = async () => {
             try {
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    console.error('Session expired. Please login again.');
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 const res = await fetch(`${API_BASE_URL}/requests`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionToken }
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    const pendingCount = data.filter(req => req.status === 'pending').length;
+                    // Count only online student-initiated requests that still need registrar action
+                    // Keep counting through 'pending', 'payment_required', and 'payment_approved'.
+                    // Decrease only after registrar approves (status becomes 'approved').
+                    const pendingCount = data.filter(req => 
+                        req.initiatedBy === 'student' && 
+                        req.status !== 'approved' && 
+                        req.status !== 'ready for pick-up'
+                    ).length;
                     setPendingRequestCount(pendingCount);
                 }
             } catch (err) {
@@ -57,8 +71,33 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             }
         };
 
+        const fetchPendingPayments = async () => {
+            try {
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    console.error('Session expired. Please login again.');
+                    return;
+                }
+                const sessionToken = sessionManager.getSessionToken();
+                const res = await fetch(`${API_BASE_URL}/payments/pending`, {
+                    headers: { 'X-Session-Token': sessionToken }
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    const pending = Array.isArray(json?.data) ? json.data.length : 0;
+                    setPendingRegistrarCount(pending);
+                }
+            } catch (err) {
+                console.error('Failed to fetch pending payments:', err);
+            }
+        };
+
         fetchPendingRequests();
-        const interval = setInterval(fetchPendingRequests, 10000);
+        fetchPendingPayments();
+        const interval = setInterval(() => {
+            fetchPendingRequests();
+            fetchPendingPayments();
+        }, 10000);
         return () => clearInterval(interval);
     }, []);
 
@@ -90,9 +129,10 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
           badge: pendingRequestCount 
         },
         { 
-          name: 'Request from Registrar', // <-- Add this menu item
-          path: '/admin/request-from-registrar', // <-- Set your route here
-          icon: 'fa-envelope-open-text' // <-- Choose an appropriate icon
+          name: 'Request from Registrar',
+          path: '/admin/request-from-registrar',
+          icon: 'fa-envelope-open-text',
+          badge: pendingRegistrarCount
         },
         { name: 'Manage',
           icon: 'fa-cogs',
@@ -103,7 +143,8 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             { name: 'Encode Enrollments', path: '/admin/manage/encode-enrollments' }
           ]
         },
-        { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' }
+        { name: 'Accounts', path: '/admin/accounts', icon: 'fa-user-shield' },
+        { name: 'Settings', path: '/admin/settings', icon: 'fa-cog' }
     ];
 
     // Function to handle photo preview

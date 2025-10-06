@@ -1,18 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './NotificationBell.css';
 
 function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const bellRef = useRef(null); // To detect clicks outside
+  const navigate = useNavigate();
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/notifications`, {
-        headers: { 'X-Session-Token': getSessionToken() }
+        headers: { 'X-Session-Token': sessionManager.getSessionToken() }
       });
       if (response.ok) {
         const data = await response.json();
@@ -46,11 +49,47 @@ function NotificationBell() {
     try {
       await fetch(`${API_BASE_URL}/notifications/read`, {
         method: 'PATCH',
-        headers: { 'X-Session-Token': getSessionToken() },
+        headers: { 'X-Session-Token': sessionManager.getSessionToken() },
       });
       fetchNotifications();
     } catch (error) {
       console.error('Failed to mark notifications as read:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    // Close the dropdown
+    setIsOpen(false);
+    
+    // Mark this specific notification as read
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications/${notification.id}/read`, {
+        method: 'PATCH',
+        headers: { 'X-Session-Token': sessionManager.getSessionToken() },
+      });
+      
+      if (response.ok) {
+        // Refresh notifications to update the count
+        fetchNotifications();
+      } else {
+        console.error('Failed to mark notification as read:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+    
+    // Check notification message content to determine navigation
+    const message = notification.message.toLowerCase();
+    
+    if (message.includes('request') || message.includes('grade slip') || message.includes('transcript') || message.includes('payment')) {
+      // Navigate to My Request page for request-related notifications
+      navigate('/student/my-request');
+    } else if (message.includes('enrollment') || message.includes('announcement')) {
+      // Navigate to home page for enrollment/announcement notifications
+      navigate('/student/home');
+    } else {
+      // Default to home page
+      navigate('/student/home');
     }
   };
 
@@ -82,8 +121,13 @@ function NotificationBell() {
           <div className="notification-list">
             {notifications.length > 0 ? (
               notifications.map(notif => (
-                <div key={notif.id} className={`notification-item ${!notif.isRead ? 'unread' : ''}`}>
-                  <p>{notif.message}</p>
+                <div 
+                  key={notif.id} 
+                  className={`notification-item ${!notif.isRead ? 'unread' : 'read'}`}
+                  onClick={() => handleNotificationClick(notif)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <p className={notif.isRead ? 'read-notification' : ''}>{notif.message}</p>
                   <small>{new Date(notif.createdAt).toLocaleString()}</small>
                 </div>
               ))
@@ -93,7 +137,16 @@ function NotificationBell() {
           </div>
 
           <div className="notification-footer">
-            <a href="/notifications">See all</a>
+            <a 
+              href="/student/home" 
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/student/home');
+                setIsOpen(false);
+              }}
+            >
+              See all
+            </a>
           </div>
         </div>
       )}

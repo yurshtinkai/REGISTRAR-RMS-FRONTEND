@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getDummyCurriculum } from '../../data/dummyData';
 import BsitProspectusModal from './BsitProspectusModal';
 import './StudentDetailView.css';
@@ -7,9 +7,11 @@ import NewRequestModal from './NewRequestModal';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import { getStudentAvatar } from '../../utils/avatarUtils';
 import GradeSlipContent from './GradeSlipContent'; // Make sure this file exists and is exported
+import ActivityLogs from './ActivityLogs';
 
 function StudentDetailView({ enrolledStudents }) {
   const { idNo } = useParams();
+  const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [studentRegistration, setStudentRegistration] = useState(null);
   const [enrolledSubjects, setEnrolledSubjects] = useState(null);
@@ -45,7 +47,7 @@ function StudentDetailView({ enrolledStudents }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [subjectDetailsModalOpen, setSubjectDetailsModalOpen] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(null);
-  const [enrolledSubjectsExpanded, setEnrolledSubjectsExpanded] = useState(true);
+  const [enrolledSubjectsExpanded, setEnrolledSubjectsExpanded] = useState(false);
   
   // Login history state
   const [loginHistory, setLoginHistory] = useState([]);
@@ -216,7 +218,7 @@ function StudentDetailView({ enrolledStudents }) {
         }
         // --- END: Fetch enrolled subjects ---
 
-        // --- START: Fetch the document requests for this student ---
+        // --- START: Fetch thes for this student ---
         try {
           const requestsResponse = await fetch(`${API_BASE_URL}/requests/student/${enrolledStudent.id}`, {
               headers: { 'X-Session-Token': getSessionToken() }
@@ -321,6 +323,16 @@ function StudentDetailView({ enrolledStudents }) {
   const [currentSemester, setCurrentSemester] = useState('');
   const [isCurriculumModalOpen, setCurriculumModalOpen] = useState(false);
 
+  // Only show requests after registrar takes action for online submissions
+  const visibleDocumentRequests = useMemo(() => {
+    return (documentRequests || []).filter(r => {
+      // Always show registrar-initiated (walk-in) requests
+      if (r.initiatedBy === 'registrar') return true;
+      // Hide online requests while still pending; show once registrar acts
+      return r.status && r.status.toLowerCase() !== 'pending';
+    });
+  }, [documentRequests]);
+
   if (loading) {
     return (
       <div className="container-fluid text-center mt-5">
@@ -361,6 +373,7 @@ function StudentDetailView({ enrolledStudents }) {
   const getStatusBadge = (status) => {
     switch (status.toLowerCase()) {
       case 'approved':
+      case 'payment_approved':
       case 'ready for pick-up':
         return 'bg-success';
       case 'pending':
@@ -370,6 +383,14 @@ function StudentDetailView({ enrolledStudents }) {
       default:
         return 'bg-secondary';
     }
+  };
+
+  const getDisplayStatus = (status) => {
+    if (!status) return '';
+    const s = String(status).toLowerCase();
+    if (s === 'payment_required') return 'pending';
+    if (s === 'approved' || s === 'payment_approved' || s === 'ready for pick-up') return 'payment approved';
+    return String(status).replace('_', ' ');
   };
 
   const handleUpdateBalance = async () => {
@@ -604,7 +625,7 @@ function StudentDetailView({ enrolledStudents }) {
         setAnnouncementText('');
         setAnnouncementModalOpen(false);
         
-        // Refresh announcement history
+        // Refresh announcement historyd
         await refreshAnnouncementHistory();
       } else {
         const error = await response.json();
@@ -622,60 +643,149 @@ function StudentDetailView({ enrolledStudents }) {
 
   
   const handlePrintRequest = (request) => {
-    // FIX: Check if student data exists before attempting to print.
-    // This prevents the action from failing if the main data hasn't loaded yet.
     if (!student) {
       alert('Student details are still loading. Please wait a moment and try again.');
       return;
     }
 
-    if (request.documentType === 'Final Grade') {
-      setRequestToPrint(request);
-    } else {
-      alert(`Printing for "${request.documentType}" is not yet implemented.`);
+    // Only allow navigation to approval/edit view when payment has been approved
+    if (request.status !== 'payment_approved' && request.status !== 'approved') {
+      alert('This request cannot be printed yet. Ensure payment is approved and the request is approved.');
+      return;
+    }
+
+    // Go to the approval/edit view for any document type
+    navigate(`/admin/requests/approve-document/${request.id}`);
+  };
+
+  // Refresh requests from server so UI updates immediately after registrar action
+  const refreshStudentRequests = async (studentId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/requests/student/${studentId}`, {
+        headers: { 'X-Session-Token': getSessionToken() }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDocumentRequests(data);
+      }
+    } catch (err) {
+      console.error('Failed to refresh student requests:', err);
     }
   };
 
   const handleConfirmRequest = async (requestData) => {
-    // Create a new request object with default values
-    const newRequest = {
-      id: Date.now(), // Temporary ID for frontend
-      documentType: requestData.documentType,
-      schoolYear: requestData.schoolYear,
-      semester: requestData.semester,
-      amount: requestData.amount,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    // Optimistically add to table
-    setDocumentRequests(prev => [...prev, newRequest]);
-
-    // Send to backend
     try {
-      const response = await fetch(`${API_BASE_URL}/requests`, {
+      console.log('🔍 StudentDetailView - handleConfirmRequest called');
+      console.log('🔍 requestData:', requestData);
+      
+      // Get the requestId from URL parameters
+      const params = new URLSearchParams(window.location.search);
+      let existingRequestId = params.get('requestId');
+      
+      console.log('🔍 existingRequestId from URL:', existingRequestId);
+      
+      // If there's no existing request (e.g., registrar initiates directly), create one first
+      if (!existingRequestId) {
+        console.log('ℹ️ No existing requestId found. Creating registrar-initiated request...');
+        if (!student?.id) {
+          throw new Error('Missing student information');
+        }
+
+        // Use FormData because the backend route is wired with multer
+        const formData = new FormData();
+        formData.append('documentType', requestData.documentType);
+        formData.append('purpose', 'Registrar-initiated request');
+        formData.append('studentId', String(student.id));
+
+        const createResponse = await fetch(`${API_BASE_URL}/requests`, {
+          method: 'POST',
+          headers: {
+            'X-Session-Token': getSessionToken(),
+          },
+          body: formData,
+        });
+
+        if (!createResponse.ok) {
+          const err = await createResponse.json().catch(() => ({}));
+          throw new Error(err.message || 'Failed to create request');
+        }
+
+        const created = await createResponse.json();
+        existingRequestId = String(created?.id || created?.request?.id);
+        console.log('✅ Created new request with ID:', existingRequestId);
+
+        // Optimistically add to local list as pending
+        if (existingRequestId) {
+          setDocumentRequests(prev => [
+            ...prev,
+            {
+              id: Number(existingRequestId),
+              documentType: requestData.documentType,
+              schoolYear: requestData.schoolYear,
+              semester: requestData.semester,
+              amount: requestData.amount,
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+            },
+          ]);
+        }
+      }
+
+      // Find the specific request by ID to get its document type
+      const specificRequest = documentRequests.find(r => r.id === Number(existingRequestId));
+      console.log('🔍 specificRequest found:', specificRequest);
+      console.log('🔍 specificRequest.documentType:', specificRequest?.documentType);
+      console.log('🔍 requestData.documentType:', requestData.documentType);
+      console.log('🔍 Are they equal?', specificRequest?.documentType === requestData.documentType);
+      
+      if (specificRequest && specificRequest.documentType !== requestData.documentType) {
+        console.log('❌ Validation failed in handleConfirmRequest');
+        alert(`Your request is incorrect because student requested ${specificRequest.documentType} not ${requestData.documentType}.`);
+        return;
+      }
+      
+      console.log('✅ Validation passed in handleConfirmRequest');
+
+      // Request the document from accounting for the existing student request
+
+      const accountingResponse = await fetch(`${API_BASE_URL}/requests/${existingRequestId}/request-document`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Session-Token': getSessionToken(),
         },
         body: JSON.stringify({
-          ...requestData,
-          studentId: student.id,
+          amount: requestData.amount,
         }),
       });
-      if (response.ok) {
-        const savedRequest = await response.json();
-        // Replace the temporary request with the one from backend (if needed)
-        setDocumentRequests(prev =>
-          prev.map(r => r.id === newRequest.id ? savedRequest : r)
-        );
-        alert('Request submitted successfully!');
+
+      if (accountingResponse.ok) {
+        // Update the local state to reflect payment_required after forwarding to accounting
+        const updatedRequest = {
+          id: Number(existingRequestId),
+          documentType: requestData.documentType,
+          schoolYear: requestData.schoolYear,
+          semester: requestData.semester,
+          amount: requestData.amount,
+          status: 'payment_required',
+          createdAt: new Date().toISOString(),
+        };
+        
+        setDocumentRequests(prev => {
+          const others = prev.filter(r => r.id !== Number(existingRequestId));
+          return [...others, updatedRequest];
+        });
+        // Immediately re-fetch from server to reflect authoritative status
+        if (student?.id) {
+          refreshStudentRequests(student.id);
+        }
+        alert('Document request sent to accounting for payment processing!');
       } else {
-        alert('Failed to submit request.');
+        throw new Error('Failed to request document from accounting');
       }
     } catch (error) {
-      alert('Error submitting request.');
+      console.error('Error processing request:', error);
+      alert('Error processing request: ' + error.message);
     }
   };
 
@@ -705,7 +815,7 @@ function StudentDetailView({ enrolledStudents }) {
 
       {(userRole === 'accounting') && (
         <div className="card shadow-sm mb-4">
-          <div className="card-header bg-white text-dark">
+          <div className="card-header bg-success text-white">
             <h5 className="mb-0"><i className="fas fa-money-bill-wave me-2"></i>Accounting Details</h5>
           </div>
           <div className="card-body d-flex justify-content-between align-items-center">
@@ -909,18 +1019,18 @@ function StudentDetailView({ enrolledStudents }) {
             </tr>
           </thead>
           <tbody>
-                      {documentRequests.length > 0 ? (
-                        documentRequests.map((req) => (
+                      {visibleDocumentRequests.length > 0 ? (
+                        visibleDocumentRequests.map((req) => (
                           <tr key={req.id}>
                               <td>
                                   <div>{req.documentType}</div>
                                   {req.schoolYear && <small className="text-muted">{req.schoolYear} / {req.semester}</small>}
                               </td>
                               <td><span className={`badge ${getStatusBadge(req.status)}`}>
-                                  {req.status.replace('_', ' ')}
+                                  {getDisplayStatus(req.status)}
                                 </span>
                               </td>
-                              <td>₱ (req.amount || 0).toFixed(2)</td>
+                              <td>₱ {Number(req.amount || 0).toFixed(2)}</td>
                               <td>{new Date(req.createdAt).toLocaleDateString()}</td>
                               <td>
                                 {/* --- START: NEW ACTIONS DROPDOWN --- */}
@@ -1118,6 +1228,16 @@ function StudentDetailView({ enrolledStudents }) {
     </div>
   </div>
 
+  {/* Activity Logs Section */}
+  {student && (
+    <div className="mb-4">
+      <ActivityLogs 
+        userId={student.id} 
+        studentName={`${details.firstName} ${details.lastName}`} 
+      />
+    </div>
+  )}
+
   <div className="card shadow-sm border-0">
             <div className="card-header bg-white d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center">
@@ -1174,7 +1294,7 @@ function StudentDetailView({ enrolledStudents }) {
                            <td className="text-center">{subject.finalGrade}</td>
                            <td className="text-center">
                              <span className="badge bg-primary">
-                               {subject.status}
+                               {String(subject.status).toLowerCase() === 'taken' ? 'Enrolled' : subject.status}
                              </span>
                            </td>
                            <td>
@@ -1216,14 +1336,6 @@ function StudentDetailView({ enrolledStudents }) {
             <div className="card-body text-center text-muted py-3">
               <i className="fas fa-chevron-down me-2"></i>
               Click the arrow above to view enrolled subjects
-              {enrolledSubjects && enrolledSubjects.subjects && enrolledSubjects.subjects.length > 0 && (
-                <div className="mt-2">
-                  <small>
-                    {enrolledSubjects.subjects.length} subject{enrolledSubjects.subjects.length !== 1 ? 's' : ''} enrolled
-                    ({enrolledSubjects.totalUnits} total units)
-                  </small>
-                </div>
-              )}
             </div>
             )}
           </div>
@@ -1934,10 +2046,26 @@ function StudentDetailView({ enrolledStudents }) {
           <div className="modal-backdrop fade show"></div>
         )}
 
-        <NewRequestModal 
+      <NewRequestModal 
         isOpen={isRequestModalOpen}
         onClose={() => setIsRequestModalOpen(false)}
         onConfirm={handleConfirmRequest}
+        expectedDocumentType={(() => {
+          const params = new URLSearchParams(window.location.search);
+          const requestId = params.get('requestId');
+          console.log('🔍 StudentDetailView - URL params:', window.location.search);
+          console.log('🔍 StudentDetailView - requestId from URL:', requestId);
+          console.log('🔍 StudentDetailView - documentRequests:', documentRequests);
+          
+          if (requestId) {
+            const specificRequest = documentRequests.find(r => r.id === Number(requestId));
+            console.log('🔍 StudentDetailView - specificRequest found:', specificRequest);
+            const expectedType = specificRequest ? specificRequest.documentType : null;
+            console.log('🔍 StudentDetailView - expectedDocumentType:', expectedType);
+            return expectedType;
+          }
+          return null;
+        })()}
       />
 
        <div style={{ display: 'none' }}>

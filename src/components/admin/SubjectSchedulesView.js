@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import { API_BASE_URL } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function SubjectSchedulesView() {
     const [schedules, setSchedules] = useState([]);
@@ -23,7 +24,16 @@ function SubjectSchedulesView() {
     const fetchSchedules = async () => {
         try {
             setLoading(true);
-            const sessionToken = getSessionToken();
+            
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
             
             if (!sessionToken) {
                 setError('No session token found. Please login again.');
@@ -164,42 +174,6 @@ function SubjectSchedulesView() {
         fetchSchedules();
     };
 
-    const handleUpdateEnrollments = async () => {
-        try {
-            setLoading(true);
-            const sessionToken = getSessionToken();
-            
-            if (!sessionToken) {
-                setError('No session token found. Please login again.');
-                return;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/schedules/admin/update-enrollment-counts`, {
-                method: 'POST',
-                headers: {
-                    'X-Session-Token': sessionToken,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Enrollment counts updated:', data);
-                // Refresh the schedules to show updated counts
-                await fetchSchedules();
-                alert('Enrollment counts updated successfully!');
-            } else {
-                const errorData = await response.json();
-                setError(`Failed to update enrollment counts: ${errorData.message || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('❌ Error updating enrollment counts:', error);
-            setError(`Error updating enrollment counts: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleExportAll = () => {
         // TODO: Implement export functionality
         alert('Export functionality will be implemented soon!');
@@ -210,48 +184,7 @@ function SubjectSchedulesView() {
         alert('Print functionality will be implemented soon!');
     };
 
-    const handleCheckStats = async () => {
-        try {
-            setLoading(true);
-            const sessionToken = getSessionToken();
-            
-            if (!sessionToken) {
-                setError('No session token found. Please login again.');
-                return;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/schedules/admin/enrollment-stats`, {
-                headers: {
-                    'X-Session-Token': sessionToken,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📊 Enrollment statistics:', data);
-                
-                // Show stats in an alert for now
-                let statsMessage = `Total Enrollments: ${data.totalEnrollments}\n\n`;
-                statsMessage += `Students with Enrollments: ${data.studentsWithEnrollments.length}\n\n`;
-                statsMessage += `Schedule Details:\n`;
-                data.enrollmentsBySchedule.forEach(schedule => {
-                    const isCorrect = schedule.currentEnrolled == schedule.actualEnrolled;
-                    statsMessage += `- ${schedule.courseCode} (${schedule.courseType}): ${schedule.currentEnrolled}/${schedule.actualEnrolled} ${isCorrect ? '✅' : '❌'}\n`;
-                });
-                
-                alert(statsMessage);
-            } else {
-                const errorData = await response.json();
-                setError(`Failed to get enrollment stats: ${errorData.message || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('❌ Error getting enrollment stats:', error);
-            setError(`Error getting enrollment stats: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Removed Update Enrollments and Check Stats features per request
 
     if (loading) {
         return (
@@ -299,18 +232,14 @@ function SubjectSchedulesView() {
                         <button className="btn btn-outline-primary me-2" onClick={handleRefresh}>
                             <i className="fas fa-sync-alt me-1"></i> Refresh
                         </button>
-                        <button className="btn btn-outline-success me-2" onClick={handleUpdateEnrollments} disabled={loading}>
-                            <i className="fas fa-users me-1"></i> Update Enrollments
-                        </button>
+                        {/* Update Enrollments feature removed */}
                         <button className="btn btn-outline-primary me-2" onClick={handleExportAll}>
                             <i className="fas fa-file-export me-1"></i> Export All
                         </button>
                         <button className="btn btn-outline-secondary me-2" onClick={handlePrintAll}>
                             <i className="fas fa-print me-1"></i> Print All
                         </button>
-                        <button className="btn btn-outline-info" onClick={handleCheckStats} disabled={loading}>
-                            <i className="fas fa-chart-bar me-1"></i> Check Stats
-                        </button>
+                        {/* Check Stats feature removed */}
                     </div>
                 </div>
                 <div className="card-body">

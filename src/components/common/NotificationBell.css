@@ -86,9 +86,31 @@
   background-color: #e7f1ff;
 }
 
+.notification-item:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.notification-item.unread:hover {
+  background-color: #d1ecf1;
+}
+
+.notification-item.read {
+  background-color: #f8f9fa;
+}
+
+.notification-item.read:hover {
+  background-color: #e9ecef;
+}
+
 .notification-item p {
   font-size: 0.9rem;
   margin: 0;
+}
+
+.notification-item p.read-notification {
+  color: #6c757d;
+  font-style: italic;
 }
 
 .notification-list::-webkit-scrollbar {

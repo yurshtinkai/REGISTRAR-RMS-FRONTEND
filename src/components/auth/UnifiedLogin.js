@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import sessionManager from '../../utils/sessionManager';
 import './UnifiedLogin.css';
@@ -13,38 +13,32 @@ function UnifiedLogin({ onLoginSuccess, onSwitchToRegister }) {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [loginTitle, setLoginTitle] = useState('🔐 Welcome Back');
+    const [loginSubtitle, setLoginSubtitle] = useState('Sign in to your account with your ID and password');
 
-    const [headerText, setHeaderText] = useState(() => {
-        try {
-            const saved = localStorage.getItem(LOCAL_STORAGE_KEY_HEADER);
-            return saved && saved.trim() ? saved : ENV_HEADER;
-        } catch {
-            return ENV_HEADER;
-        }
-    });
-    const [isEditingHeader, setIsEditingHeader] = useState(false);
-    const [draftHeader, setDraftHeader] = useState(() => headerText);
+    // Fetch login settings on component mount
+    useEffect(() => {
+        const fetchLoginSettings = async () => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/settings?category=ui`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const settings = data.data || [];
+                    
+                    const titleSetting = settings.find(s => s.key === 'login_title');
+                    const subtitleSetting = settings.find(s => s.key === 'login_subtitle');
+                    
+                    if (titleSetting) setLoginTitle(titleSetting.value);
+                    if (subtitleSetting) setLoginSubtitle(subtitleSetting.value);
+                }
+            } catch (error) {
+                console.error('Error fetching login settings:', error);
+                // Keep default values if fetch fails
+            }
+        };
 
-    // header edit handlers
-    const startEditHeader = () => {
-        setDraftHeader(headerText);
-        setIsEditingHeader(true);
-    };
-    const cancelEditHeader = () => {
-        setDraftHeader(headerText);
-        setIsEditingHeader(false);
-    };
-    const saveHeader = () => {
-        const next = (draftHeader || '').trim() || ENV_HEADER;
-        setHeaderText(next);
-        setIsEditingHeader(false);
-        try { localStorage.setItem(LOCAL_STORAGE_KEY_HEADER, next); } catch {}
-    };
-    const resetHeader = () => {
-        try { localStorage.removeItem(LOCAL_STORAGE_KEY_HEADER); } catch {}
-        setHeaderText(ENV_HEADER);
-        setIsEditingHeader(false);
-    };
+        fetchLoginSettings();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -126,8 +120,8 @@ const HEADER_TEXT = process.env.REACT_APP_STUDENT_LOGIN_HEADER || '🔐 Welcome 
     return (
         <div className="unified-login-container">
             <div className="login-header">
-                <h2>{headerText}</h2>
-                <p>Sign in to your account with your ID and password</p>
+                <h2>{loginTitle}</h2>
+                <p>{loginSubtitle}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
@@ -197,27 +191,6 @@ const HEADER_TEXT = process.env.REACT_APP_STUDENT_LOGIN_HEADER || '🔐 Welcome 
                     </p>
                 </div>
             </form>
-
-            <div className="sample-accounts mt-4">
-                <h6 className="text-center mb-3">Sample Accounts</h6>
-                <div className="row text-center">
-                    <div className="col-4">
-                        <small className="text-white-50 d-block">Student</small>
-                        <small className="text-white">2022-00037</small><br/>
-                        <small className="text-white-50">password</small>
-                    </div>
-                    <div className="col-4">
-                        <small className="text-white-50 d-block">Admin</small>
-                        <small className="text-white">A001</small><br/>
-                        <small className="text-white-50">adminpass</small>
-                    </div>
-                    <div className="col-4">
-                        <small className="text-white-50 d-block">Accounting</small>
-                        <small className="text-white">ACC01</small><br/>
-                        <small className="text-white-50">accpass</small>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

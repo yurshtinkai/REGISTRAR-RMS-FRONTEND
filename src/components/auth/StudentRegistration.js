@@ -83,6 +83,13 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                 const result = await response.json();
                 setSuccess(result.message);
                 
+                // Persist a flag so we can show the welcome prompt after first login
+                try {
+                    const fullName = `${formData.firstName} ${formData.middleName ? formData.middleName + ' ' : ''}${formData.lastName}`.trim();
+                    localStorage.setItem('showWelcomeRegistrationPrompt', '1');
+                    localStorage.setItem('registeredStudentName', fullName);
+                } catch (_) {}
+
                 // Clear form
                 setFormData({
                     idNumber: '',
@@ -93,17 +100,10 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                     middleName: ''
                 });
 
-                // Notify parent component about successful registration
+                // Notify parent component immediately about successful registration
                 if (onRegistrationSuccess) {
                     onRegistrationSuccess(result);
                 }
-
-                // Auto-redirect after 3 seconds
-                setTimeout(() => {
-                    if (onRegistrationSuccess) {
-                        onRegistrationSuccess(result);
-                    }
-                }, 3000);
             } else {
                 const errorData = await response.json();
                 setError(errorData.message || 'Registration failed. Please try again.');
@@ -240,12 +240,6 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                 </div>
             )}
             
-            {success && (
-                <div className="alert alert-success">
-                    {success}
-                    <p>Redirecting to login...</p>
-                </div>
-            )}
         </div>
     );
 }

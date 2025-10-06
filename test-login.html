@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin: 10px 0; }
+        input, button { padding: 10px; margin: 5px; }
+        .output { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Session Login Test</h1>
+        
+        <div class="form-group">
+            <input type="text" id="idNumber" placeholder="ID Number (e.g., A001)" value="A001">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button onclick="testLogin()">Test Login</button>
+        </div>
+        
+        <div class="form-group">
+            <button onclick="checkStorage()">Check Storage</button>
+            <button onclick="clearStorage()">Clear Storage</button>
+            <button onclick="testRefresh()">Test Refresh</button>
+        </div>
+        
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            output.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        async function testLogin() {
+            clearOutput();
+            log('🔄 Starting login test...');
+            
+            const idNumber = document.getElementById('idNumber').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                log('📡 Sending login request...');
+                const response = await fetch('http://localhost:5000/api/sessions/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        idNumber: idNumber,
+                        password: password
+                    })
+                });
+
+                log(`📊 Response status: ${response.status}`);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log('✅ Login successful!', 'success');
+                    log(`👤 User: ${result.user.firstName} ${result.user.lastName}`);
+                    log(`🔑 Session Token: ${result.sessionToken ? 'PROVIDED' : 'MISSING'}`);
+                    
+                    if (result.sessionToken) {
+                        // Store token manually
+                        localStorage.setItem('sessionToken', result.sessionToken);
+                        localStorage.setItem('userRole', result.user.role);
+                        localStorage.setItem('idNumber', result.user.idNumber);
+                        localStorage.setItem('userId', result.user.id);
+                        localStorage.setItem('fullName', `${result.user.firstName} ${result.user.lastName}`);
+                        localStorage.setItem('userInfo', JSON.stringify(result.user));
+                        
+                        log('💾 Session data stored in localStorage', 'success');
+                        checkStorage();
+                    } else {
+                        log('❌ No session token in response!', 'error');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ Login failed: ${errorData.message}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Login error: ${error.message}`, 'error');
+            }
+        }
+
+        function checkStorage() {
+            log('📋 Checking localStorage...');
+            
+            const keys = ['sessionToken', 'userRole', 'idNumber', 'userId', 'fullName', 'userInfo'];
+            let hasData = false;
+            
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    log(`✅ ${key}: ${value.length > 50 ? value.substring(0, 50) + '...' : value}`);
+                    hasData = true;
+                } else {
+                    log(`❌ ${key}: NOT SET`);
+                }
+            });
+            
+            if (!hasData) {
+                log('⚠️ No session data found in localStorage!', 'error');
+            } else {
+                log('✅ Session data found!', 'success');
+            }
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('🧹 All storage cleared!');
+        }
+
+        async function testRefresh() {
+            log('🔄 Testing session refresh...');
+            
+            const token = localStorage.getItem('sessionToken');
+            if (!token) {
+                log('❌ No session token to refresh!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/sessions/refresh', {
+                    method: 'POST',
+                    headers: {
+                        'X-Session-Token': token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log('✅ Session refresh successful!', 'success');
+                    log(`🔑 New token: ${result.sessionToken ? 'PROVIDED' : 'MISSING'}`);
+                } else {
+                    log(`❌ Session refresh failed: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`💥 Refresh error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-check storage on load
+        window.onload = function() {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

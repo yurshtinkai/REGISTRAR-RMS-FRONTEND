@@ -1,4 +1,3 @@
-
 /* src/App.css */
 /* Default background color for logged-in views */
 body {
@@ -42,17 +41,19 @@ footer {
   position: relative;
 }
 
-/* Form switching animations */
-.form-view {
-  transition: opacity 0.3s ease-in-out;
+/* Remove glass/transparent background for registration view */
+.loginCard.no-glass {
+  background: #ffffff;
+  color: #2c3e50;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
-.form-view.fade-in {
-  opacity: 1;
-}
-
-.form-view.fade-out {
-  opacity: 0;
+/* Login page container spacing (no top gap on small screens) */
+.login-page-container { margin-top: 2rem; }
+@media (max-width: 991.98px) {
+  .login-page-container { margin-top: 0; padding-top: 0; }
 }
 /* Custom outline and hover for login button (orange) */
 .btn-outline-orange {
@@ -697,14 +698,14 @@ footer {
 /* Student navbar button designs */
 .student-navbar-btn {
           font-size: 1rem;
-  color: #ffffff;
-  background: none;
-  border: none;
-  border-radius: 0;
-  min-width: 90px;
-  padding: 8px 18px 8px 18px;
-  position: relative;
-  transition: background 0.15s;
+          color: #ffffff;
+          background: none;
+          border: none;
+          border-radius: 0;
+          min-width: 15px;
+          padding: 3px 3px 3px 3px;
+          position: relative;
+          transition: background 0.15s;
 }
 .student-navbar-btn.active, .student-navbar-btn:focus {
   color: #f1f1f1;
@@ -713,19 +714,23 @@ footer {
   content: '';
   display: block;
   position: absolute;
-  left: 12px;
-  right: 12px;
+  left: 6px;
+  right: 6px;
   bottom: 0;
-  height: 3px;
+  height: 2px;
   background: transparent;
   border-radius: 2px;
   transition: background 0.2s, width 0.2s;
 }
-.student-navbar-btn:hover::after {
-  background: #ffffff;
-}
-.student-navbar-btn.active::after {
-  background: #ffffff;
+.student-navbar-btn:hover::after { background: #ffffff; }
+.student-navbar-btn.active::after { background: #ffffff; }
+/* Ensure active underline always shows, with correct width inside the navbar */
+.navbar-custom-gradient .student-navbar-btn.active::after,
+.navbar-custom-gradient .student-navbar-btn:hover::after {
+  background: #ffffff !important;
+  left: 22px;   /* Increased from 6px to make the line shorter */
+  right: 22px;  /* Increased from 6px to make the line shorter */
+  height: 3px; 
 }
 
 .profile-preview-modal {
@@ -871,9 +876,54 @@ footer {
 .approval-form-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
-/* .header-notification-profile {
-  gap: 1rem; 
-} adjust gap between number and nofication bell*/
 
+/* Student Navbar Responsive Logo */
+.student-navbar-logo {
+  width: 185px;
+  height: 35px;
+  margin-left: 0;
+  object-fit: contain;
+}
+
+@media (max-width: 991.98px) {
+  .student-navbar-logo {
+    width: 90px;
+    height: 30px;
+    margin-left: 0;
+    object-fit: contain;
+  }
+}
+
+/* Small circular logo inside hamburger on mobile */
+.hamburger-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.navbar-custom-gradient .navbar-toggler {
+  margin-left: 15px; 
+}
+/* Hide sidebar on desktop */
+.student-sidebar {
+  display: flex;
+}
+@media (min-width: 992px) {
+  .student-sidebar {
+    display: none !important;
+  }
+}
+
+/* Restore hover effect for student navbar menu items */
+
+/* Underline hover and active effect for student navbar menu items */
+/* Restrict underline effect to student nav buttons only */
+.navbar-custom-gradient .btn-link.text-white { position: relative; }
+.navbar-custom-gradient .btn-link.text-white:not(.student-navbar-btn)::after { background: transparent !important; content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
+.student-navbar-logo-bc {
+  width: 90px !important;
+  height: 50px !important;
+  object-fit: contain;
+}
 
 

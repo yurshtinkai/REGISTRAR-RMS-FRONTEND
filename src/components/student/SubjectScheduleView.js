@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './SubjectScheduleView.css';
 
 function SubjectScheduleView() {
@@ -15,24 +16,71 @@ function SubjectScheduleView() {
     const fetchScheduleData = async () => {
         try {
             setLoading(true);
-            const sessionToken = getSessionToken();
             
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                setLoading(false);
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
             if (!sessionToken) {
                 setError('No session token found. Please login again.');
                 setLoading(false);
                 return;
             }
 
-            // Get user ID from localStorage
-            const userId = localStorage.getItem('userId');
+            // Try to get the student's profile to determine correct year/semester
+            let userId = localStorage.getItem('userId');
+            let yearLevelParam = '';
+            let semesterParam = '';
+            let schoolYearParam = '';
+
+            try {
+                const profileResp = await fetch(`${API_BASE_URL}/students/profile`, {
+                    headers: { 'X-Session-Token': sessionToken }
+                });
+                if (profileResp.ok) {
+                    const profile = await profileResp.json();
+                    userId = String(profile.id || userId || '');
+                    const yr = profile.currentYearLevel || '';
+                    const sem = profile.currentSemester || '';
+                    const sy = profile.yearOfEntry ? `${profile.yearOfEntry}-${profile.yearOfEntry + 1}` : '';
+
+                    // Normalize values to backend format
+                    const mapYear = (y) => {
+                        const m = {
+                            '1st': '1st Year', '2nd': '2nd Year', '3rd': '3rd Year', '4th': '4th Year'
+                        };
+                        return m[y] || (y?.includes('Year') ? y : y ? `${y} Year` : '');
+                    };
+                    const mapSem = (s) => {
+                        const m = { '1st': '1st Semester', '2nd': '2nd Semester', 'Summer': 'Summer' };
+                        return m[s] || (s?.includes('Semester') ? s : s ? `${s} Semester` : '');
+                    };
+                    yearLevelParam = mapYear(yr);
+                    semesterParam = mapSem(sem);
+                    schoolYearParam = sy || '2025-2026';
+                }
+            } catch (e) {
+                // ignore, use defaults/localStorage
+            }
+
             if (!userId) {
                 setError('User ID not found. Please login again.');
                 setLoading(false);
                 return;
             }
 
-            // Fetch schedule data
-            const response = await fetch(`${API_BASE_URL}/schedules/student/${userId}`, {
+            const query = new URLSearchParams();
+            if (yearLevelParam) query.set('yearLevel', yearLevelParam);
+            if (semesterParam) query.set('semester', semesterParam);
+            if (schoolYearParam) query.set('schoolYear', schoolYearParam);
+
+            // Fetch schedule data using derived params
+            const response = await fetch(`${API_BASE_URL}/schedules/student/${userId}?${query.toString()}`, {
                 headers: {
                     'X-Session-Token': sessionToken,
                     'Content-Type': 'application/json'

@@ -1,6 +1,7 @@
 import React, { useState} from 'react';
 import UnifiedLogin from './UnifiedLogin';
 import StudentRegistration from './StudentRegistration';
+import sessionManager from '../../utils/sessionManager';
 import { useFooter } from '../../contexts/FooterContext';
 
 function Login({ onLoginSuccess }) {
@@ -10,8 +11,10 @@ function Login({ onLoginSuccess }) {
   const { footerYear } = useFooter();
 
   const handleLoginSuccess = (result) => {
-    // Store session token and user info
-    localStorage.setItem('sessionToken', result.sessionToken);
+    // Store session token using session manager
+    sessionManager.setSessionToken(result.sessionToken);
+    
+    // Store user info
     localStorage.setItem('userRole', result.user.role);
     localStorage.setItem('idNumber', result.user.idNumber);
     localStorage.setItem('userId', result.user.id); // Store the actual user ID from database
@@ -77,13 +80,13 @@ function Login({ onLoginSuccess }) {
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container login-page-container">
       <div className="row align-items-center justify-content-center">
-        <div className="col-md-5 d-flex justify-content-center">
+        <div className="col-lg-5 d-none d-lg-flex justify-content-center">
           <img src="/bcleads.png" alt="Registrar Logo" style={{ maxWidth: '850px', width: '100%', height: 'auto' }} className="mb-4" />
         </div>
-        <div className="col-md-7 d-flex justify-content-end">
-          <div className="loginCard shadow-lg p-4 w-100 d-flex flex-column align-items-center" style={{ maxWidth: '500px' }}>
+        <div className="col-12 col-lg-7 d-flex justify-content-center justify-content-lg-end">
+        <div className="loginCard shadow-lg p-4 w-100 d-flex flex-column align-items-center" style={{ maxWidth: '500px' }}>
             {renderCurrentView()}
             
             {/* Error Message */}
@@ -93,9 +96,11 @@ function Login({ onLoginSuccess }) {
               </div>
             )}
 
-            <footer className="text-center mt-4 text-muted">
-            © {footerYear} - Online Records Management System
-            </footer>
+            {view !== 'register' && (
+              <footer className="text-center mt-4 text-muted">
+                © {footerYear} - Online Records Management System
+              </footer>
+            )}
             
             {/* FIX: Removed the redundant buttons from here */}
           </div>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Debug</title>
+</head>
+<body>
+    <h1>Session Debug Tool</h1>
+    <div id="debug-output"></div>
+    
+    <script>
+        function debugSession() {
+            const output = document.getElementById('debug-output');
+            
+            const sessionData = {
+                sessionToken: localStorage.getItem('sessionToken'),
+                userRole: localStorage.getItem('userRole'),
+                idNumber: localStorage.getItem('idNumber'),
+                userId: localStorage.getItem('userId'),
+                fullName: localStorage.getItem('fullName'),
+                userInfo: localStorage.getItem('userInfo'),
+                allLocalStorage: {...localStorage}
+            };
+            
+            output.innerHTML = `
+                <h2>Current Session State:</h2>
+                <pre>${JSON.stringify(sessionData, null, 2)}</pre>
+                
+                <h2>Actions:</h2>
+                <button onclick="clearAll()">Clear All Storage</button>
+                <button onclick="testLogin()">Test Login</button>
+                <button onclick="location.reload()">Refresh</button>
+            `;
+        }
+        
+        function clearAll() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('All storage cleared!');
+            debugSession();
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:5000/api/sessions/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        idNumber: 'A001',
+                        password: 'admin123'
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('Login result:', result);
+                
+                if (response.ok && result.sessionToken) {
+                    localStorage.setItem('sessionToken', result.sessionToken);
+                    localStorage.setItem('userRole', result.user.role);
+                    localStorage.setItem('idNumber', result.user.idNumber);
+                    localStorage.setItem('userId', result.user.id);
+                    localStorage.setItem('fullName', result.user.firstName + ' ' + result.user.lastName);
+                    localStorage.setItem('userInfo', JSON.stringify(result.user));
+                    alert('Login successful! Session token stored.');
+                } else {
+                    alert('Login failed: ' + (result.message || 'Unknown error'));
+                }
+                
+                debugSession();
+            } catch (error) {
+                alert('Login error: ' + error.message);
+            }
+        }
+        
+        // Run debug on load
+        debugSession();
+    </script>
+</body>
+</html>

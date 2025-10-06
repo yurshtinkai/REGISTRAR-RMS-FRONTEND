@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 import './BillingPage.css'; // Create this CSS file next
 
 function BillingPage() {
@@ -12,8 +13,17 @@ function BillingPage() {
     useEffect(() => {
         const fetchBalance = async () => {
             try {
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setError('Session expired. Please login again.');
+                    setLoading(false);
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 const response = await fetch(`${API_BASE_URL}/students/me/balance`, {
-                    headers: { 'X-Session-Token': getSessionToken() }
+                    headers: { 'X-Session-Token': sessionToken }
                 });
 
                 if (response.ok) {
@@ -60,7 +70,7 @@ function BillingPage() {
         <div className="container mt-5 billing-page">
             <div className="card shadow-lg">
                 <div className="card-header bg-primary text-white">
-                    <h4 className="mb-0"><i className="fas fa-file-invoice-dollar me-2"></i>Balance</h4>
+                    <h4 className="mb-0"><i className="fas fa-file-invoice-dollar me-2"></i>Tuition Balance</h4>
                 </div>
                 <div className="card-body p-4">
                     <div className="billing-details mb-4">
