@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
 import './StudentRegistration.css';
 
@@ -15,41 +15,178 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [idNumberError, setIdNumberError] = useState('');
+    const [fullNameError, setFullNameError] = useState('');
+
+    // Capitalize function for name fields
+    const capitalizeWords = (text) => {
+        if (!text) return '';
+        return text.toLowerCase().split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    };
+
+    // Check for duplicate ID number
+    const checkDuplicateIdNumber = async (idNumber) => {
+        if (!idNumber || idNumber.length < 10) {
+            setIdNumberError('');
+            return false;
+        }
+
+        console.log('🔍 Checking duplicate ID number:', idNumber);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/students/check-duplicate-id/${idNumber}`);
+            console.log('🔍 ID check response status:', response.status);
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔍 ID check response data:', data);
+                
+                if (data.exists) {
+                    setIdNumberError('This School ID Number is already registered');
+                    console.log('❌ Duplicate ID found:', idNumber);
+                    return true;
+                } else {
+                    setIdNumberError('');
+                    console.log('✅ ID is unique:', idNumber);
+                    return false;
+                }
+            } else {
+                console.error('❌ ID check failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Error checking duplicate ID:', error);
+        }
+        setIdNumberError('');
+        return false;
+    };
+
+    // Check for duplicate full name
+    const checkDuplicateFullName = async (firstName, lastName, middleName) => {
+        if (!firstName || !lastName) {
+            setFullNameError('');
+            return false;
+        }
+
+        console.log('🔍 Checking duplicate full name:', { firstName, lastName, middleName });
+
+        try {
+            const fullName = `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`.trim();
+            const response = await fetch(`${API_BASE_URL}/students/check-duplicate-name`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    middleName: middleName ? middleName.trim() : ''
+                })
+            });
+
+            console.log('🔍 Name check response status:', response.status);
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('🔍 Name check response data:', data);
+                
+                if (data.exists) {
+                    setFullNameError('A student with this full name is already registered');
+                    console.log('❌ Duplicate name found:', fullName);
+                    return true;
+                } else {
+                    setFullNameError('');
+                    console.log('✅ Name is unique:', fullName);
+                    return false;
+                }
+            } else {
+                console.error('❌ Name check failed:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Error checking duplicate name:', error);
+        }
+        setFullNameError('');
+        return false;
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        
+        // Apply capitalization to name fields
+        const processedValue = ['firstName', 'lastName', 'middleName'].includes(name) 
+            ? capitalizeWords(value) 
+            : value;
+            
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: processedValue
         }));
     };
 
+    // Use useEffect to handle duplicate validation with proper debouncing
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            // Check for duplicate ID number
+            if (formData.idNumber && formData.idNumber.length >= 10) {
+                checkDuplicateIdNumber(formData.idNumber);
+            } else {
+                setIdNumberError('');
+            }
+
+            // Check for duplicate full name
+            if (formData.firstName && formData.lastName) {
+                checkDuplicateFullName(formData.firstName, formData.lastName, formData.middleName);
+            } else {
+                setFullNameError('');
+            }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [formData.idNumber, formData.firstName, formData.lastName, formData.middleName]);
+
     const validateForm = () => {
+        console.log('🔍 Validating form...');
+        console.log('🔍 Current errors:', { idNumberError, fullNameError });
+        console.log('🔍 Form data:', formData);
+
+        // Check for duplicate errors first
+        if (idNumberError || fullNameError) {
+            console.log('❌ Form validation failed: Duplicate errors found');
+            setError('That student with that full name is already registered');
+            return false;
+        }
+
         // Validate School ID format (YYYY-XXXXX)
         const schoolIdPattern = /^\d{4}-\d{5}$/;
         if (!schoolIdPattern.test(formData.idNumber)) {
+            console.log('❌ Form validation failed: Invalid ID format');
             setError('School ID must be in the format: YYYY-XXXXX (e.g., 2022-00037)');
             return false;
         }
 
         // Validate password length
         if (formData.password.length < 6) {
+            console.log('❌ Form validation failed: Password too short');
             setError('Password must be at least 6 characters long');
             return false;
         }
 
         // Validate password confirmation
         if (formData.password !== formData.confirmPassword) {
+            console.log('❌ Form validation failed: Passwords do not match');
             setError('Passwords do not match');
             return false;
         }
 
         // Validate required fields
         if (!formData.firstName || !formData.lastName) {
+            console.log('❌ Form validation failed: Missing required fields');
             setError('First Name and Last Name are required');
             return false;
         }
 
+        console.log('✅ Form validation passed');
         return true;
     };
 

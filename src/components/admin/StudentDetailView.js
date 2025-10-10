@@ -1228,15 +1228,6 @@ function StudentDetailView({ enrolledStudents }) {
     </div>
   </div>
 
-  {/* Activity Logs Section */}
-  {student && (
-    <div className="mb-4">
-      <ActivityLogs 
-        userId={student.id} 
-        studentName={`${details.firstName} ${details.lastName}`} 
-      />
-    </div>
-  )}
 
   <div className="card shadow-sm border-0">
             <div className="card-header bg-white d-flex justify-content-between align-items-center">
@@ -1634,63 +1625,15 @@ function StudentDetailView({ enrolledStudents }) {
             </div>
           </div>
 
-          {/* Login/Logout History Section */}
-          <div className="card shadow-sm border-0 mb-4 login-history-section">
-            <div className="card-header bg-white text-dark">
-              <h5 className="mb-0">
-                <i className="fas fa-sign-in-alt me-2"></i>
-                Login/Logout History
-              </h5>
+          {/* Activity Logs Section */}
+          {student && (
+            <div className="mb-4">
+              <ActivityLogs 
+                userId={student.id} 
+                studentName={`${details.firstName} ${details.lastName}`} 
+              />
             </div>
-            <div className="card-body history-table-container">
-              {loadingLoginHistory ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <p className="mt-3 text-muted">Loading login history...</p>
-                </div>
-              ) : loginHistoryError ? (
-                <div className="alert alert-danger">
-                  <h6>Error Loading History</h6>
-                  <p className="mb-0">{loginHistoryError}</p>
-                </div>
-              ) : (
-                <table className="table history-table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Time</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loginHistory && loginHistory.length > 0 ? (
-                      loginHistory.map((entry, idx) => (
-                        <tr key={idx}>
-                          <td>{entry.date}</td>
-                          <td>{entry.time}</td>
-                          <td>
-                            <span 
-                              className={`badge ${entry.action === 'login' ? 'bg-success' : 'bg-danger'}`}
-                            >
-                              {entry.action === 'login' ? '🔓 LOGIN' : '🔒 LOGOUT'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="3" className="text-center text-muted">
-                          No login/logout history available.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Additional Academic Information */}
           {(details.ncaeGrade || details.specialization || details.lastCollegeAttended) && (

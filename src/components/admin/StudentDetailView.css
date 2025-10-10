@@ -529,58 +529,110 @@
   background: #a8a8a8;
 }
 
-.login-history-section {
+/* Activity Logs Section Styles */
+.activity-logs-section {
   margin-top: 20px;
 }
 
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 10px;
-}
-
-.history-table th, 
-.history-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-}
-
-.history-table th {
-  background-color: #f4f4f4;
-  font-weight: bold;
-}
-
-/* Login History Section Styles */
-.login-history-section .card-header {
+.activity-logs-section .card-header {
   background: white !important;
   color: #212529 !important;
 }
 
-.history-table-container {
-  padding: 0;
-  max-height: 400px;
-  overflow-y: auto;
+.activity-logs-section .card {
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.history-table {
-  margin-bottom: 0;
+.activity-logs-section .card.border-success {
+  border-color: #28a745 !important;
 }
 
-.history-table tbody tr:hover {
-  background-color: #f8f9fa;
+.activity-logs-section .card.border-primary {
+  border-color: #007bff !important;
 }
 
-.history-table td {
-  vertical-align: middle;
+.activity-logs-section .card.border-warning {
+  border-color: #ffc107 !important;
 }
 
-.history-table .badge {
-  font-size: 0.8rem;
-  padding: 0.4rem 0.8rem;
+.activity-logs-section .card-body {
+  padding: 1.5rem;
 }
 
-.history-table .font-monospace {
-  font-family: 'Courier New', monospace;
+.activity-logs-section .card-title {
+  font-weight: 600;
   font-size: 0.9rem;
+}
+
+.activity-logs-section .card-text {
+  font-size: 0.85rem;
+}
+
+.activity-logs-section h3 {
+  font-weight: 700;
+  font-size: 2rem;
+}
+
+/* Recent Activity Styles */
+.recent-activity {
+  margin-top: 1rem;
+}
+
+.activity-item {
+  padding: 1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  transition: all 0.2s ease;
+}
+
+.activity-item:hover {
+  background-color: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.activity-icon {
+  flex-shrink: 0;
+}
+
+.activity-content h6 {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.activity-content p {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.activity-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.activity-details small {
+  font-size: 0.8rem;
+}
+
+.activity-details i {
+  width: 12px;
+  text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .activity-details {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .activity-logs-section .card-body {
+    padding: 1rem;
+  }
+  
+  .activity-item {
+    padding: 0.75rem;
+  }
 }

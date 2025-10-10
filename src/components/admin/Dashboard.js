@@ -165,6 +165,11 @@ function Dashboard() {
                     graduatedStudents: data.graduatedStudents || 0,
                     totalEnrolledStudents: data.totalEnrolledStudents || 0,
                     bsitStudents: data.bsitStudents || 0,
+                    bsitGenderDistribution: {
+                        male: data.bsitGenderDistribution?.male || 0,
+                        female: data.bsitGenderDistribution?.female || 0,
+                        other: data.bsitGenderDistribution?.other || 0
+                    },
                     genderDistribution: {
                         male: data.genderDistribution?.male || 0,
                         female: data.genderDistribution?.female || 0,
@@ -281,6 +286,14 @@ function Dashboard() {
             borderColor: '#fff'
         }]
     };
+
+    // Debug logging for request status data
+    console.log('🔍 Request Status Data:', {
+        pendingRequests: stats.pendingRequests,
+        approvedRequests: stats.approvedRequests,
+        rejectedRequests: stats.rejectedRequests,
+        totalRequests: stats.totalRequests
+    });
 
     const studentStatusData = {
         labels: ['New Students', 'Active Students', 'Inactive Students'],
@@ -560,13 +573,13 @@ function Dashboard() {
                                         </div>
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-info">{stats.genderDistribution?.male?.toLocaleString() || '0'}</div>
+                                                <div className="h4 mb-1 text-info">{stats.bsitGenderDistribution?.male?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">Male</small>
                                             </div>
                                         </div>
                                         <div className="col-md-3">
                                             <div className="text-center">
-                                                <div className="h4 mb-1 text-warning">{stats.genderDistribution?.female?.toLocaleString() || '0'}</div>
+                                                <div className="h4 mb-1 text-warning">{stats.bsitGenderDistribution?.female?.toLocaleString() || '0'}</div>
                                                 <small className="text-muted">Female</small>
                                             </div>
                                         </div>
@@ -682,7 +695,17 @@ function Dashboard() {
                         </div>
                         <div className="card-body">
                             <div style={{ height: '300px' }}>
-                                <Pie data={requestStatusData} options={chartOptions} />
+                                {stats.totalRequests > 0 ? (
+                                    <Pie data={requestStatusData} options={chartOptions} />
+                                ) : (
+                                    <div className="d-flex align-items-center justify-content-center h-100">
+                                        <div className="text-center text-muted">
+                                            <i className="fas fa-chart-pie fa-3x mb-3"></i>
+                                            <h5>No Request Data</h5>
+                                            <p>No requests found to display in the chart.</p>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

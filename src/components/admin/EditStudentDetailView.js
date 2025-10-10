@@ -164,7 +164,7 @@ function EditStudentDetailView({ onStudentUpdated }) {
                         Edit Student: {student.lastName}, {student.firstName}
                     </h2>
                     <div>
-                        <Link to={`/admin/students/${idNo}`} className="btn btn-outline-secondary me-2">
+                        <Link to={`/admin/all-students`} className="btn btn-outline-secondary me-2">
                             Cancel
                         </Link>
                          <button type="submit" className="btn btn-primary" disabled={loading}>

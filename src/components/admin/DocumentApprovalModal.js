@@ -3,16 +3,50 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 // The generateDocumentContent function remains the same and is omitted for brevity...
-const generateDocumentContent = (request) => {
+const generateDocumentContent = async (request) => {
     if (!request) return '';
 
     // --- Placeholder data from old code ---
     const personalInfo = { civilStatus: 'Single', dateOfBirth: 'January 23, 2006', placeOfBirth: 'Mandaue City, Cebu', parentGuardian: 'Maria Dela Cruz', permanentAddress: 'Sangi, Cal-oocan, Mandaue City', previousSchool: 'Mandaue City Science High School' };
     const educationalData = { elementary: { name: 'Mabolo Elementary School', year: '2018' }, secondary: { name: 'Cebu Eastern College', year: '2022' }, shs: { name: 'Cabancalan National High School', year: '2022' }, tertiary: { name: 'Cebu Eastern College', year: '2025' } };
-    const gradesData = [
+    
+    // Default grades data
+    let gradesData = [
         { semester: 'First Year, First Semester', year: '2024-2025', subjects: [ { code: 'IT 111', desc: 'Introduction to Computing', grade: '1.5', units: 3 }, { code: 'GE 1', desc: 'Understanding the Self', grade: '1.2', units: 3 }, { code: 'FIL 1', desc: 'Komunikasyon sa Akademikong Filipino', grade: '1.7', units: 3 }, { code: 'NSTP 1', desc: 'National Service Training Program 1', grade: 'P', units: 3 } ]},
         { semester: 'First Year, Second Semester', year: '2024-2025', subjects: [ { code: 'IT 121', desc: 'Computer Programming 1', grade: '1.8', units: 3 }, { code: 'IT 122', desc: 'Data Structures and Algorithms', grade: '2.0', units: 3 }, { code: 'GE 5', desc: 'Purposive Communication', grade: '1.5', units: 3 }, { code: 'NSTP 2', desc: 'National Service Training Program 2', grade: 'P', units: 3 } ]}
     ];
+    
+    // If it's a GRADE SLIP request, fetch real student data
+    if (request.documentType === 'GRADE SLIP' && request.studentId) {
+        try {
+            // Fetch student registration data
+            const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`);
+            if (registrationResponse.ok) {
+                const registrationData = await registrationResponse.json();
+                
+                // Fetch enrolled subjects
+                const subjectsResponse = await fetch(`${API_BASE_URL}/students/enrolled-subjects/${request.studentId}`);
+                if (subjectsResponse.ok) {
+                    const subjectsData = await subjectsResponse.json();
+                    
+                    // Transform the data to match the expected format
+                    gradesData = [{
+                        semester: `${registrationData.yearLevel}, ${registrationData.semester}`,
+                        year: registrationData.schoolYear,
+                        subjects: subjectsData.subjects.map(subject => ({
+                            code: subject.courseCode,
+                            desc: subject.courseTitle, 
+                            grade: subject.finalGrade || 'N/A',
+                            units: subject.units
+                        }))
+                    }];
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching real student data:', error);
+            // Fall back to dummy data if API call fails
+        }
+    }
     const diplomaDetails = { dean: "JAYPEE Y. ZOILO, DBA", schoolDirector: "RANULFO L. VISAYA JR., DevEdD.", registrar: "WENELITO M. LAYSON", president: "LILIAN BENEDICTO-HUAN", graduationDate: "this 26th day of May 2022", specialOrder: "No. 30-346201-0196, s. 2022 dated December 15, 2022" };
 
     // Helper variables...
@@ -160,6 +194,28 @@ const generateDocumentContent = (request) => {
                             <td class="text-center">${sub.grade}</td>
                         </tr>`;
             }).join('');
+            
+            // Use real student data if available
+            let displayStudentName = studentName;
+            let displayStudentId = studentIdNumber;
+            let displayCourse = studentCourse;
+            let displaySchoolYearSemester = `${currentSemesterGrades.year} / ${currentSemesterGrades.semester}`;
+            
+            // If we fetched real data, use it
+            if (request.documentType === 'GRADE SLIP' && request.studentId) {
+                try {
+                    const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`);
+                    if (registrationResponse.ok) {
+                        const registrationData = await registrationResponse.json();
+                        displayStudentName = `${registrationData.firstName} ${registrationData.middleName || ''} ${registrationData.lastName}`.trim();
+                        displayStudentId = request.student?.idNumber || 'N/A';
+                        displayCourse = registrationData.course || 'Bachelor of Science in Information Technology';
+                        displaySchoolYearSemester = `${registrationData.schoolYear} / ${registrationData.yearLevel}, ${registrationData.semester}`;
+                    }
+                } catch (error) {
+                    console.error('Error fetching student registration for display:', error);
+                }
+            }
             return `
                 <style>
                     /* Force Arial across the entire grade slip content */
@@ -189,7 +245,7 @@ const generateDocumentContent = (request) => {
                     .gradeslip-cert .text-center { text-align: center; }
                     .gradeslip-cert .totals-left { margin-top: 10px; font-size: 12pt; }
                     .gradeslip-cert .footer-note { margin-top: 15px; }
-                    .gradeslip-cert .signature-block { margin-top: 40px; text-align: center; padding: 60px 85px 85px 85px; }
+                    .gradeslip-cert .signature-block { margin-top: 40px; text-align: center; padding: 60px 85px 55px 85px; }
                     .gradeslip-cert .footer-note1 { font-size: 9pt; font-style: italic; margin-top: 25%; }
                 </style>
                 <div class="gradeslip-cert">
@@ -199,10 +255,10 @@ const generateDocumentContent = (request) => {
                     <div class="print-container">
                         <div class="content-wrapper">
                             <div class="cert-title">CERTIFICATION</div>
-                            <p class="info"><strong>Student Name:</strong> ${studentName}</p>
-                            <p class="info"><strong>Student ID:</strong> ${studentIdNumber}</p>
-                            <p class="info"><strong>Course:</strong> ${studentCourse}</p>
-                            <p class="info"><strong>School Year / Semester:</strong> ${currentSemesterGrades.year} / ${currentSemesterGrades.semester}</p>
+                            <p class="info"><strong>Student Name:</strong> ${displayStudentName}</p>
+                            <p class="info"><strong>Student ID:</strong> ${displayStudentId}</p>
+                            <p class="info"><strong>Course:</strong> ${displayCourse}</p>
+                            <p class="info"><strong>School Year / Semester:</strong> ${displaySchoolYearSemester}</p>
                             <div class="program-title">BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY</div>
                             <table class="grades-table">
                                 <thead>
@@ -1153,7 +1209,8 @@ function DocumentApprovalForm() {
                 // reset to page 1 for TOR on load
                 const initial = data.documentType && data.documentType.toUpperCase() === 'TOR' ? { ...data, __torPage: 1 } : data;
                 setTorPage(1);
-                setContent(generateDocumentContent(initial));
+                const generatedContent = await generateDocumentContent(initial);
+                setContent(generatedContent);
             } catch (err) { setError(err.message); }
             finally { setLoading(false); }
         };
@@ -1218,8 +1275,8 @@ function DocumentApprovalForm() {
             const isTor = (request.documentType || '').toUpperCase() === 'TOR';
             let htmlToPrint = content;
             if (isTor) {
-                const page1 = generateDocumentContent({ ...request, __torPage: 1 });
-                const page2 = generateDocumentContent({ ...request, __torPage: 2 });
+                const page1 = await generateDocumentContent({ ...request, __torPage: 1 });
+                const page2 = await generateDocumentContent({ ...request, __torPage: 2 });
                 htmlToPrint = `${page1}<div class="print-break"></div>${page2}`;
             }
 
@@ -1282,11 +1339,12 @@ function DocumentApprovalForm() {
         setIsEditing(!isEditing);
     };
 
-    const handleShowTorPage = (pageNum) => {
+    const handleShowTorPage = async (pageNum) => {
         if (!request) return;
         const next = { ...request, __torPage: pageNum };
         setTorPage(pageNum);
-        setContent(generateDocumentContent(next));
+        const generatedContent = await generateDocumentContent(next);
+        setContent(generatedContent);
     };
     
     if (loading) return <p className="text-center mt-5">Loading document...</p>;

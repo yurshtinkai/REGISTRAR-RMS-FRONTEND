@@ -3,6 +3,32 @@
     border-radius: 0.75rem;
 }
 
+.billing-page .card-header {
+    background-color: #0d6efd !important; /* Bootstrap primary blue */
+    color: white !important;
+    border-bottom: none;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    background-image: none !important;
+    background-clip: initial !important;
+}
+
+.billing-page .card-header h4 {
+    color: white !important;
+    margin-bottom: 0;
+}
+
+.billing-page .card-header.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+.billing-page .card-header.text-white {
+    color: white !important;
+}
+
+.billing-page .card-header i {
+    color: white !important;
+}
+
 .billing-details p {
     margin-bottom: 0.5rem;
 }

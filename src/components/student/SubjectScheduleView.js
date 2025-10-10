@@ -106,11 +106,29 @@ function SubjectScheduleView() {
 
     const formatTime = (time) => {
         if (!time) return 'TBA';
-        return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
+        
+        // Handle different time formats
+        if (typeof time === 'string') {
+            // If it's already in 12-hour format with AM/PM, return as is
+            if (time.includes('AM') || time.includes('PM')) {
+                return time;
+            }
+            
+            // If it's in 24-hour format (HH:MM), convert to 12-hour
+            if (time.match(/^\d{2}:\d{2}$/)) {
+                try {
+                    return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                } catch (e) {
+                    return time; // Return original if parsing fails
+                }
+            }
+        }
+        
+        return time || 'TBA';
     };
 
     const getDayAbbreviation = (day) => {
@@ -152,6 +170,19 @@ function SubjectScheduleView() {
         }
     };
 
+    const getCourseTypeText = (type) => {
+        switch (type?.toLowerCase()) {
+            case 'lecture':
+                return 'Lecture';
+            case 'laboratory':
+                return 'Laboratory';
+            case 'both':
+                return 'Both';
+            default:
+                return 'Unknown';
+        }
+    };
+
     if (loading) {
         return (
             <div className="subject-schedule-container">
@@ -190,7 +221,7 @@ function SubjectScheduleView() {
                 <div className="text-center py-5">
                     <div className="alert alert-info">
                         <h4>No Schedule Data Found</h4>
-                        <p>No subjects or schedules are available for {scheduleData?.yearLevel || 'current'} Year, {scheduleData?.semester || 'current'} Semester.</p>
+                        <p>No subjects or schedules are available for {scheduleData?.yearLevel || 'current'}, {scheduleData?.semester || 'current'}.</p>
                         <p className="text-muted">Please contact the registrar's office for schedule information.</p>
                         <div className="mt-3">
                             <button 
@@ -321,7 +352,9 @@ function SubjectScheduleView() {
                                                                 )}
                                                             </div>
                                                             <div className="schedule-status">
-                                                                {getStatusBadge(daySchedule.scheduleStatus)}
+                                                                <span className={getStatusBadge(daySchedule.scheduleStatus)}>
+                                                                    {daySchedule.scheduleStatus || 'Open'}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     );
@@ -376,38 +409,84 @@ function SubjectScheduleView() {
                                                         <span className="badge bg-info">{subject.units}</span>
                                                     </td>
                                                     <td className="text-center">
-                                                        {getCourseTypeBadge(subject.courseType)}
+                                                        {(() => {
+                                                            // Get unique course types from schedules
+                                                            const courseTypes = new Set();
+                                                            
+                                                            subject.schedules.forEach(schedule => {
+                                                                if (schedule.courseType) {
+                                                                    courseTypes.add(schedule.courseType);
+                                                                }
+                                                            });
+                                                            
+                                                            // If no types from schedules, use subject's courseType
+                                                            if (courseTypes.size === 0) {
+                                                                courseTypes.add(subject.courseType || 'Lecture');
+                                                            }
+                                                            
+                                                            // Convert Set to Array and display
+                                                            const typesArray = Array.from(courseTypes);
+                                                            return typesArray.map((type, index) => (
+                                                                <div key={index} className="mb-1">
+                                                                    <span className={getCourseTypeBadge(type)}>
+                                                                        {getCourseTypeText(type)}
+                                                                    </span>
+                                                                </div>
+                                                            ));
+                                                        })()}
                                                     </td>
                                                     <td className="text-center">
-                                                        {subject.schedules.map((schedule, sIndex) => (
-                                                            <div key={sIndex} className="mb-1">
-                                                                <div className="fw-bold">{getDayAbbreviation(schedule.day)}</div>
-                                                                <small className="text-muted">
-                                                                    {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
-                                                                </small>
-                                                            </div>
-                                                        ))}
+                                                        {(() => {
+                                                            // Group schedules by day and time to avoid duplicates
+                                                            const uniqueSchedules = [];
+                                                            const seen = new Set();
+                                                            
+                                                            subject.schedules.forEach(schedule => {
+                                                                const key = `${schedule.day}-${schedule.startTime}-${schedule.endTime}`;
+                                                                if (!seen.has(key)) {
+                                                                    seen.add(key);
+                                                                    uniqueSchedules.push(schedule);
+                                                                }
+                                                            });
+                                                            
+                                                            return uniqueSchedules.map((schedule, sIndex) => (
+                                                                <div key={sIndex} className="mb-1">
+                                                                    <div className="fw-bold">{getDayAbbreviation(schedule.day)}</div>
+                                                                    <small className="text-muted">
+                                                                        {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                                                                    </small>
+                                                                </div>
+                                                            ));
+                                                        })()}
                                                     </td>
                                                     <td className="text-center">
-                                                        {subject.schedules.map((schedule, sIndex) => (
-                                                            <div key={sIndex} className="mb-1">
-                                                                {schedule.room}
-                                                            </div>
-                                                        ))}
+                                                        {(() => {
+                                                            // Group rooms by unique schedule to avoid duplicates
+                                                            const uniqueRooms = [];
+                                                            const seen = new Set();
+                                                            
+                                                            subject.schedules.forEach(schedule => {
+                                                                const key = `${schedule.day}-${schedule.startTime}-${schedule.endTime}`;
+                                                                if (!seen.has(key)) {
+                                                                    seen.add(key);
+                                                                    uniqueRooms.push(schedule.room);
+                                                                }
+                                                            });
+                                                            
+                                                            return uniqueRooms.map((room, rIndex) => (
+                                                                <div key={rIndex} className="mb-1">
+                                                                    {room}
+                                                                </div>
+                                                            ));
+                                                        })()}
                                                     </td>
                                                     <td className="text-center">
-                                                        {subject.schedules.map((schedule, sIndex) => (
-                                                            <div key={sIndex} className="mb-1">
-                                                                {schedule.instructor || 'TBA'}
-                                                            </div>
-                                                        ))}
+                                                        {subject.schedules[0]?.instructor || 'TBA'}
                                                     </td>
                                                     <td className="text-center">
-                                                        {subject.schedules.map((schedule, sIndex) => (
-                                                            <div key={sIndex} className="mb-1">
-                                                                {getStatusBadge(schedule.scheduleStatus)}
-                                                            </div>
-                                                        ))}
+                                                        <span className={getStatusBadge(subject.schedules[0]?.scheduleStatus)}>
+                                                            {subject.schedules[0]?.scheduleStatus || 'Open'}
+                                                        </span>
                                                     </td>
                                                 </tr>
                                             ))}

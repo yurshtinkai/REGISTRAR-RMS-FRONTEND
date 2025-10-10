@@ -8,6 +8,8 @@ function SettingsPage() {
     const [editingKey, setEditingKey] = useState(null);
     const [editValue, setEditValue] = useState('');
     const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState('');
 
     // Fetch settings on component mount
     useEffect(() => {
@@ -44,6 +46,9 @@ function SettingsPage() {
     const handleSave = async (key) => {
         try {
             setSaving(true);
+            setMessage('');
+            setMessageType('');
+            
             const response = await fetch(`${API_BASE_URL}/settings`, {
                 method: 'POST',
                 headers: {
@@ -67,14 +72,23 @@ function SettingsPage() {
                 setEditValue('');
                 
                 // Show success message
-                alert('✅ Setting updated successfully!');
+                setMessage('✅ Setting updated successfully!');
+                setMessageType('success');
+                
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    setMessage('');
+                    setMessageType('');
+                }, 3000);
             } else {
                 const error = await response.json();
-                alert(`❌ Failed to update setting: ${error.message}`);
+                setMessage(`❌ Failed to update setting: ${error.message}`);
+                setMessageType('danger');
             }
         } catch (error) {
             console.error('Error updating setting:', error);
-            alert('❌ Error updating setting. Please try again.');
+            setMessage('❌ Error updating setting. Please try again.');
+            setMessageType('danger');
         } finally {
             setSaving(false);
         }
@@ -127,6 +141,21 @@ function SettingsPage() {
                     <small>Configure system-wide settings and preferences</small>
                 </div>
             </div>
+
+            {/* Message Display */}
+            {message && (
+                <div className={`alert alert-${messageType} alert-dismissible fade show`} role="alert">
+                    {message}
+                    <button 
+                        type="button" 
+                        className="btn-close" 
+                        onClick={() => {
+                            setMessage('');
+                            setMessageType('');
+                        }}
+                    ></button>
+                </div>
+            )}
 
             <div className="row">
                 <div className="col-12">

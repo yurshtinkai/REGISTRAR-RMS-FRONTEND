@@ -38,6 +38,11 @@ function UnifiedLogin({ onLoginSuccess, onSwitchToRegister }) {
         };
 
         fetchLoginSettings();
+        
+        // Set up interval to check for settings changes every 30 seconds
+        const interval = setInterval(fetchLoginSettings, 30000);
+        
+        return () => clearInterval(interval);
     }, []);
 
     const handleInputChange = (e) => {

@@ -1,52 +1,112 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
-const ENV_HEADER =
-  (typeof process !== "undefined" &&
-    (process.env.REACT_APP_STUDENT_LOGIN_HEADER ||
-      process.env.NEXT_PUBLIC_STUDENT_LOGIN_HEADER)) ||
-  (typeof import.meta !== "undefined" &&
-    import.meta.env &&
-    import.meta.env.VITE_STUDENT_LOGIN_HEADER) ||
-  "🎓 Student Login";
-
-const KEY = "studentLogin.headerText";
+const DEFAULT_HEADER = "🔐 Welcome Back";
 
 export default function HeaderSettingsView() {
   const navigate = useNavigate();
+  const [draft, setDraft] = useState(DEFAULT_HEADER);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const readHeader = () => {
+  // Fetch current setting on component mount
+  useEffect(() => {
+    fetchCurrentSetting();
+  }, []);
+
+  const fetchCurrentSetting = async () => {
     try {
-      const saved = localStorage.getItem(KEY);
-      return saved && saved.trim() ? saved : ENV_HEADER;
-    } catch {
-      return ENV_HEADER;
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/settings?key=login_title`, {
+        headers: {
+          'X-Session-Token': sessionManager.getSessionToken()
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setDraft(data.data.value || DEFAULT_HEADER);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching login title setting:', error);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const [draft, setDraft] = useState(readHeader());
-  const [message, setMessage] = useState("");
 
   useEffect(() => {
     setMessage("");
   }, [draft]);
 
-  const save = () => {
-    const next = (draft || "").trim() || ENV_HEADER;
+  const save = async () => {
+    const next = (draft || "").trim() || DEFAULT_HEADER;
+    
     try {
-      localStorage.setItem(KEY, next);
-    } catch {}
-    setDraft(next);
-    setMessage("Saved ✔");
-    // optional: navigate(-1); // go back after save
+      setSaving(true);
+      const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': sessionManager.getSessionToken()
+        },
+        body: JSON.stringify({
+          key: 'login_title',
+          value: next,
+          description: 'Login form title displayed on the login page',
+          category: 'ui'
+        })
+      });
+
+      if (response.ok) {
+        setDraft(next);
+        setMessage("✅ Saved successfully!");
+      } else {
+        const error = await response.json();
+        setMessage(`❌ Failed to save: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error saving setting:', error);
+      setMessage("❌ Error saving. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const reset = () => {
+  const reset = async () => {
     try {
-      localStorage.removeItem(KEY);
-    } catch {}
-    setDraft(ENV_HEADER);
-    setMessage("Reset to default");
+      setSaving(true);
+      const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': sessionManager.getSessionToken()
+        },
+        body: JSON.stringify({
+          key: 'login_title',
+          value: DEFAULT_HEADER,
+          description: 'Login form title displayed on the login page',
+          category: 'ui'
+        })
+      });
+
+      if (response.ok) {
+        setDraft(DEFAULT_HEADER);
+        setMessage("✅ Reset to default");
+      } else {
+        const error = await response.json();
+        setMessage(`❌ Failed to reset: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error resetting setting:', error);
+      setMessage("❌ Error resetting. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancel = () => navigate(-1);
@@ -65,17 +125,28 @@ export default function HeaderSettingsView() {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") save();
+              if (e.key === "Enter" && !saving) save();
               if (e.key === "Escape") cancel();
             }}
             maxLength={80}
             placeholder="Enter header text"
             autoFocus
+            disabled={loading || saving}
           />
-          <button type="button" className="btn-save" onClick={save}>
-            Save
+          <button 
+            type="button" 
+            className="btn-save" 
+            onClick={save}
+            disabled={loading || saving}
+          >
+            {saving ? 'Saving...' : 'Save'}
           </button>
-          <button type="button" className="btn-secondary" onClick={cancel}>
+          <button 
+            type="button" 
+            className="btn-secondary" 
+            onClick={cancel}
+            disabled={saving}
+          >
             Cancel
           </button>
           <button
@@ -83,11 +154,13 @@ export default function HeaderSettingsView() {
             className="btn btn-link p-0 ms-2"
             onClick={reset}
             title="Reset to default"
+            disabled={loading || saving}
           >
             Reset to default
           </button>
         </div>
         {message && <div className="small text-muted mt-2">{message}</div>}
+        {loading && <div className="small text-muted mt-2">Loading current setting...</div>}
       </div>
 
       <div className="mt-4">

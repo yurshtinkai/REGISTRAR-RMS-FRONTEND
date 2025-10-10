@@ -192,6 +192,28 @@ function SubjectEnrolledStudentsView() {
                 
                 console.log('📋 Final processed students array:', allStudents);
                 setEnrolledStudents(allStudents);
+                
+                // Handle schedule details if provided in the response
+                if (data.scheduleDetails) {
+                    console.log('📅 Setting schedule details from enrolled students response:', data.scheduleDetails);
+                    setScheduleDetails({
+                        id: data.scheduleDetails.id,
+                        subject: data.scheduleDetails.courseCode,
+                        description: data.scheduleDetails.courseDescription,
+                        units: data.scheduleDetails.units,
+                        courseType: data.scheduleDetails.courseType,
+                        yearLevel: data.scheduleDetails.yearLevel,
+                        semester: data.scheduleDetails.semester,
+                        day: data.scheduleDetails.dayOfWeek,
+                        startTime: data.scheduleDetails.startTime,
+                        endTime: data.scheduleDetails.endTime,
+                        room: data.scheduleDetails.room,
+                        capacity: data.scheduleDetails.maxStudents,
+                        enrolled: data.scheduleDetails.currentEnrolled,
+                        schoolYear: data.scheduleDetails.schoolYear,
+                        instructor: 'TBA'
+                    });
+                }
             } else {
                 const errorText = await response.text();
                 console.log('📋 Response not ok:', response.status, errorText);
@@ -304,7 +326,7 @@ function SubjectEnrolledStudentsView() {
                                         <strong>Capacity:</strong> {scheduleDetails.maxStudents}
                                     </div>
                                     <div className="col-6">
-                                        <strong>Enrolled:</strong> {scheduleDetails.currentEnrollment}
+                                        <strong>Enrolled:</strong> {scheduleDetails.currentEnrolled}
                                     </div>
                                 </div>
                             </div>
@@ -340,9 +362,6 @@ function SubjectEnrolledStudentsView() {
                                         <th>Year Level</th>
                                         <th>Semester</th>
                                         <th>Enrollment Date</th>
-                                        <th>Status</th>
-                                        <th>Grade</th>
-                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -366,30 +385,6 @@ function SubjectEnrolledStudentsView() {
                                             </td>
                                             <td>
                                                 {student.enrollmentDate ? new Date(student.enrollmentDate).toLocaleDateString() : 'N/A'}
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${
-                                                    student.enrollmentStatus === 'Enrolled' ? 'bg-success' : 
-                                                    student.enrollmentStatus === 'Dropped' ? 'bg-danger' : 'bg-warning'
-                                                }`}>
-                                                    {student.enrollmentStatus || 'N/A'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {student.grade ? (
-                                                    <span className="badge bg-primary">{student.grade}</span>
-                                                ) : (
-                                                    <span className="text-muted">Not graded</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <button 
-                                                    className="btn btn-sm btn-outline-primary"
-                                                    title="View Student Details"
-                                                    onClick={() => navigate(`/admin/students/${student.id}`)}
-                                                >
-                                                    <i className="fas fa-eye"></i>
-                                                </button>
                                             </td>
                                         </tr>
                                     ))}

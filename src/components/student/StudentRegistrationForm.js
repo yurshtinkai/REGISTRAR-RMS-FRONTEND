@@ -92,6 +92,7 @@ function StudentRegistrationForm() {
     const [curriculum, setCurriculum] = useState(null);
     const [loadingCurriculum, setLoadingCurriculum] = useState(false);
     const [isRegistered, setIsRegistered] = useState(false);
+    const [emailError, setEmailError] = useState('');
     
     // Get session token from localStorage
     const sessionToken = localStorage.getItem('sessionToken');
@@ -217,6 +218,36 @@ function StudentRegistrationForm() {
         }
     };
 
+    // Email validation function
+    const validateEmail = (email) => {
+        if (!email) {
+            setEmailError('');
+            return true;
+        }
+        
+        if (!email.includes('@gmail.com')) {
+            setEmailError('Email must be a Gmail address (@gmail.com)');
+            return false;
+        }
+        
+        setEmailError('');
+        return true;
+    };
+
+    // Capitalize function for name fields
+    const capitalizeWords = (text) => {
+        if (!text) return '';
+        return text.toLowerCase().split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    };
+
+    // Uppercase function for Senior High Strand
+    const toUpperCase = (text) => {
+        if (!text) return '';
+        return text.toUpperCase();
+    };
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         
@@ -225,6 +256,41 @@ function StudentRegistrationForm() {
                 ...prev,
                 [name]: value
             };
+
+            // Apply capitalization to name fields
+            if (['firstName', 'middleName', 'lastName', 'fatherName', 'motherName', 'guardianName'].includes(name)) {
+                newFormData[name] = capitalizeWords(value);
+            }
+            
+            // Apply capitalization to basic info fields
+            if (['placeOfBirth', 'religion', 'nationality'].includes(name)) {
+                newFormData[name] = capitalizeWords(value);
+            }
+            
+            // Apply capitalization to address fields
+            if (['cityAddress', 'provincialAddress'].includes(name)) {
+                newFormData[name] = capitalizeWords(value);
+            }
+            
+            // Apply capitalization to parent occupation fields
+            if (['fatherOccupation', 'motherOccupation'].includes(name)) {
+                newFormData[name] = capitalizeWords(value);
+            }
+            
+            // Apply capitalization to school name fields
+            if (['elementarySchool', 'juniorHighSchool', 'seniorHighSchool'].includes(name)) {
+                newFormData[name] = capitalizeWords(value);
+            }
+            
+            // Apply uppercase to Senior High Strand
+            if (name === 'seniorHighStrand') {
+                newFormData[name] = toUpperCase(value);
+            }
+
+            // Validate email when email field changes
+            if (name === 'email') {
+                validateEmail(value);
+            }
 
             // Fetch curriculum when year level or semester changes
             if (name === 'yearLevel' || name === 'semester') {
@@ -249,6 +315,13 @@ function StudentRegistrationForm() {
                 return;
             }
             
+            // Validate email before submission
+            if (formData.email && !validateEmail(formData.email)) {
+                setError('Please enter a valid Gmail address (@gmail.com)');
+                setLoading(false);
+                return;
+            }
+            
             // Validate required fields
             if (!formData.firstName || !formData.lastName || !formData.yearLevel) {
                 setError('Please fill in all required fields');
@@ -267,6 +340,8 @@ function StudentRegistrationForm() {
             });
 
             if (response.ok) {
+                // Immediately hide the form and show the message
+                setIsRegistered(true);
                 setSuccess('Registration completed successfully! Your schedule and subjects have been loaded.');
                 // Reset form after successful submission
                 setTimeout(() => {
@@ -301,6 +376,11 @@ function StudentRegistrationForm() {
     };
 
     const nextStep = () => {
+        // Validate email before allowing navigation from step 2
+        if (currentStep === 2 && formData.email && !validateEmail(formData.email)) {
+            return; // Don't proceed if email validation fails
+        }
+        
         if (currentStep < 4) setCurrentStep(currentStep + 1);
     };
 
@@ -440,11 +520,16 @@ function StudentRegistrationForm() {
                     <label className="form-label">Email Address</label>
                     <input
                         type="email"
-                        className="form-control"
+                        className={`form-control ${emailError ? 'is-invalid' : ''}`}
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
                     />
+                    {emailError && (
+                        <div className="invalid-feedback" style={{ display: 'block', color: '#dc3545', fontSize: '0.875em', marginTop: '0.25rem' }}>
+                            {emailError}
+                        </div>
+                    )}
                 </div>
                 <div className="col-md-6">
                     <label className="form-label">Contact Number</label>
@@ -596,7 +681,7 @@ function StudentRegistrationForm() {
                         name="seniorHighStrand"
                         value={formData.seniorHighStrand}
                         onChange={handleInputChange}
-                        placeholder="e.g., STEM, ABM, HUMSS"
+                        placeholder="e.g., TVL, STEM, ABM, HUMSS"
                     />
                 </div>
                 <div className="col-md-6">

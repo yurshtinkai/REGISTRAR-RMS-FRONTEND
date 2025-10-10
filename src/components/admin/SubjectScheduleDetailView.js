@@ -199,7 +199,7 @@ function SubjectScheduleDetailView() {
                     </div>
                     <div className="info-column">
                         <p><strong>Instructor:</strong> {schedule.instructor || 'TBA'}</p>
-                        <p><strong>Current Enrollees:</strong> {schedule.currentEnrollment || 0}</p>
+                        <p><strong>Current Enrollees:</strong> {schedule.currentEnrolled || 0}</p>
                         <p><strong>Room:</strong> {schedule.room || 'TBA'}</p>
                         <p><strong>Status:</strong> {schedule.scheduleStatus || 'Open'}</p>
                     </div>

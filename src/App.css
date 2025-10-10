@@ -926,4 +926,12 @@ footer {
   object-fit: contain;
 }
 
+/* Custom spacing for Submit New Request card */
+/* .request-form-container {
+  margin-top: 7rem;
+}
 
+.request-container{
+  display:flex;
+  justify-content: center;
+} */

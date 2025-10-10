@@ -1,16 +1,80 @@
-import React, { useState } from 'react'; 
-import { Link } from 'react-router-dom'; // <<<--- ADD THIS IMPORT
+import React, { useState, useEffect } from 'react'; 
+import { Link } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
 function AllStudentsView({ enrolledStudents }) {
     const userRole = localStorage.getItem('userRole');
     const isAdmin = userRole === 'admin';
+    
+    // Local state for students data
+    const [localStudents, setLocalStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     console.log('AllStudentsView - enrolledStudents:', enrolledStudents); // Debug log
     console.log('AllStudentsView - enrolledStudents.length:', enrolledStudents?.length || 0); // Debug log
     
-    // Ensure enrolledStudents is an array
-    const students = Array.isArray(enrolledStudents) ? enrolledStudents : [];
+    // Fetch students data when component mounts
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                setLoading(true);
+                const sessionToken = getSessionToken();
+                
+                if (!sessionToken) {
+                    setError('No session token found');
+                    return;
+                }
+
+                const response = await fetch(`${API_BASE_URL}/students`, {
+                    headers: {
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const students = await response.json();
+                    console.log('AllStudentsView - Fetched students:', students);
+                    
+                    // Transform the data to match the expected format
+                    const transformedStudents = students.map(student => ({
+                        id: student.id,
+                        idNumber: student.idNumber,
+                        firstName: student.firstName,
+                        lastName: student.lastName,
+                        middleName: student.middleName,
+                        gender: student.gender || 'N/A',
+                        course: student.course || 'Not registered',
+                        registrationStatus: student.academicStatus || 'Not registered',
+                        registrationDate: student.createdAt ? new Date(student.createdAt).toISOString().split('T')[0] : 'N/A'
+                    }));
+                    
+                    setLocalStudents(transformedStudents);
+                } else {
+                    const errorText = await response.text();
+                    console.error('Failed to fetch students:', response.status, errorText);
+                    setError('Failed to fetch students');
+                }
+            } catch (err) {
+                console.error('Error fetching students:', err);
+                setError('Error fetching students');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        // Only fetch if we don't have data from props or if props data is empty
+        if (!enrolledStudents || enrolledStudents.length === 0) {
+            fetchStudents();
+        } else {
+            setLocalStudents(enrolledStudents);
+            setLoading(false);
+        }
+    }, [enrolledStudents]);
+    
+    // Use local students data if available, otherwise fall back to props
+    const students = localStudents.length > 0 ? localStudents : (Array.isArray(enrolledStudents) ? enrolledStudents : []);
     
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -84,7 +148,25 @@ function AllStudentsView({ enrolledStudents }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredStudents.length > 0 ? filteredStudents.map(student => (
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan="7" className="text-center">
+                                            <div className="d-flex justify-content-center align-items-center py-4">
+                                                <div className="spinner-border text-primary me-2" role="status">
+                                                    <span className="visually-hidden">Loading...</span>
+                                                </div>
+                                                <span>Loading students...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : error ? (
+                                    <tr>
+                                        <td colSpan="7" className="text-center text-danger py-4">
+                                            <i className="fas fa-exclamation-triangle me-2"></i>
+                                            {error}
+                                        </td>
+                                    </tr>
+                                ) : filteredStudents.length > 0 ? filteredStudents.map(student => (
                                     <tr key={student.id}>
                                         <td>{student.idNumber || 'N/A'}</td>
                                         <td>{student.lastName && student.firstName ? `${student.lastName}, ${student.firstName} ${student.middleName || ''}`.trim() : 'N/A'}</td>

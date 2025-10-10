@@ -9,7 +9,7 @@ function NewRequestModal({ isOpen, onClose, onConfirm, expectedDocumentType }) {
     const [requestType, setRequestType] = useState(documentTypes[0].name);
     const [schoolYear, setSchoolYear] = useState(schoolYearsData[0].schoolYear);
     const [semester, setSemester] = useState(schoolYearsData[0].semester);
-    const [amount, setAmount] = useState(documentTypes[0].amount);
+    const [amount, setAmount] = useState('');
 
     useEffect(() => {
         console.log('🔍 NewRequestModal - useEffect triggered');
@@ -23,20 +23,24 @@ function NewRequestModal({ isOpen, onClose, onConfirm, expectedDocumentType }) {
             const selectedType = documentTypes.find(doc => doc.name === expectedDocumentType);
             if (selectedType) {
                 console.log('🔍 Setting amount to:', selectedType.amount);
-                setAmount(selectedType.amount);
+                setAmount(selectedType.amount.toString());
             }
         }
-        const selectedType = documentTypes.find(doc => doc.name === requestType);
-        if (selectedType) {
-            setAmount(selectedType.amount);
-        }
-    }, [requestType, documentTypes, expectedDocumentType]);
+        // Don't auto-set amount when request type changes - let registrar input manually
+    }, [expectedDocumentType]);
 
     const handleSubmit = () => {
         console.log('🔍 NewRequestModal - handleSubmit called');
         console.log('🔍 expectedDocumentType:', expectedDocumentType);
         console.log('🔍 requestType:', requestType);
         console.log('🔍 Are they equal?', requestType === expectedDocumentType);
+        
+        // Validate amount
+        const amountValue = parseFloat(amount);
+        if (!amount || isNaN(amountValue) || amountValue < 0) {
+            alert('Please enter a valid amount (must be a positive number).');
+            return;
+        }
         
         if (expectedDocumentType && requestType !== expectedDocumentType) {
             console.log('❌ Validation failed - types don\'t match');
@@ -49,7 +53,7 @@ function NewRequestModal({ isOpen, onClose, onConfirm, expectedDocumentType }) {
             documentType: requestType,
             schoolYear,
             semester,
-            amount,
+            amount: amountValue,
         });
         onClose(); // Close modal after confirmation
     };
@@ -99,7 +103,18 @@ function NewRequestModal({ isOpen, onClose, onConfirm, expectedDocumentType }) {
                      <Form.Group as={Row} className="mb-3" controlId="formAmount">
                         <Form.Label column sm={4}>Amount</Form.Label>
                         <Col sm={8}>
-                            <Form.Control type="text" value={`₱ ${amount.toFixed(2)}`} readOnly />
+                            <Form.Control 
+                                type="number" 
+                                step="0.01" 
+                                min="0" 
+                                placeholder="Enter amount (e.g., 150.00)"
+                                value={amount} 
+                                onChange={(e) => setAmount(e.target.value)}
+                                required
+                            />
+                            <Form.Text className="text-muted">
+                                Enter the exact amount for this document request
+                            </Form.Text>
                         </Col>
                     </Form.Group>
                 </Form>

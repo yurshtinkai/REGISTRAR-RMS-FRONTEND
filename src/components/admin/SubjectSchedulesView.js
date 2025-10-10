@@ -77,7 +77,7 @@ function SubjectSchedulesView() {
                                 time: firstSchedule.startTime && firstSchedule.endTime ? 
                                     `${formatTime(firstSchedule.startTime)} - ${formatTime(firstSchedule.endTime)}` : 'TBA',
                                 room: firstSchedule.room || 'TBA',
-                                enrollees: `${firstSchedule.currentEnrollment || 0}/${firstSchedule.maxStudents || 40}`,
+                                enrollees: `${firstSchedule.currentEnrolled || 0}/${firstSchedule.maxStudents || 40}`,
                                 yearLevel: yearGroup.yearLevel,
                                 semester: yearGroup.semester,
                                 schoolYear: firstSchedule.schoolYear || '2025-2026',

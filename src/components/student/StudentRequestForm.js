@@ -54,10 +54,10 @@ function StudentRequestForm() {
             return;
         }
         // Require at least one file:
-        if (files.length === 0) {
-            setError('Please attach at least one requirement.');
-            return;
-        }
+        // if (files.length === 0) {
+        //     setError('Please attach at least one requirement.');
+        //     return;
+        // }
         const formData = new FormData();
         formData.append('documentType', documentType);
         formData.append('purpose', purpose);
@@ -115,14 +115,14 @@ function StudentRequestForm() {
                     <option value="CERTIFICATE OF GRADUATION WITH HONORS">Certificate of Graduation with Honors</option>
                     <option value="CERTIFICATE OF TRANSFER CREDENTIALS">Certificate of Transfer Credentials</option>
                     <option value="DIPLOMA">Diploma</option>
-                    <option value="DIPLOMA">Others (Pls. Specify)</option>
+                    <option value="Others">Others (Pls. Specify)</option>
                   </select>
                 </div>
 
                 {/* Purpose */}
                 <div className="mb-4">
                   <label htmlFor="purpose" className="form-label">Purpose</label>
-                  <textarea className="form-control border border-2 rounded-4" id="purpose" rows="4" value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+                  <textarea className="form-control border border-2 rounded-4" id="purpose" rows="4" value={purpose} onChange={(e) => setPurpose(e.target.value)} required placeholder='If others please state the purpose.'/>
                 </div>
               </div>
 

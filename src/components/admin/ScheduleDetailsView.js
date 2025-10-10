@@ -253,7 +253,7 @@ function ScheduleDetailsView() {
                     <div className="row text-center">
                         <div className="col-md-4">
                             <div className="border-end">
-                                <h3 className="text-primary">{schedule.currentEnrollment || 0}</h3>
+                                <h3 className="text-primary">{schedule.currentEnrolled || 0}</h3>
                                 <p className="text-muted mb-0">Current Enrollees</p>
                             </div>
                         </div>
