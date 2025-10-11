@@ -493,6 +493,5 @@ function App() {
       </div>
     </FooterProvider>
   );
-}
+}export default App;
 
-export default App;
