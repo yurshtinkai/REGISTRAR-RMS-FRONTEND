@@ -1,6 +1,6 @@
 const getApiUrl = () => {
     if (process.env.NODE_ENV === 'production') {
-      return 'https://rms-back-bxkx.onrender.com/api';
+      return 'https://registrar-rms-backend.onrender.com/api';
     }
     return process.env.REACT_APP_API_URL 
       ? `${process.env.REACT_APP_API_URL}/api` 
