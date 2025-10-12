@@ -29,6 +29,25 @@
     color: white !important;
 }
 
+/* Ask About My Balance button hover styles */
+.billing-page .card-header .btn-outline-light {
+    transition: all 0.3s ease;
+    border-color: white;
+    color: white;
+}
+
+.billing-page .card-header .btn-outline-light:hover {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: white !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.billing-page .card-header .btn-outline-light:hover i {
+    color: white !important;
+}
+
 .billing-details p {
     margin-bottom: 0.5rem;
 }

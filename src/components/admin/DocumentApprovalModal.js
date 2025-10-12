@@ -6,40 +6,95 @@ import { API_BASE_URL, getSessionToken } from '../../utils/api';
 const generateDocumentContent = async (request) => {
     if (!request) return '';
 
-    // --- Placeholder data from old code ---
-    const personalInfo = { civilStatus: 'Single', dateOfBirth: 'January 23, 2006', placeOfBirth: 'Mandaue City, Cebu', parentGuardian: 'Maria Dela Cruz', permanentAddress: 'Sangi, Cal-oocan, Mandaue City', previousSchool: 'Mandaue City Science High School' };
-    const educationalData = { elementary: { name: 'Mabolo Elementary School', year: '2018' }, secondary: { name: 'Cebu Eastern College', year: '2022' }, shs: { name: 'Cabancalan National High School', year: '2022' }, tertiary: { name: 'Cebu Eastern College', year: '2025' } };
+    // Initialize with default data
+    let personalInfo = { 
+        civilStatus: 'Single', 
+        dateOfBirth: 'January 23, 2006', 
+        placeOfBirth: 'Mandaue City, Cebu', 
+        parentGuardian: 'Maria Dela Cruz', 
+        permanentAddress: 'Sangi, Cal-oocan, Mandaue City', 
+        previousSchool: 'Mandaue City Science High School' 
+    };
     
-    // Default grades data
+    let educationalData = { 
+        elementary: { name: 'Mabolo Elementary School', year: '2018' }, 
+        secondary: { name: 'Cebu Eastern College', year: '2022' }, 
+        shs: { name: 'Cabancalan National High School', year: '2022' }, 
+        tertiary: { name: 'Cebu Eastern College', year: '2025' } 
+    };
+    
+    // Default grades data with empty grades for manual input
     let gradesData = [
-        { semester: 'First Year, First Semester', year: '2024-2025', subjects: [ { code: 'IT 111', desc: 'Introduction to Computing', grade: '1.5', units: 3 }, { code: 'GE 1', desc: 'Understanding the Self', grade: '1.2', units: 3 }, { code: 'FIL 1', desc: 'Komunikasyon sa Akademikong Filipino', grade: '1.7', units: 3 }, { code: 'NSTP 1', desc: 'National Service Training Program 1', grade: 'P', units: 3 } ]},
-        { semester: 'First Year, Second Semester', year: '2024-2025', subjects: [ { code: 'IT 121', desc: 'Computer Programming 1', grade: '1.8', units: 3 }, { code: 'IT 122', desc: 'Data Structures and Algorithms', grade: '2.0', units: 3 }, { code: 'GE 5', desc: 'Purposive Communication', grade: '1.5', units: 3 }, { code: 'NSTP 2', desc: 'National Service Training Program 2', grade: 'P', units: 3 } ]}
+        { semester: 'First Year, First Semester', year: '2024-2025', subjects: [ { code: 'IT 111', desc: 'Introduction to Computing', grade: '', units: 3 }, { code: 'GE 1', desc: 'Understanding the Self', grade: '', units: 3 }, { code: 'FIL 1', desc: 'Komunikasyon sa Akademikong Filipino', grade: '', units: 3 }, { code: 'NSTP 1', desc: 'National Service Training Program 1', grade: '', units: 3 } ]},
+        { semester: 'First Year, Second Semester', year: '2024-2025', subjects: [ { code: 'IT 121', desc: 'Computer Programming 1', grade: '', units: 3 }, { code: 'IT 122', desc: 'Data Structures and Algorithms', grade: '', units: 3 }, { code: 'GE 5', desc: 'Purposive Communication', grade: '', units: 3 }, { code: 'NSTP 2', desc: 'National Service Training Program 2', grade: '', units: 3 } ]}
     ];
     
-    // If it's a GRADE SLIP request, fetch real student data
-    if (request.documentType === 'GRADE SLIP' && request.studentId) {
+    // Fetch real student data if studentId is available
+    if (request.studentId) {
         try {
+            console.log('🔍 Fetching real student data for studentId:', request.studentId);
+            
             // Fetch student registration data
-            const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`);
+            const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`, {
+                headers: { 'X-Session-Token': getSessionToken() }
+            });
+            
             if (registrationResponse.ok) {
                 const registrationData = await registrationResponse.json();
+                console.log('📋 Registration data:', registrationData);
                 
-                // Fetch enrolled subjects
-                const subjectsResponse = await fetch(`${API_BASE_URL}/students/enrolled-subjects/${request.studentId}`);
-                if (subjectsResponse.ok) {
-                    const subjectsData = await subjectsResponse.json();
+                // Update personal info with real data
+                personalInfo = {
+                    civilStatus: registrationData.civilStatus || 'Single',
+                    dateOfBirth: registrationData.dateOfBirth || 'N/A',
+                    placeOfBirth: registrationData.placeOfBirth || 'N/A',
+                    parentGuardian: registrationData.parentGuardian || 'N/A',
+                    permanentAddress: registrationData.permanentAddress || 'N/A',
+                    previousSchool: registrationData.previousSchool || 'N/A'
+                };
+                
+                // Update educational data with real data
+                educationalData = {
+                    elementary: { 
+                        name: registrationData.elementarySchool || 'N/A', 
+                        year: registrationData.elementaryYear || 'N/A' 
+                    },
+                    secondary: { 
+                        name: registrationData.secondarySchool || 'N/A', 
+                        year: registrationData.secondaryYear || 'N/A' 
+                    },
+                    shs: { 
+                        name: registrationData.shsSchool || 'N/A', 
+                        year: registrationData.shsYear || 'N/A' 
+                    },
+                    tertiary: { 
+                        name: 'Benedicto College - Mandaue City', 
+                        year: registrationData.schoolYear || '2024-2025' 
+                    }
+                };
+                
+                // For GRADE SLIP and TOR requests, fetch enrolled subjects with empty grades
+                if (request.documentType === 'GRADE SLIP' || request.documentType === 'TOR') {
+                    const subjectsResponse = await fetch(`${API_BASE_URL}/students/enrolled-subjects/${request.studentId}`, {
+                        headers: { 'X-Session-Token': getSessionToken() }
+                    });
                     
-                    // Transform the data to match the expected format
-                    gradesData = [{
-                        semester: `${registrationData.yearLevel}, ${registrationData.semester}`,
-                        year: registrationData.schoolYear,
-                        subjects: subjectsData.subjects.map(subject => ({
-                            code: subject.courseCode,
-                            desc: subject.courseTitle, 
-                            grade: subject.finalGrade || 'N/A',
-                            units: subject.units
-                        }))
-                    }];
+                    if (subjectsResponse.ok) {
+                        const subjectsData = await subjectsResponse.json();
+                        console.log('📚 Subjects data:', subjectsData);
+                        
+                        // Transform the data to match the expected format with empty grades for manual input
+                        gradesData = [{
+                            semester: `${registrationData.yearLevel || 'N/A'}, ${registrationData.semester || 'N/A'}`,
+                            year: registrationData.schoolYear || '2024-2025',
+                            subjects: subjectsData.subjects ? subjectsData.subjects.map(subject => ({
+                                code: subject.courseCode || 'N/A',
+                                desc: subject.courseTitle || 'N/A', 
+                                grade: '', // Empty grade for manual input by registrar
+                                units: subject.units || 0
+                            })) : []
+                        }];
+                    }
                 }
             }
         } catch (error) {
@@ -49,10 +104,68 @@ const generateDocumentContent = async (request) => {
     }
     const diplomaDetails = { dean: "JAYPEE Y. ZOILO, DBA", schoolDirector: "RANULFO L. VISAYA JR., DevEdD.", registrar: "WENELITO M. LAYSON", president: "LILIAN BENEDICTO-HUAN", graduationDate: "this 26th day of May 2022", specialOrder: "No. 30-346201-0196, s. 2022 dated December 15, 2022" };
 
-    // Helper variables...
-    const studentName = request.student ? `${request.student.firstName} ${request.student.middleName || ''} ${request.student.lastName}`.trim() : 'Juan Dela Cruz';
-    const studentIdNumber = request.student?.idNumber || 'N/A';
-    const studentCourse = request.student?.studentDetails?.course?.name || 'Bachelor of Science in Information Technology';
+    // Helper variables - use real data if available
+    let studentName = 'Juan Dela Cruz';
+    let studentIdNumber = 'N/A';
+    let studentCourse = 'Bachelor of Science in Information Technology';
+    let studentGender = '';
+    let studentCivilStatus = 'Single';
+    let studentDateOfBirth = 'N/A';
+    let studentPlaceOfBirth = 'N/A';
+    let studentCitizenship = 'Filipino';
+    let studentParentGuardian = 'N/A';
+    let studentPermanentAddress = 'N/A';
+    let studentEntranceData = 'N/A';
+    
+    // Helper function to format name with middle initial for diploma
+    const formatNameForDiploma = (name) => {
+        if (!name) return '';
+        const nameParts = name.trim().split(' ');
+        if (nameParts.length >= 3) {
+            // Format: FirstName MiddleInitial. LastName
+            const firstName = nameParts.slice(0, -2).join(' ');
+            const middleInitial = nameParts[nameParts.length - 2] ? nameParts[nameParts.length - 2].charAt(0) + '.' : '';
+            const lastName = nameParts[nameParts.length - 1];
+            return `${firstName} ${middleInitial} ${lastName}`.trim();
+        }
+        return name;
+    };
+    
+    // Use request.student data if available, otherwise use registration data
+    if (request.student) {
+        studentName = `${request.student.firstName} ${request.student.middleName || ''} ${request.student.lastName}`.trim();
+        studentIdNumber = request.student.idNumber || 'N/A';
+        studentCourse = request.student.studentDetails?.course?.name || 'Bachelor of Science in Information Technology';
+    }
+    
+    // If we have registration data, use it to override with more complete information
+    if (request.studentId) {
+        try {
+            const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`, {
+                headers: { 'X-Session-Token': getSessionToken() }
+            });
+            
+            if (registrationResponse.ok) {
+                const registrationData = await registrationResponse.json();
+                
+                // Override with registration data for more complete information
+                studentName = `${registrationData.firstName || ''} ${registrationData.middleName || ''} ${registrationData.lastName || ''}`.trim() || studentName;
+                studentIdNumber = registrationData.idNumber || studentIdNumber;
+                studentCourse = registrationData.course || studentCourse;
+                studentGender = registrationData.gender || '';
+                studentCivilStatus = registrationData.civilStatus || 'Single';
+                studentDateOfBirth = registrationData.dateOfBirth || 'N/A';
+                studentPlaceOfBirth = registrationData.placeOfBirth || 'N/A';
+                studentCitizenship = registrationData.citizenship || 'Filipino';
+                studentParentGuardian = registrationData.parentGuardian || 'N/A';
+                studentPermanentAddress = registrationData.permanentAddress || 'N/A';
+                studentEntranceData = registrationData.entranceData || 'N/A';
+            }
+        } catch (error) {
+            console.error('Error fetching additional student data:', error);
+        }
+    }
+    
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const academicYear = '2024-2025';
 
@@ -431,7 +544,7 @@ const generateDocumentContent = async (request) => {
                             <div class="meta-row"><div>Page 2</div><div>SCHOOL CODE: 7119</div></div>
 
                             <div style="display:flex; justify-content: space-between; font-size:10pt; margin:6px 0 10px 0;">
-                                <div><strong>Name:</strong> ${(request.student ? `${request.student.firstName} ${request.student.middleName || ''} ${request.student.lastName}` : 'STUDENT NAME').toUpperCase()}</div>
+                                <div><strong>Name:</strong> ${studentName.toUpperCase()}</div>
                                 <div><strong>I.D. No:</strong> ${studentIdNumber}</div>
                             </div>
 
@@ -449,48 +562,48 @@ const generateDocumentContent = async (request) => {
                                 </thead>
                                 <tbody>
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">2nd Semester 2022-2023</td></tr>
-                                    <tr><td>IT 121</td><td>Computer Programming II</td><td class="text-center">1.10</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 220</td><td>Object-Oriented Programming</td><td class="text-center">1.10</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 221</td><td>Networking</td><td class="text-center">1.40</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 222</td><td>Database Management</td><td class="text-center">1.50</td><td class="text-center">3</td></tr>
-                                    <tr><td>ACCTG</td><td>Fundamentals of Accounting</td><td class="text-center">1.70</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 121</td><td>Computer Programming II</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 220</td><td>Object-Oriented Programming</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 221</td><td>Networking</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 222</td><td>Database Management</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>ACCTG</td><td>Fundamentals of Accounting</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">Summer 2022-2023</td></tr>
-                                    <tr><td>IT 223</td><td>Information Management</td><td class="text-center">1.60</td><td class="text-center">3</td></tr>
-                                    <tr><td>ITEL 1</td><td>IT Track Elective</td><td class="text-center">1.20</td><td class="text-center">3</td></tr>
-                                    <tr><td>FILIT</td><td>The Philippine Society in the IT Era</td><td class="text-center">1.20</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 223</td><td>Information Management</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>ITEL 1</td><td>IT Track Elective</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>FILIT</td><td>The Philippine Society in the IT Era</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">1st Semester 2023-2024</td></tr>
-                                    <tr><td>IT 211</td><td>Web Design & Development</td><td class="text-center">1.40</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 310</td><td>Applications Development and Emerging Technologies</td><td class="text-center">1.30</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 311</td><td>Operating Systems</td><td class="text-center">1.10</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT ELEC 1</td><td>IT Elective I</td><td class="text-center">1.30</td><td class="text-center">3</td></tr>
-                                    <tr><td>ITTEL 2</td><td>IT Track Elective II</td><td class="text-center">1.10</td><td class="text-center">3</td></tr>
-                                    <tr><td>TECHNO</td><td>Technopreneurship</td><td class="text-center">1.30</td><td class="text-center">3</td></tr>
-                                    <tr><td>STAT</td><td>Statistics & Probability</td><td class="text-center">1.40</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 211</td><td>Web Design & Development</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 310</td><td>Applications Development and Emerging Technologies</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 311</td><td>Operating Systems</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT ELEC 1</td><td>IT Elective I</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>ITTEL 2</td><td>IT Track Elective II</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>TECHNO</td><td>Technopreneurship</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>STAT</td><td>Statistics & Probability</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">2nd Semester 2023-2024</td></tr>
-                                    <tr><td>IT 320</td><td>Systems Analysis & Design</td><td class="text-center">1.60</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 321</td><td>Information Assurance & Security</td><td class="text-center">1.30</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 322</td><td>Systems Integration & Architecture</td><td class="text-center">1.00</td><td class="text-center">3</td></tr>
-                                    <tr><td>MMG</td><td>Marketing Media Gamification</td><td class="text-center">1.90</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT ELEC 2</td><td>IT Elective II</td><td class="text-center">1.50</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 320</td><td>Systems Analysis & Design</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 321</td><td>Information Assurance & Security</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 322</td><td>Systems Integration & Architecture</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>MMG</td><td>Marketing Media Gamification</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT ELEC 2</td><td>IT Elective II</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">Summer 2023-2024</td></tr>
-                                    <tr><td>IT 323</td><td>Capstone Project I</td><td class="text-center">1.30</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 324</td><td>Social Issues and Professional Practices</td><td class="text-center">1.80</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 325</td><td>Quantitative Methods</td><td class="text-center">1.20</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 323</td><td>Capstone Project I</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 324</td><td>Social Issues and Professional Practices</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 325</td><td>Quantitative Methods</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">1st Semester 2024-2025</td></tr>
-                                    <tr><td>IT 212</td><td>Digital Logic Design</td><td class="text-center">1.00</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 213</td><td>PC Assembly & Troubleshooting</td><td class="text-center">1.40</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 410</td><td>Capstone Project II</td><td class="text-center">1.00</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT 411</td><td>Integrative Programming & Technologies</td><td class="text-center">1.00</td><td class="text-center">3</td></tr>
-                                    <tr><td>IT ELEC 3</td><td>IT Elective III</td><td class="text-center">1.20</td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 212</td><td>Digital Logic Design</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 213</td><td>PC Assembly & Troubleshooting</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 410</td><td>Capstone Project II</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT 411</td><td>Integrative Programming & Technologies</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>IT ELEC 3</td><td>IT Elective III</td><td class="text-center"></td><td class="text-center">3</td></tr>
 
                                     <tr><td colspan="4" style="font-weight:bold; text-align:center">2nd Semester 2024-2025</td></tr>
-                                    <tr><td>IT 420</td><td>IT Seminars & Tours</td><td class="text-center">1.00</td><td class="text-center">3</td></tr>
-                                    <tr><td>OJT</td><td>On the Job Training (500 Hours)</td><td class="text-center">1.00</td><td class="text-center">6</td></tr>
+                                    <tr><td>IT 420</td><td>IT Seminars & Tours</td><td class="text-center"></td><td class="text-center">3</td></tr>
+                                    <tr><td>OJT</td><td>On the Job Training (500 Hours)</td><td class="text-center"></td><td class="text-center">6</td></tr>
 
                                     <tr><td colspan="4" style="text-align:center; font-weight:bold;">GRADUATED: BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY (BSIT) ON MAY 16, 2025.</td></tr>
                                 </tbody>
@@ -537,23 +650,23 @@ const generateDocumentContent = async (request) => {
                     <div class="title">OFFICIAL TRANSCRIPT OF RECORDS</div>
                     <div class="meta-row"><div>Page 1</div><div>SCHOOL CODE: 7119</div></div>
                     <div class="name-row">
-                        <div class="name-block"><div class="label">Last Name</div><div class="value">${(request.student?.lastName || 'LASTNAME').toUpperCase()}</div></div>
-                        <div class="name-block"><div class="label">First Name</div><div class="value">${(request.student?.firstName || 'FIRSTNAME').toUpperCase()}</div></div>
-                        <div class="name-block"><div class="label">Middle Name</div><div class="value">${(request.student?.middleName || '').toUpperCase()}</div></div>
+                        <div class="name-block"><div class="label">Last Name</div><div class="value">${studentName.split(' ').pop()?.toUpperCase() || 'LASTNAME'}</div></div>
+                        <div class="name-block"><div class="label">First Name</div><div class="value">${studentName.split(' ').slice(0, -2).join(' ').toUpperCase() || 'FIRSTNAME'}</div></div>
+                        <div class="name-block"><div class="label">Middle Name</div><div class="value">${studentName.split(' ').slice(-2, -1).join(' ').toUpperCase() || ''}</div></div>
                     </div>
                     <div class="separator"></div>
                     <div class="section-title">PERSONAL INFORMATION</div>
                     <div class="pi-container">
                         <div class="pi-fields">
                             <div class="pi-field"><div class="label">ID Number</div><div>: ${studentIdNumber}</div></div>
-                            <div class="pi-field"><div class="label">Gender</div><div>: ${request.student?.gender || ''}</div></div>
-                            <div class="pi-field"><div class="label">Civil Status</div><div>: ${personalInfo.civilStatus}</div></div>
-                            <div class="pi-field"><div class="label">Date of Birth</div><div>: ${personalInfo.dateOfBirth}</div></div>
-                            <div class="pi-field"><div class="label">Place of Birth</div><div>: ${personalInfo.placeOfBirth}</div></div>
-                            <div class="pi-field"><div class="label">Citizenship</div><div>: Filipino</div></div>
-                            <div class="pi-field"><div class="label">Parent/ Spouse/ Guardian</div><div>: ${personalInfo.parentGuardian}</div></div>
-                            <div class="pi-field"><div class="label">Permanent Address</div><div>: ${personalInfo.permanentAddress}</div></div>
-                            <div class="pi-field"><div class="label">Entrance Data to College</div><div>: CTC & GTC</div></div>
+                            <div class="pi-field"><div class="label">Gender</div><div>: ${studentGender}</div></div>
+                            <div class="pi-field"><div class="label">Civil Status</div><div>: ${studentCivilStatus}</div></div>
+                            <div class="pi-field"><div class="label">Date of Birth</div><div>: ${studentDateOfBirth}</div></div>
+                            <div class="pi-field"><div class="label">Place of Birth</div><div>: ${studentPlaceOfBirth}</div></div>
+                            <div class="pi-field"><div class="label">Citizenship</div><div>: ${studentCitizenship}</div></div>
+                            <div class="pi-field"><div class="label">Parent/ Spouse/ Guardian</div><div>: ${studentParentGuardian}</div></div>
+                            <div class="pi-field"><div class="label">Permanent Address</div><div>: ${studentPermanentAddress}</div></div>
+                            <div class="pi-field"><div class="label">Entrance Data to College</div><div>: ${studentEntranceData}</div></div>
                             <div class="pi-field"><div class="label">Course</div><div>: ${studentCourse}</div></div>
                         </div>
                     </div>
@@ -564,9 +677,9 @@ const generateDocumentContent = async (request) => {
                         <tbody>
                             <tr><td>Elementary</td><td>${educationalData.elementary.name}</td><td>${educationalData.elementary.year}</td></tr>
                             <tr><td>Secondary</td><td>${educationalData.secondary.name}</td><td>${educationalData.secondary.year}</td></tr>
-                            <tr><td>SHS</td><td>Cabancalan National High School</td><td>2024-2025</td></tr>
-                            <tr><td>Tertiary</td><td>Benedicto College - Mandaue City</td><td>2024-2025</td></tr>
-                            <tr><td>School Last Attended</td><td>Benedicto College - Mandaue City</td><td>2023-2025</td></tr>
+                            <tr><td>SHS</td><td>${educationalData.shs.name}</td><td>${educationalData.shs.year}</td></tr>
+                            <tr><td>Tertiary</td><td>${educationalData.tertiary.name}</td><td>${educationalData.tertiary.year}</td></tr>
+                            <tr><td>School Last Attended</td><td>${educationalData.tertiary.name}</td><td>${educationalData.tertiary.year}</td></tr>
                         </tbody>
                     </table>
                     <div class="separator"></div>
@@ -639,7 +752,7 @@ const generateDocumentContent = async (request) => {
                         background-color: #fcfcfc;
                     }
                     .diploma-header { margin-bottom: 30px; }
-                    .diploma-logo { width: 90px; margin-bottom: 10px; }
+                    .diploma-logo { width: 700px; margin-bottom: 1px; }
                     .diploma-header h1 { 
                         font-family: 'Playfair Display', serif;
                         font-size: 28pt;
@@ -694,16 +807,13 @@ const generateDocumentContent = async (request) => {
                     <div class="diploma-container">
                         <div class="diploma-header">
                             <img src="/bcletterhead.png" alt="Logo" class="diploma-logo">
-                            <h1>BENEDICTO COLLEGE</h1>
-                            <p class="motto">Your Education... Our Mission</p>
-                            <p class="address">A.S. Fortuna Street, Bakilid, Mandaue City</p>
                         </div>
                         <div class="diploma-body">
                             <p class="salutation">To All Persons Who May Behold These Present</p>
                             <p class="body-text">
                                 Be it known that the Board of Directors of the Benedicto College, by authority of the Republic of the Philippines and upon the recommendation of the Academic Council, confers upon
                             </p>
-                            <p class="student-name">${studentName.toUpperCase()}</p>
+                            <p class="student-name">${formatNameForDiploma(studentName).toUpperCase()}</p>
                             <p class="degree-intro">the Degree of</p>
                             <p class="degree-name">${studentCourse}</p>
                             <p class="body-text">

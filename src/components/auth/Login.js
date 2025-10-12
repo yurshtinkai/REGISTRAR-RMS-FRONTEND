@@ -34,7 +34,6 @@ function Login({ onLoginSuccess }) {
     setView('login');
     setError('');
     // Show success message
-    alert('Registration successful! You can now login with your School ID and password.');
   };
 
   const switchToRegister = () => {
@@ -97,7 +96,7 @@ function Login({ onLoginSuccess }) {
             )}
 
             {view !== 'register' && (
-              <footer className="text-center mt-4 text-muted">
+              <footer className="text-center mt-4" style={{ color: '#b0b0b0' }}>
                 © {footerYear} - Online Records Management System
               </footer>
             )}

@@ -31,6 +31,16 @@ export const cleanupSharedProfileImages = () => {
             }
         });
         
+        // Clean up invalid profile images
+        const currentStudentId = localStorage.getItem('idNumber');
+        if (currentStudentId) {
+            const profileImage = localStorage.getItem(`profileImage_${currentStudentId}`);
+            if (profileImage && !(profileImage.startsWith('http') || profileImage.startsWith('data:image') || profileImage.startsWith('/api/'))) {
+                localStorage.removeItem(`profileImage_${currentStudentId}`);
+                console.log(`✅ Removed invalid profile image for student: ${currentStudentId}`);
+            }
+        }
+        
         console.log('🎉 Profile image cleanup completed successfully!');
         
     } catch (error) {
@@ -40,7 +50,35 @@ export const cleanupSharedProfileImages = () => {
 
 export const getStudentProfileImage = (studentId) => {
     if (!studentId) return null;
-    return localStorage.getItem(`profileImage_${studentId}`);
+    
+    const profileImage = localStorage.getItem(`profileImage_${studentId}`);
+    
+    // Only return the image if it's a valid URL or data URL
+    if (profileImage && (profileImage.startsWith('http') || profileImage.startsWith('data:image') || profileImage.startsWith('/api/') || profileImage.startsWith('/uploads/'))) {
+        return profileImage;
+    }
+    
+    // Return null for invalid or empty images
+    return null;
+};
+
+export const clearAllProfileImages = () => {
+    try {
+        // Get all localStorage keys
+        const keys = Object.keys(localStorage);
+        
+        // Find and remove all profile image keys
+        keys.forEach(key => {
+            if (key.startsWith('profileImage_') || key === 'profileImage' || key === 'studentProfilePic' || key === 'adminProfilePic' || key === 'accountingProfilePic') {
+                localStorage.removeItem(key);
+            }
+        });
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error clearing profile images:', error);
+        return false;
+    }
 };
 
 export const setStudentProfileImage = (studentId, imageData) => {

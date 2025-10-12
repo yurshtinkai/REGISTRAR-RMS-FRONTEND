@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'; 
 import { Link } from 'react-router-dom';
-import { API_BASE_URL, getSessionToken } from '../../utils/api';
+import { API_BASE_URL } from '../../utils/api';
+import sessionManager from '../../utils/sessionManager';
 
 function AllStudentsView({ enrolledStudents }) {
     const userRole = localStorage.getItem('userRole');
@@ -19,10 +20,18 @@ function AllStudentsView({ enrolledStudents }) {
         const fetchStudents = async () => {
             try {
                 setLoading(true);
-                const sessionToken = getSessionToken();
+                setError(null);
                 
+                // Validate and refresh session first
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    setError('Session expired. Please login again.');
+                    return;
+                }
+                
+                const sessionToken = sessionManager.getSessionToken();
                 if (!sessionToken) {
-                    setError('No session token found');
+                    setError('No session token found. Please login again.');
                     return;
                 }
 
@@ -38,19 +47,35 @@ function AllStudentsView({ enrolledStudents }) {
                     console.log('AllStudentsView - Fetched students:', students);
                     
                     // Transform the data to match the expected format
-                    const transformedStudents = students.map(student => ({
-                        id: student.id,
-                        idNumber: student.idNumber,
-                        firstName: student.firstName,
-                        lastName: student.lastName,
-                        middleName: student.middleName,
-                        gender: student.gender || 'N/A',
-                        course: student.course || 'Not registered',
-                        registrationStatus: student.academicStatus || 'Not registered',
-                        registrationDate: student.createdAt ? new Date(student.createdAt).toISOString().split('T')[0] : 'N/A'
-                    }));
+                    const transformedStudents = students.map(student => {
+                        // Map backend status to frontend display status
+                        let displayStatus = 'Not registered';
+                        if (student.academicStatus === 'Approved') {
+                            displayStatus = 'Enrolled';
+                        } else if (student.academicStatus === 'Pending') {
+                            displayStatus = 'Pending';
+                        } else if (student.academicStatus === 'Rejected') {
+                            displayStatus = 'Rejected';
+                        } else if (student.academicStatus) {
+                            displayStatus = student.academicStatus;
+                        }
+
+                        return {
+                            id: student.id,
+                            idNumber: student.idNumber,
+                            firstName: student.firstName,
+                            lastName: student.lastName,
+                            middleName: student.middleName,
+                            gender: student.gender || 'N/A',
+                            course: student.course || 'Not registered',
+                            registrationStatus: displayStatus,
+                            registrationDate: student.createdAt ? new Date(student.createdAt).toISOString().split('T')[0] : 'N/A'
+                        };
+                    });
                     
                     setLocalStudents(transformedStudents);
+                    // Store timestamp of successful fetch
+                    localStorage.setItem('lastStudentFetch', Date.now().toString());
                 } else {
                     const errorText = await response.text();
                     console.error('Failed to fetch students:', response.status, errorText);
@@ -64,19 +89,111 @@ function AllStudentsView({ enrolledStudents }) {
             }
         };
 
-        // Only fetch if we don't have data from props or if props data is empty
-        if (!enrolledStudents || enrolledStudents.length === 0) {
-            fetchStudents();
-        } else {
-            setLocalStudents(enrolledStudents);
-            setLoading(false);
-        }
-    }, [enrolledStudents]);
+        // Always fetch fresh data on component mount, regardless of props
+        fetchStudents();
+    }, []); // Empty dependency array - only run on mount
+
+    // Add focus event listener to refresh data when user navigates to this page
+    useEffect(() => {
+        const handleFocus = () => {
+            // Only refresh if we don't have data or if it's been more than 30 seconds since last fetch
+            if (localStudents.length === 0 || !localStorage.getItem('lastStudentFetch')) {
+                refreshStudents();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && localStudents.length === 0) {
+                refreshStudents();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [localStudents.length]);
     
     // Use local students data if available, otherwise fall back to props
     const students = localStudents.length > 0 ? localStudents : (Array.isArray(enrolledStudents) ? enrolledStudents : []);
     
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Add a refresh function that can be called manually
+    const refreshStudents = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                setError('Session expired. Please login again.');
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
+            if (!sessionToken) {
+                setError('No session token found. Please login again.');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/students`, {
+                headers: {
+                    'X-Session-Token': sessionToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const students = await response.json();
+                console.log('AllStudentsView - Refreshed students:', students);
+                
+                // Transform the data to match the expected format
+                const transformedStudents = students.map(student => {
+                    // Map backend status to frontend display status
+                    let displayStatus = 'Not registered';
+                    if (student.academicStatus === 'Approved') {
+                        displayStatus = 'Enrolled';
+                    } else if (student.academicStatus === 'Pending') {
+                        displayStatus = 'Pending';
+                    } else if (student.academicStatus === 'Rejected') {
+                        displayStatus = 'Rejected';
+                    } else if (student.academicStatus) {
+                        displayStatus = student.academicStatus;
+                    }
+
+                    return {
+                        id: student.id,
+                        idNumber: student.idNumber,
+                        firstName: student.firstName,
+                        lastName: student.lastName,
+                        middleName: student.middleName,
+                        gender: student.gender || 'N/A',
+                        course: student.course || 'Not registered',
+                        registrationStatus: displayStatus,
+                        registrationDate: student.createdAt ? new Date(student.createdAt).toISOString().split('T')[0] : 'N/A'
+                    };
+                });
+                
+                setLocalStudents(transformedStudents);
+                // Store timestamp of successful fetch
+                localStorage.setItem('lastStudentFetch', Date.now().toString());
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to refresh students:', response.status, errorText);
+                setError('Failed to refresh students');
+            }
+        } catch (err) {
+            console.error('Error refreshing students:', err);
+            setError('Error refreshing students');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleViewClick = (e) => {
         if (!isAdmin) {
@@ -114,6 +231,15 @@ function AllStudentsView({ enrolledStudents }) {
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <h2 className="m-0"></h2>
                 <div>
+                    <button 
+                        className="btn btn-outline-primary me-2" 
+                        onClick={refreshStudents}
+                        disabled={loading}
+                        title="Refresh student list"
+                    >
+                        <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`}></i>
+                        {loading ? ' Refreshing...' : ' Refresh'}
+                    </button>
                     <button className="btn btn-outline-secondary me-2">Export</button>
                     <button className="btn btn-primary">+ Add New</button>
                 </div>

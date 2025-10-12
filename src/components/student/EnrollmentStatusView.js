@@ -8,19 +8,30 @@ function EnrollmentStatusView() {
     const [error, setError] = useState('');
     const [selectedSemester, setSelectedSemester] = useState('');
     const [availableSemesters, setAvailableSemesters] = useState([]);
+    const [lastUpdated, setLastUpdated] = useState(null);
+    const [enrollmentHistory, setEnrollmentHistory] = useState([]);
+    const [showHistory, setShowHistory] = useState(false);
+    const [academicProgress, setAcademicProgress] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         fetchEnrollmentData();
     }, []);
 
-    const fetchEnrollmentData = async () => {
+    const fetchEnrollmentData = async (isRefresh = false) => {
         try {
-            setLoading(true);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+            
             const sessionToken = getSessionToken();
             
             if (!sessionToken) {
                 setError('No session token found. Please login again.');
                 setLoading(false);
+                setRefreshing(false);
                 return;
             }
 
@@ -29,40 +40,110 @@ function EnrollmentStatusView() {
             if (!userId) {
                 setError('User ID not found. Please login again.');
                 setLoading(false);
+                setRefreshing(false);
                 return;
             }
 
-            // Fetch enrollment data
-            const response = await fetch(`${API_BASE_URL}/students/enrollment-status/${userId}`, {
-                headers: {
-                    'X-Session-Token': sessionToken,
-                    'Content-Type': 'application/json'
-                }
-            });
+            console.log('📊 Fetching enrollment data for user:', userId);
 
-            if (response.ok) {
-                const data = await response.json();
+            // Fetch enrollment data and history in parallel
+            const [enrollmentResponse, historyResponse] = await Promise.all([
+                fetch(`${API_BASE_URL}/students/enrollment-status/${userId}`, {
+                    headers: {
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                }),
+                fetch(`${API_BASE_URL}/students/enrollment-history/${userId}`, {
+                    headers: {
+                        'X-Session-Token': sessionToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
+            ]);
+
+            if (enrollmentResponse.ok) {
+                const data = await enrollmentResponse.json();
+                console.log('📊 Enrollment data received:', data);
                 setEnrollmentData(data);
+                setLastUpdated(new Date());
                 
                 // Extract available semesters
                 if (data.subjects && data.subjects.length > 0) {
                     const semesters = [...new Set(data.subjects.map(subject => subject.semester))];
                     setAvailableSemesters(semesters);
-                    if (semesters.length > 0) {
+                    if (semesters.length > 0 && !selectedSemester) {
                         setSelectedSemester(semesters[0]);
                     }
                 }
+
+                // Calculate academic progress
+                calculateAcademicProgress(data);
             } else {
-                const errorText = await response.text();
-                console.error('Failed to fetch enrollment data:', response.status, errorText);
+                const errorText = await enrollmentResponse.text();
+                console.error('Failed to fetch enrollment data:', enrollmentResponse.status, errorText);
                 setError('Failed to fetch enrollment data. Please try again.');
             }
+
+            // Handle enrollment history
+            if (historyResponse.ok) {
+                const historyData = await historyResponse.json();
+                console.log('📊 Enrollment history received:', historyData);
+                setEnrollmentHistory(historyData.history || []);
+            }
+
         } catch (err) {
             console.error('Error fetching enrollment data:', err);
             setError('Error fetching enrollment data. Please try again.');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    };
+
+    const calculateAcademicProgress = (data) => {
+        if (!data.subjects || data.subjects.length === 0) {
+            setAcademicProgress(null);
+            return;
+        }
+
+        const subjects = data.subjects;
+        const totalSubjects = subjects.length;
+        const completedSubjects = subjects.filter(subject => 
+            subject.finalGrade && subject.finalGrade !== 'N/A' && subject.finalGrade !== ''
+        ).length;
+        
+        const totalUnits = subjects.reduce((sum, subject) => sum + (parseFloat(subject.units) || 0), 0);
+        const completedUnits = subjects
+            .filter(subject => subject.finalGrade && subject.finalGrade !== 'N/A' && subject.finalGrade !== '')
+            .reduce((sum, subject) => sum + (parseFloat(subject.units) || 0), 0);
+
+        // Calculate GPA
+        const gradedSubjects = subjects.filter(subject => {
+            const grade = parseFloat(subject.finalGrade);
+            return !isNaN(grade) && grade > 0;
+        });
+
+        const totalGradePoints = gradedSubjects.reduce((sum, subject) => {
+            const grade = parseFloat(subject.finalGrade);
+            const units = parseFloat(subject.units) || 0;
+            return sum + (grade * units);
+        }, 0);
+
+        const totalGradedUnits = gradedSubjects.reduce((sum, subject) => 
+            sum + (parseFloat(subject.units) || 0), 0
+        );
+
+        const gpa = totalGradedUnits > 0 ? (totalGradePoints / totalGradedUnits).toFixed(2) : 0;
+
+        setAcademicProgress({
+            totalSubjects,
+            completedSubjects,
+            totalUnits,
+            completedUnits,
+            gpa: parseFloat(gpa),
+            completionRate: totalSubjects > 0 ? ((completedSubjects / totalSubjects) * 100).toFixed(1) : 0
+        });
     };
 
     const getStatusBadge = (status) => {
@@ -156,19 +237,147 @@ function EnrollmentStatusView() {
     if (!enrollmentData || !enrollmentData.subjects || enrollmentData.subjects.length === 0) {
         return (
             <div className="enrollment-status-container">
-                <div className="text-center py-5">
-                    <div className="alert alert-info">
-                        <h4>No Enrollment Data Found</h4>
-                        <p>{enrollmentData?.message || 'You are not currently enrolled in any subjects for this semester.'}</p>
-                        <p className="text-muted">Please contact the registrar's office for enrollment assistance.</p>
-                        <div className="mt-3">
-                            <button 
-                                className="btn btn-primary"
-                                onClick={fetchEnrollmentData}
-                            >
-                                <i className="fas fa-refresh me-2"></i>
-                                Refresh Enrollment Data
-                            </button>
+                <div className="container">
+                    {/* Header Section */}
+                    <div className="enrollment-header">
+                        <div className="row align-items-center">
+                            <div className="col-md-8">
+                                <h1 className="enrollment-title">
+                                    <i className="fas fa-graduation-cap me-3"></i>
+                                    Enrollment Status
+                                </h1>
+                                <p className="enrollment-subtitle">
+                                    Academic Year 2025-2026 • Current Semester
+                                </p>
+                            </div>
+                            <div className="col-md-4 text-end">
+                                <div className="enrollment-summary">
+                                    <div className="summary-item">
+                                        <span className="summary-label">Last Updated:</span>
+                                        <span className="summary-value">
+                                            {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* No Data Found Section */}
+                    <div className="row justify-content-center">
+                        <div className="col-md-8">
+                            <div className="card shadow-sm border-0">
+                                <div className="card-body text-center py-5">
+                                    <div className="mb-4">
+                                        <i className="fas fa-graduation-cap fa-4x text-muted mb-3"></i>
+                                        <h3 className="text-muted">No Enrollment Data Found</h3>
+                                    </div>
+                                    
+                                    <div className="alert alert-info text-start">
+                                        <h5><i className="fas fa-info-circle me-2"></i>What this means:</h5>
+                                        <ul className="mb-0">
+                                            <li>You may not be enrolled in any subjects for the current semester</li>
+                                            <li>Your enrollment data might not be processed yet</li>
+                                            <li>You may need to complete your registration first</li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="alert alert-warning text-start mt-3">
+                                        <h5><i className="fas fa-exclamation-triangle me-2"></i>Next Steps:</h5>
+                                        <ol className="mb-0">
+                                            <li>Complete your student registration form</li>
+                                            <li>Contact the registrar's office for enrollment assistance</li>
+                                            <li>Check if you have pending requirements</li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <button 
+                                            className="btn btn-primary me-3"
+                                            onClick={() => fetchEnrollmentData(true)}
+                                            disabled={refreshing}
+                                        >
+                                            {refreshing ? (
+                                                <>
+                                                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                                                    Refreshing...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <i className="fas fa-sync-alt me-2"></i>
+                                                    Refresh Enrollment Data
+                                                </>
+                                            )}
+                                        </button>
+                                        
+                                        <button 
+                                            className="btn btn-outline-secondary"
+                                            onClick={() => window.location.href = '/student/profile'}
+                                        >
+                                            <i className="fas fa-user me-2"></i>
+                                            Complete Registration
+                                        </button>
+                                    </div>
+
+                                    {lastUpdated && (
+                                        <div className="mt-3 text-muted">
+                                            <small>
+                                                <i className="fas fa-clock me-1"></i>
+                                                Last checked: {lastUpdated.toLocaleString()}
+                                            </small>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="row mt-4">
+                        <div className="col-md-4">
+                            <div className="card h-100">
+                                <div className="card-body text-center">
+                                    <i className="fas fa-file-alt fa-2x text-primary mb-3"></i>
+                                    <h5>Registration Form</h5>
+                                    <p className="text-muted">Complete your student registration to get enrolled</p>
+                                    <button 
+                                        className="btn btn-outline-primary"
+                                        onClick={() => window.location.href = '/student/profile'}
+                                    >
+                                        Go to Registration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-md-4">
+                            <div className="card h-100">
+                                <div className="card-body text-center">
+                                    <i className="fas fa-phone fa-2x text-success mb-3"></i>
+                                    <h5>Contact Registrar</h5>
+                                    <p className="text-muted">Get help with enrollment and registration</p>
+                                    <button 
+                                        className="btn btn-outline-success"
+                                        onClick={() => window.location.href = '/student/request'}
+                                    >
+                                        Send Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-md-4">
+                            <div className="card h-100">
+                                <div className="card-body text-center">
+                                    <i className="fas fa-question-circle fa-2x text-info mb-3"></i>
+                                    <h5>Need Help?</h5>
+                                    <p className="text-muted">Check our FAQ or contact support</p>
+                                    <button 
+                                        className="btn btn-outline-info"
+                                        onClick={() => alert('Help section coming soon!')}
+                                    >
+                                        Get Help
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -250,11 +459,31 @@ function EnrollmentStatusView() {
                 {/* Enrollment Summary Card */}
                 <div className="enrollment-summary-card mb-4">
                     <div className="card shadow-sm border-0">
-                        <div className="card-header bg-primary text-white">
+                        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                             <h5 className="mb-0">
                                 <i className="fas fa-info-circle me-2"></i>
                                 Enrollment Summary
                             </h5>
+                            <div className="d-flex align-items-center">
+                                {lastUpdated && (
+                                    <small className="me-3">
+                                        <i className="fas fa-clock me-1"></i>
+                                        Updated: {lastUpdated.toLocaleTimeString()}
+                                    </small>
+                                )}
+                                <button 
+                                    className="btn btn-sm btn-outline-light"
+                                    onClick={() => fetchEnrollmentData(true)}
+                                    disabled={refreshing}
+                                    title="Refresh data"
+                                >
+                                    {refreshing ? (
+                                        <span className="spinner-border spinner-border-sm" role="status"></span>
+                                    ) : (
+                                        <i className="fas fa-sync-alt"></i>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                         <div className="card-body">
                             <div className="row">
@@ -286,6 +515,54 @@ function EnrollmentStatusView() {
                         </div>
                     </div>
                 </div>
+
+                {/* Academic Progress Card */}
+                {academicProgress && (
+                    <div className="academic-progress-card mb-4">
+                        <div className="card shadow-sm border-0">
+                            <div className="card-header bg-success text-white">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-chart-line me-2"></i>
+                                    Academic Progress
+                                </h5>
+                            </div>
+                            <div className="card-body">
+                                <div className="row">
+                                    <div className="col-md-3">
+                                        <div className="progress-stat">
+                                            <div className="progress mb-2" style={{height: '8px'}}>
+                                                <div 
+                                                    className="progress-bar bg-success" 
+                                                    style={{width: `${academicProgress.completionRate}%`}}
+                                                ></div>
+                                            </div>
+                                            <div className="stat-number">{academicProgress.completionRate}%</div>
+                                            <div className="stat-label">Completion Rate</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="summary-stat">
+                                            <div className="stat-number">{academicProgress.completedSubjects}/{academicProgress.totalSubjects}</div>
+                                            <div className="stat-label">Subjects Completed</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="summary-stat">
+                                            <div className="stat-number">{academicProgress.completedUnits}/{academicProgress.totalUnits}</div>
+                                            <div className="stat-label">Units Completed</div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <div className="summary-stat">
+                                            <div className="stat-number">{academicProgress.gpa.toFixed(2)}</div>
+                                            <div className="stat-label">Current GPA</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Enrolled Subjects Table */}
                 <div className="enrolled-subjects-section mb-4">
@@ -400,7 +677,7 @@ function EnrollmentStatusView() {
                 </div>
 
                 {/* Additional Information */}
-                <div className="additional-info-section">
+                <div className="additional-info-section mb-4">
                     <div className="card shadow-sm border-0">
                         <div className="card-header bg-info text-white">
                             <h5 className="mb-0">
@@ -431,6 +708,84 @@ function EnrollmentStatusView() {
                         </div>
                     </div>
                 </div>
+
+                {/* Enrollment History */}
+                {enrollmentHistory.length > 0 && (
+                    <div className="enrollment-history-section">
+                        <div className="card shadow-sm border-0">
+                            <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                                <h5 className="mb-0">
+                                    <i className="fas fa-history me-2"></i>
+                                    Enrollment History
+                                </h5>
+                                <button 
+                                    className="btn btn-sm btn-outline-light"
+                                    onClick={() => setShowHistory(!showHistory)}
+                                >
+                                    {showHistory ? (
+                                        <>
+                                            <i className="fas fa-eye-slash me-1"></i>
+                                            Hide History
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-eye me-1"></i>
+                                            Show History
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                            {showHistory && (
+                                <div className="card-body">
+                                    <div className="table-responsive">
+                                        <table className="table table-hover">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>Academic Year</th>
+                                                    <th>Semester</th>
+                                                    <th className="text-center">Subjects</th>
+                                                    <th className="text-center">Units</th>
+                                                    <th className="text-center">Status</th>
+                                                    <th className="text-center">GPA</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {enrollmentHistory.map((semester, index) => (
+                                                    <tr key={index}>
+                                                        <td>
+                                                            <strong>{semester.academicYear || 'N/A'}</strong>
+                                                        </td>
+                                                        <td>{semester.semester || 'N/A'}</td>
+                                                        <td className="text-center">
+                                                            <span className="badge bg-primary">
+                                                                {semester.subjectCount || 0}
+                                                            </span>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <span className="badge bg-info">
+                                                                {semester.totalUnits || 0}
+                                                            </span>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <span className={getStatusBadge(semester.status)}>
+                                                                {semester.status || 'Completed'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="text-center">
+                                                            <span className={getGradeColor(semester.gpa)}>
+                                                                {semester.gpa ? semester.gpa.toFixed(2) : 'N/A'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

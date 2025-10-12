@@ -23,6 +23,8 @@ function StudentDetailView({ enrolledStudents }) {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [forceRerender, setForceRerender] = useState(0);
+  const [studentProfilePic, setStudentProfilePic] = useState(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const userRole = localStorage.getItem('userRole');
   const [requestToPrint, setRequestToPrint] = useState(null);
@@ -126,18 +128,67 @@ function StudentDetailView({ enrolledStudents }) {
     const fetchStudentDetails = async () => {
       try {
         setLoading(true);
-        const enrolledStudent = enrolledStudents.find(s => s.idNumber === idNo);
+        setError(null);
         
+        // First try to find student in enrolledStudents prop
+        let enrolledStudent = null;
+        if (enrolledStudents && enrolledStudents.length > 0) {
+          console.log('🔍 Searching in enrolledStudents prop:', enrolledStudents.length, 'students');
+          console.log('🔍 Looking for idNo:', idNo);
+          enrolledStudent = enrolledStudents.find(s => s.idNumber === idNo);
+          console.log('🔍 Found in prop:', enrolledStudent ? 'YES' : 'NO');
+        } else {
+          console.log('🔍 enrolledStudents prop is empty or undefined');
+        }
+        
+        // If not found in prop, fetch directly from backend
         if (!enrolledStudent) {
-          setError('Student not found');
-          setLoading(false);
-          return;
+          console.log('🔍 Student not found in enrolledStudents prop, fetching from backend...');
+          
+          const sessionToken = getSessionToken();
+          if (!sessionToken) {
+            setError('No session token found');
+            setLoading(false);
+            return;
+          }
+
+          // Fetch student by ID number from backend
+          const response = await fetch(`${API_BASE_URL}/students/search/${idNo}`, {
+            headers: {
+              'X-Session-Token': sessionToken,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const studentData = await response.json();
+            console.log('🔍 Fetched student from backend:', studentData);
+            
+            // Transform the data to match expected format
+            enrolledStudent = {
+              id: studentData.id,
+              idNumber: studentData.idNumber,
+              firstName: studentData.firstName,
+              lastName: studentData.lastName,
+              middleName: studentData.middleName,
+              gender: studentData.gender || 'N/A',
+              course: 'Bachelor of Science in Information Technology',
+              registrationStatus: 'Enrolled',
+              registrationDate: studentData.createdAt ? new Date(studentData.createdAt).toISOString().split('T')[0] : 'N/A'
+            };
+          } else {
+            const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+            console.error('🔍 Backend fetch failed:', response.status, errorData);
+            setError(`Student not found: ${errorData.message || 'Unknown error'}`);
+            setLoading(false);
+            return;
+          }
         }
 
-        // Use the data we already have from enrolledStudents
-        console.log('🔍 Frontend - Setting student from enrolledStudents:', enrolledStudent);
-        console.log('🔍 Frontend - enrolledStudent.id:', enrolledStudent.id);
-        console.log('🔍 Frontend - enrolledStudent.idNumber:', enrolledStudent.idNumber);
+        // Use the student data (either from prop or backend)
+        console.log('🔍 Frontend - Setting student:', enrolledStudent);
+        console.log('🔍 Frontend - student.id:', enrolledStudent.id);
+        console.log('🔍 Frontend - student.idNumber:', enrolledStudent.idNumber);
         setStudent(enrolledStudent);
 
         // Fetch login history for this student
@@ -146,25 +197,61 @@ function StudentDetailView({ enrolledStudents }) {
         // Fetch requirements status for this student
         fetchRequirementsStatus(enrolledStudent.id);
 
-        // Fetch user data with profile photo if not already present
-        if (!enrolledStudent.profilePhoto) {
-          try {
-            const userResponse = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
-              headers: { 'X-Session-Token': getSessionToken() }
-            });
+        // Always fetch user data with profile photo to ensure it persists
+        try {
+          const userResponse = await fetch(`${API_BASE_URL}/students/${enrolledStudent.id}`, {
+            headers: { 'X-Session-Token': getSessionToken() }
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('📸 Raw userData from server:', userData);
+            console.log('📸 Raw profilePhoto from server:', userData.profilePhoto);
             
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              if (userData.profilePhoto) {
-                setStudent(prev => ({
-                  ...prev,
-                  profilePhoto: userData.profilePhoto
-                }));
+            if (userData.profilePhoto) {
+              // Construct full URL if needed
+              let fullPhotoUrl;
+              if (userData.profilePhoto.startsWith('http')) {
+                fullPhotoUrl = userData.profilePhoto;
+              } else if (userData.profilePhoto.startsWith('/api/')) {
+                // If the photo URL already starts with /api/, just prepend the base URL without /api
+                const baseUrl = API_BASE_URL.replace('/api', '');
+                fullPhotoUrl = `${baseUrl}${userData.profilePhoto}`;
+              } else {
+                // If it doesn't start with /api/, prepend the full API_BASE_URL
+                fullPhotoUrl = `${API_BASE_URL}${userData.profilePhoto}`;
               }
+              
+              console.log('📸 Constructed full photo URL:', fullPhotoUrl);
+              
+              // Always update student with fresh server data (overwrites enrolledStudents data)
+              setStudent(prev => ({
+                ...prev,
+                profilePhoto: fullPhotoUrl
+              }));
+              
+              // Also save to localStorage for persistence
+              localStorage.setItem(`studentProfilePic_${enrolledStudent.idNumber}`, fullPhotoUrl);
+              setStudentProfilePic(fullPhotoUrl);
+              
+              console.log('📸 Fetched existing photo URL from server:', fullPhotoUrl);
+              console.log('📸 Updated student state with server data');
+              console.log('📸 Saved to localStorage for persistence');
+            } else {
+              console.log('📸 No profilePhoto found in userData from server');
+              // Clear any existing photo data if server says there's no photo
+              setStudent(prev => ({
+                ...prev,
+                profilePhoto: null
+              }));
+              localStorage.removeItem(`studentProfilePic_${enrolledStudent.idNumber}`);
+              setStudentProfilePic(null);
             }
-          } catch (error) {
-            console.error("Error fetching user photo:", error);
+          } else {
+            console.error('📸 Failed to fetch user data:', userResponse.status, userResponse.statusText);
           }
+        } catch (error) {
+          console.error("Error fetching user photo:", error);
         }
 
         // --- START: Fetch student registration data for personal details ---
@@ -282,11 +369,25 @@ function StudentDetailView({ enrolledStudents }) {
     fetchStudentDetails();
   }, [idNo, enrolledStudents]);
 
+  // Load student profile picture from localStorage (fallback only)
+  useEffect(() => {
+    if (student && student.idNumber && !student.profilePhoto) {
+      const savedPic = localStorage.getItem(`studentProfilePic_${student.idNumber}`);
+      if (savedPic) {
+        setStudentProfilePic(savedPic);
+        console.log('📸 Loaded student profile pic from localStorage (fallback):', savedPic);
+      }
+    }
+  }, [student?.idNumber, student?.profilePhoto]);
+
   // Debug: Monitor student state changes
   useEffect(() => {
     console.log('🔍 Student state changed:', student);
     console.log('🔍 Student profilePhoto:', student?.profilePhoto);
-  }, [student]);
+    console.log('🔍 StudentProfilePic from localStorage:', studentProfilePic);
+    console.log('🔍 Force rerender triggered');
+    setForceRerender(prev => prev + 1);
+  }, [student?.profilePhoto, studentProfilePic]);
 
   // Helper function for ordinal suffixes
   const getOrdinalSuffix = (num) => {
@@ -459,7 +560,7 @@ function StudentDetailView({ enrolledStudents }) {
       const formData = new FormData();
       formData.append('photo', selectedPhoto);
 
-      const response = await fetch(`${API_BASE_URL}/photos/upload/${student.id}`, {
+      const response = await fetch(`${API_BASE_URL}/photos/upload/${student.idNumber}`, {
         method: 'POST',
         headers: { 'X-Session-Token': getSessionToken() },
         body: formData
@@ -471,36 +572,54 @@ function StudentDetailView({ enrolledStudents }) {
         console.log('📸 Photo upload successful:', result);
         console.log('📸 New photo URL:', result.photoUrl);
         
-        // Update the user object with new photo URL
-        setStudent(prev => {
-          const updated = {
-            ...prev,
-            profilePhoto: result.photoUrl
-          };
-          console.log('📸 Updated student object:', updated);
-          console.log('📸 New profilePhoto value:', updated.profilePhoto);
-          return updated;
-        });
-        
-        // Also update the enrolledStudents array in the parent component
-        // This ensures the photo persists when navigating back to the list
-        if (window.updateEnrolledStudents) {
-          window.updateEnrolledStudents(prev => 
-            prev.map(s => 
-              s.id === student.id 
-                ? { ...s, profilePhoto: result.photoUrl }
-                : s
-            )
-          );
+        // Construct full URL if needed
+        let fullPhotoUrl;
+        if (result.photoUrl.startsWith('http')) {
+          fullPhotoUrl = result.photoUrl;
+        } else if (result.photoUrl.startsWith('/api/')) {
+          // If the photo URL already starts with /api/, just prepend the base URL without /api
+          const baseUrl = API_BASE_URL.replace('/api', '');
+          fullPhotoUrl = `${baseUrl}${result.photoUrl}`;
+        } else {
+          // If it doesn't start with /api/, prepend the full API_BASE_URL
+          fullPhotoUrl = `${API_BASE_URL}${result.photoUrl}`;
         }
+        
+        console.log('📸 Full photo URL:', fullPhotoUrl);
+        
+        // Create a blob URL from the selected photo for immediate display
+        const blobUrl = URL.createObjectURL(selectedPhoto);
+        console.log('📸 Blob URL created:', blobUrl);
+        
+        // Update state immediately with blob URL for instant display
+        setStudent(prev => ({
+          ...prev,
+          profilePhoto: blobUrl
+        }));
+        
+        // Save the server URL to localStorage for persistence (not blob URL)
+        localStorage.setItem(`studentProfilePic_${student.idNumber}`, fullPhotoUrl);
+        setStudentProfilePic(fullPhotoUrl);
+        console.log('📸 Saved server URL to localStorage for persistence:', fullPhotoUrl);
+        
+        // Force component re-render
+        setForceRerender(prev => prev + 1);
         
         // Close modal and reset states
         setPhotoUploadModalOpen(false);
         setSelectedPhoto(null);
         setPhotoPreview(null);
         
-        // Show success message
-        alert('Photo uploaded successfully!');
+        // Update the enrolledStudents array in the parent component
+        if (window.updateEnrolledStudents) {
+          window.updateEnrolledStudents(prev => 
+            prev.map(s => 
+              s.idNumber === student.idNumber 
+                ? { ...s, profilePhoto: fullPhotoUrl }
+                : s
+            )
+          );
+        }
       } else {
         const error = await response.json();
         alert(`Upload failed: ${error.message}`);
@@ -518,7 +637,7 @@ function StudentDetailView({ enrolledStudents }) {
 
     if (window.confirm('Are you sure you want to delete this photo?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/photos/${student.id}`, {
+        const response = await fetch(`${API_BASE_URL}/photos/${student.idNumber}`, {
           method: 'DELETE',
           headers: { 'X-Session-Token': getSessionToken() }
         });
@@ -779,7 +898,6 @@ function StudentDetailView({ enrolledStudents }) {
         if (student?.id) {
           refreshStudentRequests(student.id);
         }
-        alert('Document request sent to accounting for payment processing!');
       } else {
         throw new Error('Failed to request document from accounting');
       }
@@ -890,62 +1008,97 @@ function StudentDetailView({ enrolledStudents }) {
                     title="Click photo to view, click camera to upload"
                   >
                                        {(() => {
-                                         const avatar = getStudentAvatar(student);
-                                         if (avatar.isFallback) {
+                                         console.log('🔍 Avatar display - student:', student);
+                                         console.log('🔍 Avatar display - profilePhoto:', student?.profilePhoto);
+                                         console.log('🔍 Avatar display - studentProfilePic:', studentProfilePic);
+                                         console.log('🔍 Force rerender count:', forceRerender);
+                                         
+                                         // Show uploaded photo if exists (prioritize student.profilePhoto)
+                                         const photoToShow = student?.profilePhoto || studentProfilePic;
+                                         console.log('🔍 Photo to show:', photoToShow);
+                                         
+                                         if (photoToShow) {
+                                           console.log('📸 Displaying uploaded photo:', photoToShow);
                                            return (
-                                             <div 
-                                               className="fallback-avatar"
+                                             <img 
+                                               key={`photo-${student.id}-${forceRerender}`}
+                                               src={photoToShow} 
+                                               alt="Student Photo" 
+                                               className="profile-photo"
+                                               onClick={handlePhotoPreview}
+                                               title="Click to view photo in full screen"
                                                style={{
                                                  width: '150px',
                                                  height: '150px',
                                                  borderRadius: '50%',
-                                                 backgroundColor: avatar.color || '#6c757d',
-                                                 display: 'flex',
-                                                 alignItems: 'center',
-                                                 justifyContent: 'center',
-                                                 color: 'white',
-                                                 fontSize: '48px',
-                                                 fontWeight: 'bold',
+                                                 objectFit: 'cover',
                                                  cursor: 'pointer'
                                                }}
-                                               onClick={handlePhotoPreview}
-                                               title="Click to view avatar in full screen"
-                                             >
-                                               {avatar.initials}
-                                             </div>
+                                               onLoad={() => {
+                                                 console.log('✅ Photo loaded successfully:', photoToShow);
+                                               }}
+                                               onError={(e) => {
+                                                 console.log('❌ Photo failed to load:', e.target.src);
+                                                 console.log('❌ Error details:', e);
+                                                 // If photo fails to load, show generic avatar
+                                                 e.target.style.display = 'none';
+                                                 const fallbackAvatar = document.createElement('div');
+                                                 fallbackAvatar.className = 'fallback-avatar';
+                                                 fallbackAvatar.style.cssText = `
+                                                   width: 150px;
+                                                   height: 150px;
+                                                   border-radius: 50%;
+                                                   background-color: #6c757d;
+                                                   display: flex;
+                                                   align-items: center;
+                                                   justify-content: center;
+                                                   cursor: pointer;
+                                                   position: relative;
+                                                 `;
+                                                 
+                                                 // Add person silhouette icon
+                                                 const personIcon = document.createElement('i');
+                                                 personIcon.className = 'fas fa-user';
+                                                 personIcon.style.cssText = `
+                                                   font-size: 60px;
+                                                   color: white;
+                                                   opacity: 0.7;
+                                                 `;
+                                                 fallbackAvatar.appendChild(personIcon);
+                                                 
+                                                 fallbackAvatar.onclick = handlePhotoPreview;
+                                                 e.target.parentNode.appendChild(fallbackAvatar);
+                                               }}
+                                             />
                                            );
                                          }
+                                         
+                                         console.log('📸 Displaying generic avatar');
+                                         // Show generic grey avatar with person silhouette
                                          return (
-                                           <img 
-                                             src={avatar.src} 
-                                             alt="Student Photo" 
-                                             className="profile-photo"
-                                             onClick={handlePhotoPreview}
-                                             title="Click to view photo in full screen"
-                                             onError={(e) => {
-                                               console.log('❌ Photo failed to load:', e.target.src);
-                                               // If photo fails to load, show fallback avatar
-                                               e.target.style.display = 'none';
-                                               const fallbackAvatar = document.createElement('div');
-                                               fallbackAvatar.className = 'fallback-avatar';
-                                               fallbackAvatar.style.cssText = `
-                                                 width: 150px;
-                                                 height: 150px;
-                                                 border-radius: 50%;
-                                                 background-color: ${avatar.color || '#6c757d'};
-                                                 display: flex;
-                                                 align-items: center;
-                                                 justify-content: center;
-                                                 color: white;
-                                                 font-size: 48px;
-                                                 font-weight: bold;
-                                                 cursor: pointer;
-                                               `;
-                                               fallbackAvatar.textContent = avatar.initials;
-                                               fallbackAvatar.onclick = handlePhotoPreview;
-                                               e.target.parentNode.appendChild(fallbackAvatar);
+                                           <div 
+                                             key={`avatar-${student?.id}-${forceRerender}`}
+                                             className="fallback-avatar"
+                                             style={{
+                                               width: '150px',
+                                               height: '150px',
+                                               borderRadius: '50%',
+                                               backgroundColor: '#6c757d',
+                                               display: 'flex',
+                                               alignItems: 'center',
+                                               justifyContent: 'center',
+                                               cursor: 'pointer',
+                                               position: 'relative'
                                              }}
-                                           />
+                                             onClick={handlePhotoPreview}
+                                             title="Click to view avatar in full screen"
+                                           >
+                                             <i className="fas fa-user" style={{
+                                               fontSize: '60px',
+                                               color: 'white',
+                                               opacity: 0.7
+                                             }}></i>
+                                           </div>
                                          );
                                        })()}
                     <div 
@@ -1736,53 +1889,28 @@ function StudentDetailView({ enrolledStudents }) {
                    </div>
                  )}
 
-                                   {(() => {
-                                     const avatar = getStudentAvatar(student);
-                                     if (avatar.isFallback) {
-                                       return (
-                                         <div className="text-center mb-3">
-                                           <h6>Current Avatar:</h6>
-                                           <div 
-                                             className="fallback-avatar mx-auto mb-2"
-                                             style={{
-                                               width: '150px',
-                                               height: '150px',
-                                               borderRadius: '50%',
-                                               backgroundColor: avatar.color || '#6c757d',
-                                               display: 'flex',
-                                               alignItems: 'center',
-                                               justifyContent: 'center',
-                                               color: 'white',
-                                               fontSize: '48px',
-                                               fontWeight: 'bold'
-                                             }}
-                                           >
-                                             {avatar.initials}
-                                           </div>
-                                           <small className="text-muted">No profile photo uploaded yet</small>
-                                         </div>
-                                       );
-                                     }
-                                     return (
-                                       <div className="text-center mb-3">
-                                         <h6>Current Photo:</h6>
-                                         <img 
-                                           src={avatar.src} 
-                                           alt="Current" 
-                                           className="img-fluid rounded mb-2"
-                                           style={{ maxHeight: '150px' }}
-                                         />
-                                         <br />
-                                         <button 
-                                           className="btn btn-outline-danger btn-sm"
-                                           onClick={handleDeletePhoto}
-                                         >
-                                           <i className="fas fa-trash me-1"></i>
-                                           Delete Current Photo
-                                         </button>
-                                       </div>
-                                     );
-                                   })()}
+                 <div className="text-center mb-3">
+                   <h6>Current Avatar:</h6>
+                   <div 
+                     className="fallback-avatar mx-auto mb-2"
+                     style={{
+                       width: '150px',
+                       height: '150px',
+                       borderRadius: '50%',
+                       backgroundColor: '#6c757d',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center'
+                     }}
+                   >
+                     <i className="fas fa-user" style={{
+                       fontSize: '60px',
+                       color: 'white',
+                       opacity: 0.7
+                     }}></i>
+                   </div>
+                   <small className="text-muted">Registrar can upload photos for students</small>
+                 </div>
                </div>
                <div className="modal-footer">
                  <button 
@@ -1839,40 +1967,43 @@ function StudentDetailView({ enrolledStudents }) {
                 </div>
                                  <div className="modal-body text-center p-0">
                    {(() => {
-                     const avatar = getStudentAvatar(student);
-                     if (avatar.isFallback) {
+                     // Show uploaded photo if exists, otherwise show generic avatar
+                     if (student && student.profilePhoto) {
                        return (
-                         <div 
-                           className="fallback-avatar mx-auto"
-                           style={{
-                             width: '300px',
-                             height: '300px',
-                             borderRadius: '50%',
-                             backgroundColor: avatar.color || '#6c757d',
-                             display: 'flex',
-                             alignItems: 'center',
-                             justifyContent: 'center',
-                             color: 'white',
-                             fontSize: '120px',
-                             fontWeight: 'bold',
-                             margin: '20px auto'
+                         <img 
+                           src={student.profilePhoto} 
+                           alt="Student Photo" 
+                           className="img-fluid"
+                           style={{ 
+                             maxHeight: '80vh', 
+                             maxWidth: '100%',
+                             objectFit: 'contain'
                            }}
-                         >
-                           {avatar.initials}
-                         </div>
+                         />
                        );
                      }
+                     
+                     // Show generic grey avatar with person silhouette
                      return (
-                       <img 
-                         src={avatar.src} 
-                         alt="Student Photo" 
-                         className="img-fluid"
-                         style={{ 
-                           maxHeight: '80vh', 
-                           maxWidth: '100%',
-                           objectFit: 'contain'
+                       <div 
+                         className="fallback-avatar mx-auto"
+                         style={{
+                           width: '300px',
+                           height: '300px',
+                           borderRadius: '50%',
+                           backgroundColor: '#6c757d',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           margin: '20px auto'
                          }}
-                       />
+                       >
+                         <i className="fas fa-user" style={{
+                           fontSize: '120px',
+                           color: 'white',
+                           opacity: 0.7
+                         }}></i>
+                       </div>
                      );
                    })()}
                  </div>

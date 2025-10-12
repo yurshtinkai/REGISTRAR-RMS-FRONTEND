@@ -30,13 +30,13 @@ function RequestManagementView({ setDocumentModalData }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showArchive, setShowArchive] = useState(false);
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const userRole = localStorage.getItem('userRole');
     const isReadOnly = userRole === 'accounting';
     const navigate = useNavigate();
 
-    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-    const [rejectionTarget, setRejectionTarget] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Function to handle clicking on "Awaiting registrar action" to navigate to student detail
     const handleStudentDetailClick = (studentId, requestId) => {
@@ -45,8 +45,6 @@ function RequestManagementView({ setDocumentModalData }) {
             navigate(`/admin/students/${studentId}${suffix}`);
         }
     };
-    const [rejectionNotes, setRejectionNotes] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchAllRequests = async () => {
         setLoading(true); setError('');
@@ -153,40 +151,6 @@ function RequestManagementView({ setDocumentModalData }) {
         }
     };
 
-    const openRejectModal = (request) => {
-        setRejectionTarget(request);
-        setIsRejectModalOpen(true);
-    };
-
-    const closeRejectModal = () => {
-        setIsRejectModalOpen(false);
-        setRejectionTarget(null);
-        setRejectionNotes('');
-        setIsSubmitting(false);
-    };
-
-    const handleConfirmReject = async () => {
-        if (!rejectionTarget) return;
-        setIsSubmitting(true);
-        try {
-            // --- FIX: Changed 'Authorization' header to 'X-Session-Token' ---
-            await fetch(`${API_BASE_URL}/requests/${rejectionTarget.id}`, {
-                method: 'PATCH',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'X-Session-Token': sessionManager.getSessionToken() 
-                },
-                body: JSON.stringify({ status: 'rejected', notes: rejectionNotes }),
-            });
-            await fetchAllRequests();
-            closeRejectModal();
-        } catch (err) {
-            setError(err.message);
-            alert(`Error updating status: ${err.message}`);
-            setIsSubmitting(false);
-        }
-    };
-    
     const handleReprint = (request) => {
         // Navigate to document approval modal for editing and reprinting
         navigate(`/admin/requests/approve-document/${request.id}`);
@@ -240,16 +204,32 @@ function RequestManagementView({ setDocumentModalData }) {
         }
     };
 
-    // Filter requests: show ONLY online (student-initiated) requests, then apply search
-    const filteredRequests = useMemo(() => {
+    // Separate active requests from archived (printed) requests
+    const { activeRequests, archivedRequests } = useMemo(() => {
         const onlineOnly = (requests || []).filter(r => r.initiatedBy === 'student');
+        const active = onlineOnly.filter(req => 
+            req.status !== 'ready for pick-up' && 
+            req.status !== 'printed' && 
+            req.status !== 'completed'
+        );
+        const archived = onlineOnly.filter(req => 
+            req.status === 'ready for pick-up' || 
+            req.status === 'printed' || 
+            req.status === 'completed'
+        );
+        return { activeRequests: active, archivedRequests: archived };
+    }, [requests]);
+
+    // Filter requests based on archive view and search
+    const filteredRequests = useMemo(() => {
+        const requestsToFilter = showArchive ? archivedRequests : activeRequests;
 
         if (!debouncedSearchTerm.trim()) {
-            return onlineOnly;
+            return requestsToFilter;
         }
 
         const searchLower = debouncedSearchTerm.toLowerCase();
-        return onlineOnly.filter(request => {
+        return requestsToFilter.filter(request => {
             const studentName = request.student 
                 ? `${request.student.firstName} ${request.student.lastName}`.toLowerCase()
                 : '';
@@ -259,10 +239,10 @@ function RequestManagementView({ setDocumentModalData }) {
 
             return studentName.includes(searchLower) || 
                    studentId.includes(searchLower) || 
-                   documentType.includes(searchLower) ||
+                   documentType.includes(searchLower) || 
                    status.includes(searchLower);
         });
-    }, [requests, debouncedSearchTerm]);
+    }, [activeRequests, archivedRequests, debouncedSearchTerm, showArchive]);
 
     if (loading) return (
         <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
@@ -278,10 +258,13 @@ function RequestManagementView({ setDocumentModalData }) {
             <style>{modalStyles}</style>
             
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2>Request Management</h2>
+                <h2>
+                    Request Management
+                    {showArchive && <span className="badge bg-warning ms-2">Archived</span>}
+                </h2>
                 <div className="d-flex align-items-center">
-                    <span className="badge bg-info me-2">
-                        {filteredRequests.length} of {requests.length} requests
+                    <span className={`badge ${showArchive ? 'bg-warning' : 'bg-info'} me-2`}>
+                        {filteredRequests.length} of {showArchive ? archivedRequests.length : activeRequests.length} {showArchive ? 'archived' : 'active'} requests
                     </span>
                 </div>
             </div>
@@ -318,6 +301,18 @@ function RequestManagementView({ setDocumentModalData }) {
                                 </small>
                             )}
                         </div>
+                        
+                        {/* Archive Button - Moved to Right */}
+                        <div className="col-md-6 d-flex justify-content-end">
+                            <button 
+                                className={`btn ${showArchive ? 'btn-warning' : 'btn-outline-secondary'}`}
+                                onClick={() => setShowArchive(!showArchive)}
+                                title={showArchive ? 'View Active Requests' : 'View Archived Requests'}
+                            >
+                                <i className={`fas ${showArchive ? 'fa-folder-open' : 'fa-archive'}`}></i>
+                                {showArchive ? ' Active Requests' : ' Archive'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -331,14 +326,23 @@ function RequestManagementView({ setDocumentModalData }) {
                         </div>
                     ) : filteredRequests.length === 0 ? (
                         <div className="text-center text-muted py-5">
-                            <h5>No results found</h5>
-                            <p>No requests match your search criteria: "{debouncedSearchTerm}"</p>
-                            <button 
-                                className="btn btn-outline-primary"
-                                onClick={() => setSearchTerm('')}
-                            >
-                                Clear Search
-                            </button>
+                            <h5>No {showArchive ? 'archived' : 'active'} requests found</h5>
+                            <p>
+                                {showArchive 
+                                    ? 'No printed/completed requests in archive.' 
+                                    : debouncedSearchTerm 
+                                        ? `No requests match your search criteria: "${debouncedSearchTerm}"`
+                                        : 'No active requests pending.'
+                                }
+                            </p>
+                            {debouncedSearchTerm && (
+                                <button 
+                                    className="btn btn-outline-primary"
+                                    onClick={() => setSearchTerm('')}
+                                >
+                                    Clear Search
+                                </button>
+                            )}
                         </div>
                     ) : (
                         <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
@@ -396,7 +400,7 @@ function RequestManagementView({ setDocumentModalData }) {
                                                             onMouseEnter={(e) => e.target.style.color = '#0056b3'}
                                                             onMouseLeave={(e) => e.target.style.color = '#007bff'}
                                                         >
-                                                            Awaiting registrar action
+                                                            Click here
                                                         </span>
                                                     </>
                                                 )}
@@ -407,11 +411,8 @@ function RequestManagementView({ setDocumentModalData }) {
                                                 )}
                                                 {req.status === 'payment_approved' && (
                                                     <>
-                                                        <button className="btn btn-sm btn-success me-1" onClick={() => handleApprove(req)}>
+                                                        <button className="btn btn-sm btn-success" onClick={() => handleApprove(req)}>
                                                             ✅ Approve
-                                                        </button>
-                                                        <button className="btn btn-sm btn-danger" onClick={() => openRejectModal(req)}>
-                                                            ❌ Reject
                                                         </button>
                                                     </>
                                                 )}
@@ -443,38 +444,6 @@ function RequestManagementView({ setDocumentModalData }) {
                 </div>
             </div>
 
-            {isRejectModalOpen && (
-                <div className="modal-backdrop-custom">
-                    <div className="modal-dialog-custom">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">Reject Request</h5>
-                                <button type="button" className="btn-close" onClick={closeRejectModal} aria-label="Close"></button>
-                            </div>
-                            <div className="modal-body">
-                                <p>Please provide a reason for rejecting this request. This note will be visible to the student.</p>
-                                <textarea
-                                    className="form-control"
-                                    rows="4"
-                                    value={rejectionNotes}
-                                    onChange={(e) => setRejectionNotes(e.target.value)}
-                                    placeholder="e.g., Missing required documents, incorrect purpose stated..."
-                                ></textarea>
-                            </div>
-                            <div className="modal-footer">
-                                <button 
-                                    type="button" 
-                                    className="btn btn-danger" 
-                                    onClick={handleConfirmReject} 
-                                    disabled={isSubmitting}
-                                >
-                                    {isSubmitting ? 'Submitting...' : 'Confirm Rejection'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

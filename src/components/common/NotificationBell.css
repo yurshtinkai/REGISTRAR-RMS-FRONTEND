@@ -1,5 +1,16 @@
 .notification-bell {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-bell button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 
@@ -155,4 +166,22 @@
 
 .header-icons i:hover {
   color: #0056b3; /* darker blue on hover */
+}
+
+/* Special styling for balance update notifications */
+.notification-item.balance-update {
+  border-left: 4px solid #28a745; /* Green border for balance updates */
+  background-color: #f8fff9;
+}
+
+.notification-item.balance-update.unread {
+  background-color: #e8f5e8;
+}
+
+.notification-item.balance-update:hover {
+  background-color: #d4edda;
+}
+
+.notification-item.balance-update.unread:hover {
+  background-color: #c3e6cb;
 }
