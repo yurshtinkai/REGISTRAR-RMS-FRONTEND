@@ -8,7 +8,7 @@ echo "📦 Installing dependencies..."
 npm install
 
 # Set production environment
-export REACT_APP_API_URL=https://rms-back-bxkx.onrender.com
+export REACT_APP_API_URL=https://registrar-rms-backend.onrender.com
 export REACT_APP_ENVIRONMENT=production
 export NODE_ENV=production
 
