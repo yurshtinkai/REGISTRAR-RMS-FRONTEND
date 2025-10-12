@@ -8,6 +8,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const location = useLocation();
     const [pendingRequestCount, setPendingRequestCount] = useState(0);
     const [pendingRegistrarCount, setPendingRegistrarCount] = useState(0);
+    const [pendingBalanceInquiriesCount, setPendingBalanceInquiriesCount] = useState(0);
     
     const [isEnrollmentOpen, setEnrollmentOpen] = useState(location.pathname.startsWith('/admin/enrollment'));
     const [isRegistrationOpen, setRegistrationOpen] = useState(location.pathname.startsWith('/admin/registration'));
@@ -15,9 +16,16 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
     const [isAssessmentOpen, setAssessmentOpen] = useState(location.pathname.startsWith('/admin/assessment'));
     
-    const [profilePic, setProfilePic] = useState(null);
+    const [profilePic, setProfilePic] = useState(() => {
+        // Try to get profile pic from localStorage on initial load
+        const cachedProfilePic = localStorage.getItem('adminProfilePic');
+        return cachedProfilePic || null;
+    });
     const [photoPreviewModalOpen, setPhotoPreviewModalOpen] = useState(false);
     const userRole = localStorage.getItem('userRole');
+    console.log('🔍 Sidebar - User role from localStorage:', userRole);
+    console.log('🔍 Sidebar - All localStorage keys:', Object.keys(localStorage));
+    console.log('🔍 Sidebar - Initial profilePic state:', profilePic);
 
     const [schoolYears, setSchoolYears] = useState([]);
     const [selectedSchoolYear, setSelectedSchoolYear] = useState('');
@@ -92,18 +100,117 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
             }
         };
 
+        const fetchBalanceInquiriesCount = async () => {
+            try {
+                const sessionValid = await sessionManager.validateAndRefreshSession();
+                if (!sessionValid) {
+                    console.error('Session expired. Please login again.');
+                    return;
+                }
+                const sessionToken = sessionManager.getSessionToken();
+                const res = await fetch(`${API_BASE_URL}/accounting/balance-inquiries`, {
+                    headers: { 'X-Session-Token': sessionToken }
+                });
+                const json = await res.json();
+                if (res.ok) {
+                    const count = Array.isArray(json?.data) ? json.data.length : 0;
+                    setPendingBalanceInquiriesCount(count);
+                }
+            } catch (err) {
+                console.error('Failed to fetch balance inquiries count:', err);
+            }
+        };
+
         fetchPendingRequests();
         fetchPendingPayments();
+        fetchBalanceInquiriesCount();
         const interval = setInterval(() => {
             fetchPendingRequests();
             fetchPendingPayments();
+            fetchBalanceInquiriesCount();
         }, 10000);
         return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
-        const savedPic = localStorage.getItem(`${userRole}ProfilePic`);
-        if (savedPic) setProfilePic(savedPic);
+        console.log('🔍 Sidebar - profilePic state changed to:', profilePic);
+    }, [profilePic]);
+
+    // Function to load profile photo (can be called multiple times)
+    const loadAdminProfilePhoto = async (forceReload = false) => {
+        console.log('🔍 Loading admin profile photo for userRole:', userRole);
+        
+        // Check if user role is admin or accounting (handle different formats)
+        if (userRole !== 'admin' && userRole !== 'accounting') {
+            console.log('🔍 User role is not admin or accounting, skipping profile photo load');
+            return;
+        }
+        
+        // Check if profile photo is already loaded to prevent unnecessary reloads
+        if (profilePic && !forceReload) {
+            console.log('🔍 Profile photo already loaded, skipping reload');
+            return;
+        }
+        
+        try {
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                console.error('Session expired. Please login again.');
+                return;
+            }
+            
+            const sessionToken = sessionManager.getSessionToken();
+            const response = await fetch(`${API_BASE_URL}/admin-photos/profile`, {
+                headers: { 'X-Session-Token': sessionToken }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📸 Load profile response data:', data);
+                
+                if (data.profilePhoto) {
+                    // Convert relative URL to full URL
+                    const fullPhotoUrl = data.profilePhoto.startsWith('http') 
+                        ? data.profilePhoto 
+                        : `${API_BASE_URL}${data.profilePhoto}`;
+                    
+                    console.log('📸 Loaded profile photo URL:', fullPhotoUrl);
+                    setProfilePic(fullPhotoUrl);
+                    // Cache the profile photo URL in localStorage
+                    localStorage.setItem('adminProfilePic', fullPhotoUrl);
+                } else {
+                    console.log('📸 No profile photo found in database');
+                    setProfilePic(null);
+                    // Clear cached profile photo
+                    localStorage.removeItem('adminProfilePic');
+                }
+            } else {
+                console.error('Failed to load admin profile photo, status:', response.status);
+                setProfilePic(null);
+            }
+        } catch (error) {
+            console.error('Error loading admin profile photo:', error);
+            setProfilePic(null);
+        }
+    };
+
+    // Single useEffect to load profile photo only once on mount
+    useEffect(() => {
+        loadAdminProfilePhoto();
+    }, []); // Run only once on mount
+
+    // Cleanup function to clear profile photo cache when component unmounts
+    useEffect(() => {
+        return () => {
+            // Don't clear the cache on unmount, keep it for next session
+            console.log('🔍 Sidebar unmounting, keeping profile photo cache');
+        };
+    }, []);
+
+    // Debug: Log when userRole changes
+    useEffect(() => {
+        console.log('🔍 Sidebar - userRole changed to:', userRole);
     }, [userRole]);
 
     const menuItems = [
@@ -134,6 +241,12 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
           icon: 'fa-envelope-open-text',
           badge: pendingRegistrarCount
         },
+        { 
+          name: 'Balance Inquiries',
+          path: '/admin/balance-inquiries',
+          icon: 'fa-question-circle',
+          badge: pendingBalanceInquiriesCount
+        },
         { name: 'Manage',
           icon: 'fa-cogs',
           subItems: [
@@ -154,58 +267,74 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         }
     };
 
-    const handleProfilePicChange = (e) => {
+    const handleProfilePicChange = async (e) => {
         const file = e.target.files[0];
         if (!file) {
             return;
         }
 
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Invalid file type. Only JPEG, PNG, and GIF are allowed.');
+            return;
+        }
 
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 200;
-                const MAX_HEIGHT = 200;
-                let width = img.width;
-                let height = img.height;
+        // Validate file size (5MB)
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert('File too large. Maximum size is 5MB.');
+            return;
+        }
 
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+        try {
+            // Validate and refresh session first
+            const sessionValid = await sessionManager.validateAndRefreshSession();
+            if (!sessionValid) {
+                alert('Session expired. Please login again.');
+                return;
+            }
 
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            const sessionToken = sessionManager.getSessionToken();
+            const formData = new FormData();
+            formData.append('photo', file);
 
-                try {
-                    localStorage.setItem(`${userRole}ProfilePic`, dataUrl);
-                    setProfilePic(dataUrl);
-                } catch (error) {
-                    alert("Could not save the profile picture. The image might still be too large or your browser's storage is full.");
-                    console.error("Error saving profile picture to localStorage:", error);
-                }
-            };
-            img.onerror = () => {
-                alert("The selected file couldn't be loaded as an image.");
-            };
-        };
-        reader.onerror = () => {
-            alert("Failed to read the selected file.");
-        };
+            const response = await fetch(`${API_BASE_URL}/admin-photos/upload`, {
+                method: 'POST',
+                headers: {
+                    'X-Session-Token': sessionToken
+                },
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('📸 Upload response data:', data);
+                
+                // Convert relative URL to full URL
+                const fullPhotoUrl = data.photoUrl.startsWith('http') 
+                    ? data.photoUrl 
+                    : `${API_BASE_URL}${data.photoUrl}`;
+                
+                console.log('📸 Full photo URL:', fullPhotoUrl);
+                console.log('📸 Setting profile picture to:', fullPhotoUrl);
+                console.log('📸 API_BASE_URL:', API_BASE_URL);
+                console.log('📸 data.photoUrl:', data.photoUrl);
+                
+                // Set the profile pic immediately and also refresh from server
+                setProfilePic(fullPhotoUrl);
+                // Cache the new profile photo URL in localStorage
+                localStorage.setItem('adminProfilePic', fullPhotoUrl);
+                // Also refresh from server to ensure consistency
+                setTimeout(() => loadAdminProfilePhoto(true), 100);
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to upload photo: ${errorData.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error uploading profile photo:', error);
+            alert('Failed to upload profile photo. Please try again.');
+        }
     };
 
     const handleMenuClick = (e, itemName) => {
@@ -228,7 +357,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     if (userRole === 'accounting') {
       visibleMenuItems = menuItems
         .filter(item =>
-          ['Registration', 'Assessment', 'Students', 'Request from Registrar'].includes(item.name)
+          ['Registration', 'Assessment', 'Request from Registrar', 'Balance Inquiries'].includes(item.name)
         )
         .map(item => {
           if (item.name === 'Students') {
@@ -241,7 +370,7 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         });
     } else if (userRole === 'admin') {
       visibleMenuItems = menuItems
-        .filter(item => item.name !== 'Registration' && item.name !== 'Request from Registrar');
+        .filter(item => item.name !== 'Registration' && item.name !== 'Request from Registrar' && item.name !== 'Balance Inquiries');
     } else {
       visibleMenuItems = menuItems;
     }
@@ -252,7 +381,28 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                 <div className="sidebar-header text-center">
                     <div className="sidebar-profile-container">
                         <div onClick={handlePhotoPreview} title="Click to view photo in full screen">
-                            {profilePic ? (<img src={profilePic} alt="Admin Profile" className="sidebar-profile-pic" />) : (<i className="fas fa-user-circle"></i>)}
+                            {profilePic ? (
+                                <img 
+                                    src={profilePic} 
+                                    alt="Admin Profile" 
+                                    className="sidebar-profile-pic" 
+                                    onLoad={(e) => {
+                                        console.log('✅ Profile image loaded successfully:', profilePic);
+                                        console.log('✅ Image element:', e.target);
+                                    }}
+                                    onError={(e) => {
+                                        console.error('❌ Profile image failed to load:', profilePic);
+                                        console.error('❌ Error details:', e);
+                                        console.error('❌ Image src that failed:', e.target.src);
+                                        console.error('❌ Image element:', e.target);
+                                        console.error('❌ Network error? Check if URL is accessible:', profilePic);
+                                        // Don't clear the profilePic immediately, let's debug first
+                                        // setProfilePic(null);
+                                    }}
+                                />
+                            ) : (
+                                <i className="fas fa-user-circle"></i>
+                            )}
                         </div>
                         <label htmlFor="profile-pic-upload" className="profile-pic-edit-button" title="Click to upload/change photo"><i className="fas fa-camera"></i></label>
                         <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>

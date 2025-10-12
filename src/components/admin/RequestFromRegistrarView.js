@@ -6,6 +6,7 @@ function RequestFromRegistrarView() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showArchive, setShowArchive] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -32,6 +33,39 @@ function RequestFromRegistrarView() {
       setLoading(false);
     }
   };
+
+  const fetchCompletedPayments = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/payments/completed`, {
+        headers: { 'X-Session-Token': getSessionToken() }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setRequests(data.data || []);
+      } else {
+        console.error('Failed to fetch completed payments');
+        setRequests([]);
+      }
+    } catch (error) {
+      console.error('Error fetching completed payments:', error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchData = () => {
+    if (showArchive) {
+      fetchCompletedPayments();
+    } else {
+      fetchPendingPayments();
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [showArchive]);
 
   const handleProcessPayment = async (requestId, amount, studentName) => {
     const confirmPayment = window.confirm(
@@ -61,7 +95,7 @@ function RequestFromRegistrarView() {
 
       if (response.ok) {
         alert(`✅ Payment processed successfully!\n\nReceipt: RCP-${Date.now()}\nStudent: ${studentName}\nAmount: ₱${amount?.toFixed(2)}\n\nThe registrar has been notified.`);
-        fetchPendingPayments(); // Refresh the list
+        fetchData(); // Refresh the current view
       } else {
         const error = await response.json();
         alert(`❌ Failed to process payment: ${error.message}`);
@@ -103,10 +137,13 @@ function RequestFromRegistrarView() {
   return (
     <div className="container mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3>Payment Requests from Registrar</h3>
+        <h3>
+          Payment Requests from Registrar
+          {showArchive && <span className="badge bg-warning ms-2">Archived</span>}
+        </h3>
         <div className="d-flex align-items-center">
-          <span className="badge bg-info me-2">
-            {filteredRequests.length} of {requests.length} requests
+          <span className={`badge ${showArchive ? 'bg-warning' : 'bg-info'} me-2`}>
+            {filteredRequests.length} of {requests.length} {showArchive ? 'completed' : 'pending'} requests
           </span>
         </div>
       </div>
@@ -143,6 +180,18 @@ function RequestFromRegistrarView() {
                 </small>
               )}
             </div>
+            
+            {/* Archive Button */}
+            <div className="col-md-6 d-flex justify-content-end">
+              <button 
+                className={`btn ${showArchive ? 'btn-warning' : 'btn-outline-secondary'}`}
+                onClick={() => setShowArchive(!showArchive)}
+                title={showArchive ? 'View Pending Requests' : 'View Completed Requests'}
+              >
+                <i className={`fas ${showArchive ? 'fa-folder-open' : 'fa-archive'}`}></i>
+                {showArchive ? ' Pending Requests' : ' Archive'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -151,13 +200,23 @@ function RequestFromRegistrarView() {
         <div className="card-body">
           {filteredRequests.length === 0 && requests.length === 0 ? (
             <div className="text-center text-muted">
-              <h5>No pending payment requests</h5>
-              <p>When registrars request documents for students, they will appear here for payment processing.</p>
+              <h5>No {showArchive ? 'completed' : 'pending'} payment requests</h5>
+              <p>
+                {showArchive 
+                  ? 'No completed payment requests in archive.'
+                  : 'When registrars request documents for students, they will appear here for payment processing.'
+                }
+              </p>
             </div>
           ) : filteredRequests.length === 0 ? (
             <div className="text-center text-muted">
               <h5>No results found</h5>
-              <p>No payment requests match your search criteria: "{debouncedSearchTerm}"</p>
+              <p>
+                {showArchive
+                  ? `No completed payment requests match your search criteria: "${debouncedSearchTerm}"`
+                  : `No pending payment requests match your search criteria: "${debouncedSearchTerm}"`
+                }
+              </p>
               <button 
                 className="btn btn-outline-primary"
                 onClick={() => setSearchTerm('')}
@@ -221,10 +280,8 @@ function RequestFromRegistrarView() {
                           >
                             ✅ Confirm Payment
                           </button>
-                        ) : req.status === 'payment_approved' ? (
-                          <span className="badge bg-success">Payment Approved</span>
                         ) : (
-                          <span className="text-muted">No action needed</span>
+                          <span className="text-muted">-</span>
                         )}
                       </td>
                     </tr>

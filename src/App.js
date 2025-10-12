@@ -4,7 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { API_BASE_URL, getSessionToken } from './utils/api';
-import { getStudentProfileImage } from './utils/cleanupProfileImages';
+import { getStudentProfileImage, setStudentProfileImage } from './utils/cleanupProfileImages';
+import { cleanupSharedProfileImages } from './utils/cleanupProfileImages';
 import { FooterProvider } from './contexts/FooterContext';
 
 // Import components
@@ -41,6 +42,7 @@ import EnrollmentStatusView from './components/student/EnrollmentStatusView';
 import SubjectScheduleView from './components/student/SubjectScheduleView';
 import DocumentApprovalModal from './components/admin/DocumentApprovalModal';
 import RequestFromRegistrarView from './components/admin/RequestFromRegistrarView';
+import BalanceInquiriesView from './components/admin/BalanceInquiriesView';
 import { createDummyRegistrations } from './data/dummyData';
 import { getUserRole } from './utils/api';
 import HeaderSettingsView from "./components/admin/HeaderSettingsView";
@@ -67,7 +69,9 @@ function App() {
   const [registrations, setRegistrations] = useState(createDummyRegistrations());
   const [studentToEnroll, setStudentToEnroll] = useState(null);
   const [enrolledStudents, setEnrolledStudents] = useState([]);
-  const [assessment, setAssessment] = useState([])
+  const [assessment, setAssessment] = useState([]);
+  const [studentProfilePic, setStudentProfilePic] = useState(null);
+  const [profilePicError, setProfilePicError] = useState(false);
 
    // Responsive logo switching
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 991);
@@ -76,6 +80,213 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Load profile picture for navbar (both student and admin)
+  useEffect(() => {
+    // Clean up any invalid profile images first
+    cleanupSharedProfileImages();
+    
+    console.log('🔍 App.js - Current userRole:', userRole);
+    console.log('🔍 App.js - userRole type:', typeof userRole);
+    
+    if (userRole === 'student') {
+      const studentId = localStorage.getItem('idNumber');
+      console.log('🔍 App.js - Initial student ID:', studentId);
+      if (studentId) {
+        // First try to load from localStorage for immediate display
+        const profilePic = getStudentProfileImage(studentId);
+        console.log('🔍 App.js - Initial profile pic from localStorage:', profilePic);
+        setStudentProfilePic(profilePic);
+        setProfilePicError(false);
+        
+        // Then fetch from server to get the latest photo
+        const loadStudentProfilePhoto = async () => {
+          try {
+            const sessionToken = getSessionToken();
+            if (sessionToken) {
+              console.log('🔍 App.js - Fetching student profile photo from server...');
+              const response = await fetch(`${API_BASE_URL}/students/profile`, {
+                headers: { 'X-Session-Token': sessionToken }
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                console.log('🔍 App.js - Student profile data from server:', data);
+                
+                if (data.profilePhoto) {
+                  // Handle different photo URL formats
+                  let photoUrl;
+                  if (data.profilePhoto.startsWith('http')) {
+                    photoUrl = data.profilePhoto;
+                  } else if (data.profilePhoto.startsWith('/api/')) {
+                    const baseUrl = API_BASE_URL.replace('/api', '');
+                    photoUrl = `${baseUrl}${data.profilePhoto}`;
+                  } else {
+                    photoUrl = `${API_BASE_URL}${data.profilePhoto}`;
+                  }
+                  
+                  console.log('🔍 App.js - Loading student profile photo from server:', photoUrl);
+                  setStudentProfilePic(photoUrl);
+                  setStudentProfileImage(studentId, photoUrl);
+                  setProfilePicError(false);
+                } else {
+                  console.log('🔍 App.js - No profile photo found on server');
+                }
+              } else {
+                console.log('🔍 App.js - Failed to fetch student profile:', response.status);
+              }
+            }
+          } catch (error) {
+            console.error('🔍 App.js - Error fetching student profile photo:', error);
+          }
+        };
+        
+        loadStudentProfilePhoto();
+      }
+    } else if (userRole === 'admin' || userRole === 'accounting') {
+      // Load admin profile picture from database
+      console.log('🔍 App.js - Loading admin profile photo for userRole:', userRole);
+      console.log('🔍 App.js - All localStorage keys:', Object.keys(localStorage));
+      const loadAdminProfilePhoto = async () => {
+        try {
+          const sessionToken = getSessionToken();
+          if (sessionToken) {
+            const response = await fetch(`${API_BASE_URL}/admin-photos/profile`, {
+              headers: { 'X-Session-Token': sessionToken }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log('🔍 App.js - Load profile response data:', data);
+              if (data.profilePhoto) {
+                // Convert relative URL to full URL
+                const fullPhotoUrl = data.profilePhoto.startsWith('http') 
+                  ? data.profilePhoto 
+                  : `${API_BASE_URL}${data.profilePhoto}`;
+                console.log('📸 App.js - Setting profile picture:', fullPhotoUrl);
+                console.log('📸 App.js - API_BASE_URL:', API_BASE_URL);
+                console.log('📸 App.js - data.profilePhoto:', data.profilePhoto);
+                setStudentProfilePic(fullPhotoUrl);
+              } else {
+                setStudentProfilePic(null);
+              }
+              setProfilePicError(false);
+            } else {
+              setStudentProfilePic(null);
+              setProfilePicError(false);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading admin profile photo:', error);
+          setStudentProfilePic(null);
+          setProfilePicError(false);
+        }
+      };
+      
+      loadAdminProfilePhoto();
+    }
+  }, [userRole]);
+
+  // Function to refresh profile picture in navbar
+  const refreshProfilePic = () => {
+    console.log('🔄 App.js - refreshProfilePic called');
+    console.log('🔄 App.js - Current userRole:', userRole);
+    
+    if (userRole === 'student') {
+      const studentId = localStorage.getItem('idNumber');
+      console.log('🔄 App.js - Student ID:', studentId);
+      if (studentId) {
+        // First try localStorage for immediate display
+        const profilePic = getStudentProfileImage(studentId);
+        console.log('🔄 App.js - Refreshed profile pic from localStorage:', profilePic);
+        setStudentProfilePic(profilePic);
+        setProfilePicError(false);
+        
+        // Then fetch from server to get the latest photo
+        const loadStudentProfilePhoto = async () => {
+          try {
+            const sessionToken = getSessionToken();
+            if (sessionToken) {
+              console.log('🔄 App.js - Refreshing student profile photo from server...');
+              const response = await fetch(`${API_BASE_URL}/students/profile`, {
+                headers: { 'X-Session-Token': sessionToken }
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                console.log('🔄 App.js - Refreshed student profile data from server:', data);
+                
+                if (data.profilePhoto) {
+                  // Handle different photo URL formats
+                  let photoUrl;
+                  if (data.profilePhoto.startsWith('http')) {
+                    photoUrl = data.profilePhoto;
+                  } else if (data.profilePhoto.startsWith('/api/')) {
+                    const baseUrl = API_BASE_URL.replace('/api', '');
+                    photoUrl = `${baseUrl}${data.profilePhoto}`;
+                  } else {
+                    photoUrl = `${API_BASE_URL}${data.profilePhoto}`;
+                  }
+                  
+                  console.log('🔄 App.js - Refreshed student profile photo from server:', photoUrl);
+                  setStudentProfilePic(photoUrl);
+                  setStudentProfileImage(studentId, photoUrl);
+                  setProfilePicError(false);
+                } else {
+                  console.log('🔄 App.js - No profile photo found on server during refresh');
+                }
+              } else {
+                console.log('🔄 App.js - Failed to refresh student profile:', response.status);
+              }
+            }
+          } catch (error) {
+            console.error('🔄 App.js - Error refreshing student profile photo:', error);
+          }
+        };
+        
+        loadStudentProfilePhoto();
+      }
+    } else if (userRole === 'admin' || userRole === 'accounting') {
+      // Refresh admin profile picture from database
+      const loadAdminProfilePhoto = async () => {
+        try {
+          const sessionToken = getSessionToken();
+          if (sessionToken) {
+            const response = await fetch(`${API_BASE_URL}/admin-photos/profile`, {
+              headers: { 'X-Session-Token': sessionToken }
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log('🔍 App.js - Load profile response data:', data);
+              if (data.profilePhoto) {
+                // Convert relative URL to full URL
+                const fullPhotoUrl = data.profilePhoto.startsWith('http') 
+                  ? data.profilePhoto 
+                  : `${API_BASE_URL}${data.profilePhoto}`;
+                console.log('📸 App.js - Setting profile picture:', fullPhotoUrl);
+                console.log('📸 App.js - API_BASE_URL:', API_BASE_URL);
+                console.log('📸 App.js - data.profilePhoto:', data.profilePhoto);
+                setStudentProfilePic(fullPhotoUrl);
+              } else {
+                setStudentProfilePic(null);
+              }
+              setProfilePicError(false);
+            } else {
+              setStudentProfilePic(null);
+              setProfilePicError(false);
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing admin profile photo:', error);
+          setStudentProfilePic(null);
+          setProfilePicError(false);
+        }
+      };
+      
+      loadAdminProfilePhoto();
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -328,7 +539,7 @@ function App() {
                 )}
                 {/* Hamburger on mobile shows circular BC logo */}
                 {isMobile && (
-                  <button className="navbar-toggler d-lg-none" type="button" style={{ border: 'none', background: 'transparent', padding: '0 4px' }} onClick={() => setIsSidebarOpen(true)}>
+                  <button className="navbar-toggler d-lg-none" type="button" style={{ border: 'none', background: 'transparent', padding: '0 4px', marginLeft: '20px', outline: 'none', boxShadow: 'none', transition: 'none' }} onClick={() => setIsSidebarOpen(true)}>
                     <span><i className="fas fa-bars fa-lg text-white"></i></span>
                   </button>
                 )}
@@ -352,7 +563,7 @@ function App() {
                   >Billing</button>
                 </div>
                 <div className="ms-auto d-flex align-items-center justify-content-center" style={{ gap: '8px', height: '40px' }}>
-                  <div className="d-flex align-items-center justify-content-center" style={{ height: '100%', marginRight: '13px' }}>
+                  <div className="d-flex align-items-center justify-content-center" style={{ height: '100%', marginRight: '15px' }}>
                     <NotificationBell />
                   </div>
                   <div className="dropdown d-flex align-items-center justify-content-center" style={{ height: '100%', marginRight: '35px' }}>
@@ -364,7 +575,57 @@ function App() {
                       aria-expanded="false"
                       style={{ outline: 'none', boxShadow: 'none', color: '#fff', minWidth: 0 }}
                     >
-                      <i className="fa-solid fa-gear fa-lg" style={{ verticalAlign: 'middle' }}></i>
+                      {studentProfilePic && !profilePicError ? (
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}>
+                          <img 
+                            src={studentProfilePic} 
+                            alt="Profile" 
+                            style={{ 
+                              width: '40px', 
+                              height: '40px', 
+                              borderRadius: '50%', 
+                              objectFit: 'cover',
+                              // border: '2px solid #fff',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                            onError={() => setProfilePicError(true)}
+                          />
+                          <i className="fa-solid fa-chevron-down" style={{ 
+                            color: 'white', 
+                            fontSize: '10px', 
+                            marginLeft: '-7px',
+                            fontWeight: 'bolder',
+                            opacity: 0.8
+                          }}></i>
+                        </div>
+                      ) : (
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-end' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            backgroundColor: '#6c757d',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '0px solid #fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                          }}>
+                            <i className="fas fa-user" style={{
+                              color: 'white',
+                              fontSize: '18px',
+                              opacity: 0.8
+                            }}></i>
+                          </div>
+                          <i className="fa-solid fa-chevron-down" style={{
+                            color: 'white', 
+                            fontSize: '10px', 
+                            marginLeft: '-7px',
+                            fontWeight: 'bolder',
+                            opacity: 0.8
+                          }}></i>
+                        </div>
+                      )}
                     </button>
                     <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
                       <li>
@@ -434,10 +695,9 @@ function App() {
            <Route path="/student/request" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/my-request" element={<ProtectedRoute><StudentRequestTable /></ProtectedRoute>} />
   
-           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile onProfilePicUpdate={refreshProfilePic} /></ProtectedRoute>} />
                       <Route path="/student/enrollment-status" element={<ProtectedRoute><EnrollmentStatusView /></ProtectedRoute>} />
                       <Route path="/student/subject-schedule" element={<ProtectedRoute><SubjectScheduleView /></ProtectedRoute>} />
-           <Route path="/student/grades" element={<ProtectedRoute><div className="text-center py-5"><h3>Grades View</h3><p>This feature is coming soon.</p></div></ProtectedRoute>} />
            <Route path="/student/requests" element={<ProtectedRoute><StudentRequestForm /></ProtectedRoute>} />
            <Route path="/student/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
            {/* Registration is now handled within the Login component */}
@@ -468,6 +728,7 @@ function App() {
             <Route path="assessment/unassessed-student" element={<UnassessedStudentView assessment={assessment} onAssessedStudent={setAssessment}/>} />
             <Route path="assessment/view-assessment" element={<ViewAssessmentView/>} />
             <Route path="/admin/request-from-registrar" element={<RequestFromRegistrarView />} />
+            <Route path="/admin/balance-inquiries" element={<BalanceInquiriesView />} />
             <Route path="manage/subject-schedules" element={<SubjectSchedulesView />} />
             <Route path="/admin/manage/subject-schedules/:id" element={<ProtectedRoute><SubjectScheduleDetailView /></ProtectedRoute>}/>
             <Route path="/admin/manage/subject-schedules/:scheduleId/enrolled-students" element={<ProtectedRoute><SubjectEnrolledStudentsView /></ProtectedRoute>} />

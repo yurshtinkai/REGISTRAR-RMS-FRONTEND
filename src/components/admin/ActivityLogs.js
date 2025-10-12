@@ -207,52 +207,81 @@ function ActivityLogs({ userId, studentName }) {
                             <p>No activity logs found for this student.</p>
                         </div>
                     ) : (
-                        <div className="activity-timeline">
-                            {logs.map((log, index) => (
-                                <div key={log.id} className={`activity-item ${index === logs.length - 1 ? 'last' : ''}`}>
-                                    <div className="activity-icon">
-                                        <span className={`badge bg-${getActionColor(log.action)} rounded-circle p-2`}>
-                                            {getActionIcon(log.action)}
-                                        </span>
-                                    </div>
-                                    <div className="activity-content">
-                                        <div className="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <h6 className="mb-1">
-                                                    {log.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                                </h6>
-                                                <p className="mb-1 text-muted">
-                                                    {log.description || `User performed ${log.action.replace(/_/g, ' ')}`}
-                                                </p>
-                                                <small className="text-muted">
-                                                    <i className="fas fa-clock me-1"></i>
-                                                    {formatDate(log.createdAt)}
-                                                    {log.ipAddress && (
-                                                        <>
-                                                            <span className="mx-2">•</span>
-                                                            <i className="fas fa-globe me-1"></i>
-                                                            {log.ipAddress}
-                                                        </>
-                                                    )}
-                                                    {log.userAgent && (
-                                                        <>
-                                                            <span className="mx-2">•</span>
-                                                            <i className="fas fa-desktop me-1"></i>
-                                                            {getBrowserInfo(log.userAgent)}
-                                                        </>
-                                                    )}
-                                                </small>
+                        <div className="activity-timeline-container">
+                            <div className="activity-timeline">
+                                {logs.map((log, index) => (
+                                    <div key={log.id} className={`activity-item ${index === logs.length - 1 ? 'last' : ''}`}>
+                                        <div className="activity-icon">
+                                            <span className={`badge bg-${getActionColor(log.action)} rounded-circle p-2`}>
+                                                {getActionIcon(log.action)}
+                                            </span>
+                                        </div>
+                                        <div className="activity-content">
+                                            <div className="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 className="mb-1">
+                                                        {log.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                    </h6>
+                                                    <p className="mb-1 text-muted">
+                                                        {log.description || `User performed ${log.action.replace(/_/g, ' ')}`}
+                                                    </p>
+                                                    <small className="text-muted">
+                                                        <i className="fas fa-clock me-1"></i>
+                                                        {formatDate(log.createdAt)}
+                                                        {log.ipAddress && (
+                                                            <>
+                                                                <span className="mx-2">•</span>
+                                                                <i className="fas fa-globe me-1"></i>
+                                                                {log.ipAddress}
+                                                            </>
+                                                        )}
+                                                        {log.userAgent && (
+                                                            <>
+                                                                <span className="mx-2">•</span>
+                                                                <i className="fas fa-desktop me-1"></i>
+                                                                {getBrowserInfo(log.userAgent)}
+                                                            </>
+                                                        )}
+                                                    </small>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
 
             <style jsx>{`
+                .activity-timeline-container {
+                    max-height: 400px;
+                    overflow-y: auto;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 15px;
+                    background-color: #f8f9fa;
+                }
+                
+                .activity-timeline-container::-webkit-scrollbar {
+                    width: 8px;
+                }
+                
+                .activity-timeline-container::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 4px;
+                }
+                
+                .activity-timeline-container::-webkit-scrollbar-thumb {
+                    background: #c1c1c1;
+                    border-radius: 4px;
+                }
+                
+                .activity-timeline-container::-webkit-scrollbar-thumb:hover {
+                    background: #a8a8a8;
+                }
+                
                 .activity-timeline {
                     position: relative;
                     padding-left: 30px;
@@ -282,11 +311,12 @@ function ActivityLogs({ userId, studentName }) {
                 }
                 
                 .activity-content {
-                    background: #f8f9fa;
+                    background: white;
                     border-radius: 8px;
                     padding: 15px;
                     margin-left: 20px;
                     border: 1px solid #e9ecef;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
                 }
                 
                 .activity-content h6 {

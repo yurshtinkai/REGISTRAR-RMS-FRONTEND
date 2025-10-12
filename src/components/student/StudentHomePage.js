@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../utils/api';
+import { getStudentProfileImage, clearAllProfileImages } from '../../utils/cleanupProfileImages';
 import sessionManager from '../../utils/sessionManager';
 import StudentRegistrationForm from './StudentRegistrationForm';
 import './StudentHomePage.css';
@@ -29,6 +30,21 @@ function StudentHomePage() {
     const [announcementsLoading, setAnnouncementsLoading] = useState(true);
     const [expandedAnnouncements, setExpandedAnnouncements] = useState(new Set());
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+    const [profilePic, setProfilePic] = useState(null);
+    const [profilePicError, setProfilePicError] = useState(false);
+
+    // Load profile picture for dashboard
+    useEffect(() => {
+        // Clear any old profile images first to ensure clean state
+        clearAllProfileImages();
+        
+        const studentId = localStorage.getItem('idNumber');
+        if (studentId) {
+            const profileImage = getStudentProfileImage(studentId);
+            setProfilePic(profileImage);
+            setProfilePicError(false);
+        }
+    }, []);
 
     // Fetch user data from database using session token
     useEffect(() => {
@@ -165,13 +181,6 @@ function StudentHomePage() {
             color: '#2E86AB'
         },
         { 
-            title: 'View Grades', 
-            description: 'Check academic performance',
-            icon: '📊',
-            path: '/student/grades',
-            color: '#A23B72'
-        },
-        { 
             title: 'Enrollment Status', 
             description: 'Current enrollment details',
             icon: '✅',
@@ -240,7 +249,41 @@ function StudentHomePage() {
                                  style={{ borderTop: `4px solid ${action.color}` }}
                                  onClick={() => window.location.href = action.path}>
                                 <div className="action-icon" style={{ color: action.color }}>
-                                    {action.icon}
+                                    {action.title === 'Profile' ? (
+                                        profilePic && !profilePicError ? (
+                                            <img 
+                                                src={profilePic} 
+                                                alt="Profile" 
+                                                style={{ 
+                                                    width: '60px', 
+                                                    height: '60px', 
+                                                    borderRadius: '50%', 
+                                                    objectFit: 'cover',
+                                                    border: '2px solid #fff',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                                }}
+                                                onError={() => setProfilePicError(true)}
+                                            />
+                                        ) : (
+                                            <div style={{
+                                                width: '60px',
+                                                height: '60px',
+                                                borderRadius: '50%',
+                                                backgroundColor: '#6c757d',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'white'
+                                            }}>
+                                                <i className="fas fa-user" style={{
+                                                    fontSize: '30px',
+                                                    opacity: 0.7
+                                                }}></i>
+                                            </div>
+                                        )
+                                    ) : (
+                                        action.icon
+                                    )}
                                 </div>
                                 <div className="action-content">
                                     <h5 className="action-title">{action.title}</h5>

@@ -216,4 +216,5 @@ export const getDocumentTypes = () => [
   { name: 'CERTIFICATE OF GRADUATION WITH HONORS', amount: 120.00 },
   { name: 'CERTIFICATE OF TRANSFER CREDENTIALS', amount: 0.00 },
   { name: 'DIPLOMA', amount: 0.00 },
+  { name: 'Others', amount: 0.00 },
 ];

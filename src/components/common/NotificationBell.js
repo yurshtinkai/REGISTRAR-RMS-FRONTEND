@@ -81,7 +81,10 @@ function NotificationBell() {
     // Check notification message content to determine navigation
     const message = notification.message.toLowerCase();
     
-    if (message.includes('request') || message.includes('grade slip') || message.includes('transcript') || message.includes('payment')) {
+    if (message.includes('tuition balance') || message.includes('balance has been updated') || notification.type === 'balance_update') {
+      // Navigate to Billing page for balance update notifications
+      navigate('/student/billing');
+    } else if (message.includes('request') || message.includes('grade slip') || message.includes('transcript') || message.includes('payment')) {
       // Navigate to My Request page for request-related notifications
       navigate('/student/my-request');
     } else if (message.includes('enrollment') || message.includes('announcement')) {
@@ -120,17 +123,23 @@ function NotificationBell() {
 
           <div className="notification-list">
             {notifications.length > 0 ? (
-              notifications.map(notif => (
-                <div 
-                  key={notif.id} 
-                  className={`notification-item ${!notif.isRead ? 'unread' : 'read'}`}
-                  onClick={() => handleNotificationClick(notif)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <p className={notif.isRead ? 'read-notification' : ''}>{notif.message}</p>
-                  <small>{new Date(notif.createdAt).toLocaleString()}</small>
-                </div>
-              ))
+              notifications.map(notif => {
+                const isBalanceUpdate = notif.type === 'balance_update' || 
+                  notif.message.toLowerCase().includes('tuition balance') || 
+                  notif.message.toLowerCase().includes('balance has been updated');
+                
+                return (
+                  <div 
+                    key={notif.id} 
+                    className={`notification-item ${!notif.isRead ? 'unread' : 'read'} ${isBalanceUpdate ? 'balance-update' : ''}`}
+                    onClick={() => handleNotificationClick(notif)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <p className={notif.isRead ? 'read-notification' : ''}>{notif.message}</p>
+                    <small>{new Date(notif.createdAt).toLocaleString()}</small>
+                  </div>
+                );
+              })
             ) : (
               <div className="p-3 text-center text-muted">No notifications yet.</div>
             )}
@@ -138,10 +147,12 @@ function NotificationBell() {
 
           <div className="notification-footer">
             <a 
-              href="/student/home" 
-              onClick={(e) => {
+              href="#" 
+              onClick={async (e) => {
                 e.preventDefault();
-                navigate('/student/home');
+                // Mark all notifications as read
+                await handleMarkAsRead();
+                // Close the dropdown
                 setIsOpen(false);
               }}
             >

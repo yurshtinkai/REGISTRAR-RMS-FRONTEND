@@ -3,11 +3,22 @@ import './StudentProfile.css';
 import { cleanupSharedProfileImages, getStudentProfileImage, setStudentProfileImage } from '../../utils/cleanupProfileImages';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 
-function StudentProfile({ onProfileClick }) {
+function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
     // Load profilePic from localStorage on mount for persistence
     const studentId = localStorage.getItem('idNumber') || 'unknown';
     const storedProfilePic = getStudentProfileImage(studentId);
+    console.log('📸 StudentProfile - studentId:', studentId);
+    console.log('📸 StudentProfile - storedProfilePic:', storedProfilePic);
     const [profilePic, setProfilePic] = useState(storedProfilePic);
+    const [imageError, setImageError] = useState(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordSuccess, setPasswordSuccess] = useState('');
     const fullName = localStorage.getItem('fullName');
     const [profile, setProfile] = useState(null);
     const [loginHistory, setLoginHistory] = useState([]);
@@ -16,6 +27,76 @@ function StudentProfile({ onProfileClick }) {
     
     // Calculate email reactively based on profile state
     const email = profile?.email || profile?.registration?.email || localStorage.getItem('email') || '';
+
+    // Function to clear profile photo (for logout scenarios)
+    const clearProfilePhoto = () => {
+        console.log('📸 Clearing profile photo');
+        setProfilePic(null);
+        setStudentProfileImage(studentId, null);
+        setImageError(false);
+    };
+
+    // Function to force refresh profile photo from server
+    const refreshProfilePhotoFromServer = async () => {
+        try {
+            const sessionToken = getSessionToken();
+            if (!sessionToken) {
+                console.log('📸 No session token, skipping profile photo refresh');
+                return;
+            }
+
+            const headers = { 'X-Session-Token': sessionToken };
+            const response = await fetch(`${API_BASE_URL}/students/profile`, { headers });
+            
+            if (response.ok) {
+                const profileData = await response.json();
+                console.log('📸 Force refresh - Backend profile data:', profileData);
+                console.log('📸 Force refresh - Backend profilePhoto:', profileData.profilePhoto);
+                
+                if (profileData.profilePhoto) {
+                    // Handle different photo URL formats
+                    let photoUrl;
+                    if (profileData.profilePhoto.startsWith('http')) {
+                        photoUrl = profileData.profilePhoto;
+                    } else if (profileData.profilePhoto.startsWith('/api/')) {
+                        const baseUrl = API_BASE_URL.replace('/api', '');
+                        photoUrl = `${baseUrl}${profileData.profilePhoto}`;
+                    } else {
+                        photoUrl = `${API_BASE_URL}${profileData.profilePhoto}`;
+                    }
+                    
+                    console.log('📸 Force refresh - Setting profile picture to:', photoUrl);
+                    setProfilePic(photoUrl);
+                    setStudentProfileImage(studentId, photoUrl);
+                    setImageError(false);
+                    
+                    // Notify parent component
+                    if (onProfilePicUpdate) {
+                        onProfilePicUpdate();
+                    }
+                } else {
+                    console.log('📸 Force refresh - No profile photo found in backend');
+                }
+            } else {
+                console.error('📸 Force refresh - Failed to fetch profile:', response.status);
+            }
+        } catch (error) {
+            console.error('📸 Force refresh - Error fetching profile:', error);
+        }
+    };
+
+    // Debug: Log when profilePic state changes
+    useEffect(() => {
+        console.log('📸 StudentProfile - profilePic state changed to:', profilePic);
+    }, [profilePic]);
+
+    // Handle profile photo updates from parent component
+    useEffect(() => {
+        if (onProfilePicUpdate) {
+            // This effect will run when the component mounts, allowing parent to refresh
+            console.log('📸 StudentProfile - onProfilePicUpdate callback available');
+        }
+    }, [onProfilePicUpdate]);
 
     // Browser and device detection function
     const detectBrowserAndDevice = () => {
@@ -80,10 +161,15 @@ function StudentProfile({ onProfileClick }) {
         });
     };
 
-    // Clean up shared profile images on mount
+    // Clean up shared profile images on mount and refresh profile photo if needed
     useEffect(() => {
         cleanupSharedProfileImages();
         detectBrowserAndDevice();
+        
+        // Always try to refresh profile photo from server on mount
+        // This ensures we have the latest photo even if cached
+        console.log('📸 Component mounted, refreshing profile photo from server...');
+        refreshProfilePhotoFromServer();
     }, []);
 
     // Fetch live profile and login activity
@@ -98,6 +184,7 @@ function StudentProfile({ onProfileClick }) {
                 }
                 
                 const headers = { 'X-Session-Token': sessionToken };
+                const studentId = localStorage.getItem('idNumber') || 'unknown';
                 
                 const [pRes, hRes] = await Promise.all([
                     fetch(`${API_BASE_URL}/students/profile`, { headers }),
@@ -107,6 +194,42 @@ function StudentProfile({ onProfileClick }) {
                 if (pRes.ok) {
                     const pJson = await pRes.json();
                     setProfile(pJson);
+                    
+                    // Check if user has a profile photo from backend
+                    console.log('📸 Backend profile data:', pJson);
+                    console.log('📸 Backend profilePhoto:', pJson.profilePhoto);
+                    
+                    if (pJson.profilePhoto) {
+                        // Handle different photo URL formats
+                        let photoUrl;
+                        if (pJson.profilePhoto.startsWith('http')) {
+                            photoUrl = pJson.profilePhoto;
+                        } else if (pJson.profilePhoto.startsWith('/api/')) {
+                            // If the photo URL already starts with /api/, just prepend the base URL without /api
+                            const baseUrl = API_BASE_URL.replace('/api', '');
+                            photoUrl = `${baseUrl}${pJson.profilePhoto}`;
+                        } else {
+                            // If it doesn't start with /api/, prepend the full API_BASE_URL
+                            photoUrl = `${API_BASE_URL}${pJson.profilePhoto}`;
+                        }
+                        
+                        console.log('📸 Loading profile photo from backend:', photoUrl);
+                        console.log('📸 Setting profile picture to:', photoUrl);
+                        setProfilePic(photoUrl);
+                        setStudentProfileImage(studentId, photoUrl);
+                        setImageError(false); // Reset error state when loading from backend
+                        
+                        // Notify parent component to refresh navbar profile picture
+                        if (onProfilePicUpdate) {
+                            console.log('📸 StudentProfile - Calling onProfilePicUpdate callback');
+                            onProfilePicUpdate();
+                        } else {
+                            console.log('📸 StudentProfile - onProfilePicUpdate callback not provided');
+                        }
+                    } else {
+                        console.log('📸 No profile photo found in backend response');
+                        // Don't clear the existing profile pic, just log
+                    }
                 } else {
                     const errorText = await pRes.text();
                     console.error('❌ Profile API error:', pRes.status, errorText);
@@ -130,62 +253,213 @@ function StudentProfile({ onProfileClick }) {
         }
     }, [profilePic, studentId]);
 
-    const handleProfilePicChange = (e) => {
+    // Password change handler
+    const handlePasswordChange = async (e) => {
+        e.preventDefault();
+        setPasswordError('');
+        setPasswordSuccess('');
+
+        // Validation
+        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+            setPasswordError('All fields are required');
+            return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordError('New passwords do not match');
+            return;
+        }
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordError('New password must be at least 6 characters long');
+            return;
+        }
+
+        try {
+            const sessionToken = getSessionToken();
+            if (!sessionToken) {
+                setPasswordError('Session expired. Please log in again.');
+                return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Session-Token': sessionToken
+                },
+                body: JSON.stringify({
+                    currentPassword: passwordData.currentPassword,
+                    newPassword: passwordData.newPassword
+                })
+            });
+
+            if (response.ok) {
+                setPasswordSuccess('Password changed successfully!');
+                setPasswordData({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                });
+                // Close modal after 2 seconds
+                setTimeout(() => {
+                    setShowPasswordModal(false);
+                    setPasswordSuccess('');
+                }, 2000);
+            } else {
+                const errorData = await response.json();
+                setPasswordError(errorData.message || 'Failed to change password');
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            setPasswordError('Failed to change password. Please try again.');
+        }
+    };
+
+    const handleProfilePicChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 200;
-                const MAX_HEIGHT = 200;
-                let width = img.width;
-                let height = img.height;
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
+
+        console.log('📸 Student profile photo upload started');
+        console.log('📸 File details:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+        });
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, or GIF).');
+            return;
+        }
+
+        // Validate file size (5MB limit)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            alert('File size must be less than 5MB.');
+            return;
+        }
+
+        try {
+            const studentId = localStorage.getItem('idNumber') || 'unknown';
+            const sessionToken = getSessionToken();
+            
+            console.log('📸 Student ID:', studentId);
+            console.log('📸 Session token exists:', !!sessionToken);
+            
+            if (!sessionToken) {
+                alert('Session expired. Please log in again.');
+                return;
+            }
+
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('photo', file);
+
+            console.log('📸 Uploading to:', `${API_BASE_URL}/student-photos/upload`);
+            console.log('📸 FormData created with file:', file.name);
+
+            // Upload to backend using student photo endpoint
+            const response = await fetch(`${API_BASE_URL}/student-photos/upload`, {
+                method: 'POST',
+                headers: {
+                    'X-Session-Token': sessionToken
+                },
+                body: formData
+            });
+
+            console.log('📸 Upload response status:', response.status);
+            console.log('📸 Upload response headers:', Object.fromEntries(response.headers.entries()));
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('📸 Upload response:', result);
+                
+                // Get the full URL for the uploaded photo
+                let photoUrl;
+                if (result.photoUrl.startsWith('http')) {
+                    photoUrl = result.photoUrl;
+                } else if (result.photoUrl.startsWith('/api/')) {
+                    // If the photo URL already starts with /api/, just prepend the base URL without /api
+                    const baseUrl = API_BASE_URL.replace('/api', '');
+                    photoUrl = `${baseUrl}${result.photoUrl}`;
                 } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
+                    // If it doesn't start with /api/, prepend the full API_BASE_URL
+                    photoUrl = `${API_BASE_URL}${result.photoUrl}`;
                 }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                console.log('📸 Profile photo URL:', photoUrl);
+                console.log('📸 Setting profile picture to:', photoUrl);
+                
+                // Update local state
+                setProfilePic(photoUrl);
+                setStudentProfileImage(studentId, photoUrl);
+                setImageError(false); // Reset error state for new upload
+                
+                // Notify parent component to refresh navbar profile picture
+                if (onProfilePicUpdate) {
+                    console.log('📸 StudentProfile - Upload success, calling onProfilePicUpdate callback');
+                    onProfilePicUpdate();
+                } else {
+                    console.log('📸 StudentProfile - Upload success, but onProfilePicUpdate callback not provided');
+                }
+            } else {
+                console.error('📸 Upload failed with status:', response.status);
+                let errorMessage = 'Unknown error';
                 try {
-                    const studentId = localStorage.getItem('idNumber') || 'unknown';
-                    setStudentProfileImage(studentId, dataUrl);
-                    setProfilePic(dataUrl);
-                } catch (error) {
-                    alert("Could not save the profile picture. The image might still be too large or your browser's storage is full.");
-                    console.error("Error saving profile picture to localStorage:", error);
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || 'Unknown error';
+                    console.error('📸 Error response:', errorData);
+                } catch (parseError) {
+                    console.error('📸 Could not parse error response:', parseError);
+                    errorMessage = `Server error (${response.status})`;
                 }
-            };
-            img.onerror = () => {
-                alert("The selected file couldn't be loaded as an image.");
-            };
-        };
-        reader.onerror = () => {
-            alert("Failed to read the selected file.");
-        };
+                alert(`Failed to upload profile picture: ${errorMessage}`);
+            }
+        } catch (error) {
+            console.error('📸 Error uploading profile picture:', error);
+            console.error('📸 Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
+            alert('Failed to upload profile picture. Please try again.');
+        }
     };
 
     return (
         <div className="student-profile-page">
             <div className="student-profile-header">
                 <div className="student-profile-pic-container">
-                    <div onClick={() => profilePic && onProfileClick && onProfileClick(profilePic)}>
-                        {profilePic ? (
-                            <img src={profilePic} alt="Profile" className="student-profile-pic" />
-                        ) : null}
+                    <div onClick={() => {
+                        if (profilePic && onProfileClick) {
+                            onProfileClick(profilePic);
+                        } else {
+                            // If no profile pic, trigger file upload
+                            document.getElementById('profile-pic-upload').click();
+                        }
+                    }}>
+                        {profilePic && !imageError ? (
+                            <img 
+                                src={profilePic} 
+                                alt="Profile" 
+                                className="student-profile-pic"
+                                onError={() => setImageError(true)}
+                            />
+                        ) : (
+                            <div className="student-profile-empty" style={{
+                                backgroundColor: '#6c757d',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <i className="fas fa-user" style={{
+                                    fontSize: '60px',
+                                    opacity: 0.7
+                                }}></i>
+                            </div>
+                        )}
                     </div>
                     <label htmlFor="profile-pic-upload" className="student-profile-pic-edit"><i className="fas fa-camera"></i></label>
                     <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
@@ -278,7 +552,7 @@ function StudentProfile({ onProfileClick }) {
                 <div className="student-profile-card">
                     <div className="student-profile-card-title">Privacy and policies</div>
                     <div className="student-profile-card-content">
-                        <div><a href="#">Data retention summary</a></div>
+                        <div><a href="#" onClick={(e) => { e.preventDefault(); setShowPasswordModal(true); }}>Change Password</a></div>
                     </div>
                 </div>
                 <div className="student-profile-card">
@@ -288,6 +562,157 @@ function StudentProfile({ onProfileClick }) {
                     </div>
                 </div>
             </div>
+            
+            {/* Password Change Modal */}
+            {showPasswordModal && (
+                <div className="modal-overlay" style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="modal-content" style={{
+                        backgroundColor: 'white',
+                        padding: '30px',
+                        borderRadius: '10px',
+                        width: '400px',
+                        maxWidth: '90vw',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h3 style={{ margin: 0, color: '#333' }}>Change Password</h3>
+                            <button 
+                                onClick={() => setShowPasswordModal(false)}
+                                style={{ 
+                                    background: 'none', 
+                                    border: 'none', 
+                                    fontSize: '20px', 
+                                    cursor: 'pointer',
+                                    color: '#666'
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handlePasswordChange}>
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Current Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordData.currentPassword}
+                                    onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '5px',
+                                        fontSize: '14px'
+                                    }}
+                                    required
+                                />
+                            </div>
+                            
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>New Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordData.newPassword}
+                                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '5px',
+                                        fontSize: '14px'
+                                    }}
+                                    required
+                                />
+                            </div>
+                            
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Confirm New Password</label>
+                                <input
+                                    type="password"
+                                    value={passwordData.confirmPassword}
+                                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '5px',
+                                        fontSize: '14px'
+                                    }}
+                                    required
+                                />
+                            </div>
+                            
+                            {passwordError && (
+                                <div style={{ 
+                                    color: '#d32f2f', 
+                                    marginBottom: '15px', 
+                                    padding: '10px', 
+                                    backgroundColor: '#ffebee', 
+                                    borderRadius: '5px',
+                                    fontSize: '14px'
+                                }}>
+                                    {passwordError}
+                                </div>
+                            )}
+                            
+                            {passwordSuccess && (
+                                <div style={{ 
+                                    color: '#2e7d32', 
+                                    marginBottom: '15px', 
+                                    padding: '10px', 
+                                    backgroundColor: '#e8f5e8', 
+                                    borderRadius: '5px',
+                                    fontSize: '14px'
+                                }}>
+                                    {passwordSuccess}
+                                </div>
+                            )}
+                            
+                            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswordModal(false)}
+                                    style={{
+                                        padding: '10px 20px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '5px',
+                                        backgroundColor: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        padding: '10px 20px',
+                                        border: 'none',
+                                        borderRadius: '5px',
+                                        backgroundColor: '#1976d2',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        fontSize: '14px'
+                                    }}
+                                >
+                                    Change Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

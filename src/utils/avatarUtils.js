@@ -89,8 +89,19 @@ export const getStudentAvatar = (student) => {
     
     // If student has a profile photo, use it
     if (student.profilePhoto) {
+        let photoUrl;
+        if (student.profilePhoto.startsWith('http')) {
+            photoUrl = student.profilePhoto;
+        } else if (student.profilePhoto.startsWith('/api/')) {
+            // If the photo URL already starts with /api/, just prepend the base URL without /api
+            photoUrl = `http://localhost:5000${student.profilePhoto}`;
+        } else {
+            // If it doesn't start with /api/, prepend the full API_BASE_URL
+            photoUrl = `http://localhost:5000/api${student.profilePhoto}`;
+        }
+        
         return {
-            src: `http://localhost:5000${student.profilePhoto}`,
+            src: photoUrl,
             isFallback: false,
             initials: null
         };
