@@ -51,6 +51,41 @@
   overflow: hidden; /* Apply border radius to inner content */
 }
 
+/* Mobile responsive positioning */
+@media (max-width: 768px) {
+  .notification-dropdown {
+    right: -50px; /* Push to the right to avoid cutoff */
+    width: 320px; /* Slightly smaller width for mobile */
+    max-width: calc(100vw - 20px); /* Ensure it doesn't exceed viewport */
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-dropdown {
+    right: -82px; /* Push further right on smaller screens */
+    width: 280px; /* Even smaller width */
+    max-width: calc(100vw - 10px); /* Leave some margin */
+  }
+}
+
+/* Extra small screens (very small phones) */
+@media (max-width: 360px) {
+  .notification-dropdown {
+    right: -100px; /* Push even further right */
+    width: 250px; /* Smaller width */
+    max-width: calc(100vw - 5px); /* Minimal margin */
+  }
+}
+
+/* Ensure notification doesn't go off-screen on any device */
+@media (max-width: 320px) {
+  .notification-dropdown {
+    right: -120px; /* Maximum push to the right */
+    width: 220px; /* Compact width */
+    max-width: calc(100vw - 2px); /* Very minimal margin */
+  }
+}
+
 .notification-header {
   padding: 8px 12px;
   font-weight: bold;
