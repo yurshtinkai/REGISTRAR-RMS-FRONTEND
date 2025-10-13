@@ -62,7 +62,7 @@
 
 @media (max-width: 480px) {
   .notification-dropdown {
-    right: -80px; /* Push further right on smaller screens */
+    right: -82px; /* Push further right on smaller screens */
     width: 280px; /* Even smaller width */
     max-width: calc(100vw - 10px); /* Leave some margin */
   }
