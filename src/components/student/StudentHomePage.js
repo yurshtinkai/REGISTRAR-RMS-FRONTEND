@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../utils/api';
 import { getStudentProfileImage, clearAllProfileImages } from '../../utils/cleanupProfileImages';
 import sessionManager from '../../utils/sessionManager';
@@ -19,6 +20,7 @@ import CustomAlert from '../../CustomAlert';
  */
 
 function StudentHomePage() {
+    const navigate = useNavigate();
     const [userData, setUserData] = useState({
         fullName: '',
         studentId: ''
@@ -247,7 +249,10 @@ function StudentHomePage() {
                         <div className="col-md-6 col-lg-3" key={index}>
                             <div className="action-card" 
                                  style={{ borderTop: `4px solid ${action.color}` }}
-                                 onClick={() => window.location.href = action.path}>
+                                 onClick={() => {
+                                     console.log(`Navigating to: ${action.path}`);
+                                     navigate(action.path);
+                                 }}>
                                 <div className="action-icon" style={{ color: action.color }}>
                                     {action.title === 'Profile' ? (
                                         profilePic && !profilePicError ? (
