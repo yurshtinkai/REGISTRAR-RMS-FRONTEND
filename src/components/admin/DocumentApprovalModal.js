@@ -1308,6 +1308,8 @@ function DocumentApprovalForm() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [torPage, setTorPage] = useState(1);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [editedContent, setEditedContent] = useState({});
     
     const previewRef = useRef(null);
     const selectionRef = useRef(null);
@@ -1362,8 +1364,8 @@ function DocumentApprovalForm() {
         document.execCommand('styleWithCSS', false, true);
         document.execCommand(command, false, value);
         saveSelection();
-        // Sync content state while editing so Save captures latest
-        if (previewRef.current) setContent(previewRef.current.innerHTML);
+        // Mark that there are unsaved changes without updating state immediately
+        setHasUnsavedChanges(true);
     };
 
     // Removed font/size apply helpers per request
@@ -1387,13 +1389,18 @@ function DocumentApprovalForm() {
             // Get the current origin to ensure images load properly in print window
             const baseUrl = window.location.origin;
 
-            // If TOR, always compile page 1 and page 2 into one print job
+            // If TOR, use edited content if available, otherwise compile page 1 and page 2
             const isTor = (request.documentType || '').toUpperCase() === 'TOR';
             let htmlToPrint = content;
+            
             if (isTor) {
-                const page1 = await generateDocumentContent({ ...request, __torPage: 1 });
-                const page2 = await generateDocumentContent({ ...request, __torPage: 2 });
-                htmlToPrint = `${page1}<div class="print-break"></div>${page2}`;
+                // Check if we have edited content for both pages
+                const page1Content = editedContent['tor_page_1'] || await generateDocumentContent({ ...request, __torPage: 1 });
+                const page2Content = editedContent['tor_page_2'] || await generateDocumentContent({ ...request, __torPage: 2 });
+                htmlToPrint = `${page1Content}<div class="print-break"></div>${page2Content}`;
+            } else {
+                // For non-TOR documents, use current content (which may be edited)
+                htmlToPrint = content;
             }
 
             // Replace relative image paths with absolute URLs
@@ -1431,6 +1438,32 @@ function DocumentApprovalForm() {
                                 /* Ensure any container does not add huge padding that pushes content off-page */
                                 .print-container, .content-wrapper { margin: 0 !important; padding: 0 !important; }
                                 .print-break { page-break-after: always; }
+                                
+                                /* Center table data for Grade and Credit/s columns */
+                                table { 
+                                    border-collapse: collapse; 
+                                    width: 100%; 
+                                    margin: 0 auto;
+                                }
+                                table td, table th { 
+                                    border: 1px solid black; 
+                                    padding: 4px; 
+                                    vertical-align: middle;
+                                }
+                                /* Center all table cells by default */
+                                table td { text-align: center; }
+                                table th { text-align: center; }
+                                /* Specifically ensure Grade and Credit/s columns are centered */
+                                table td:nth-child(3), table td:nth-child(4) { 
+                                    text-align: center !important; 
+                                }
+                                table th:nth-child(3), table th:nth-child(4) { 
+                                    text-align: center !important; 
+                                }
+                                /* Additional specificity for transcript tables */
+                                table tr td:nth-child(3), table tr td:nth-child(4) {
+                                    text-align: center !important;
+                                }
                             }
                         </style>
                     </head>
@@ -1450,13 +1483,34 @@ function DocumentApprovalForm() {
     
     const handleToggleEdit = () => {
         if (isEditing && previewRef.current) {
-            setContent(previewRef.current.innerHTML);
+            // Save the edited content for the current page/document
+            const currentContent = previewRef.current.innerHTML;
+            setContent(currentContent);
+            
+            // Store edited content with a key based on document type and page
+            const contentKey = request?.documentType?.toUpperCase() === 'TOR' ? `tor_page_${torPage}` : 'default';
+            setEditedContent(prev => ({
+                ...prev,
+                [contentKey]: currentContent
+            }));
+            setHasUnsavedChanges(true);
         }
         setIsEditing(!isEditing);
     };
 
     const handleShowTorPage = async (pageNum) => {
         if (!request) return;
+        
+        // Check if we have edited content for this page
+        const contentKey = `tor_page_${pageNum}`;
+        if (editedContent[contentKey]) {
+            // Use the edited content instead of regenerating
+            setContent(editedContent[contentKey]);
+            setTorPage(pageNum);
+            return;
+        }
+        
+        // Otherwise, generate fresh content
         const next = { ...request, __torPage: pageNum };
         setTorPage(pageNum);
         const generatedContent = await generateDocumentContent(next);
@@ -1517,6 +1571,12 @@ function DocumentApprovalForm() {
                             overflow: 'auto',
                             outline: isEditing ? '2px solid #0d6efd' : 'none',
                             cursor: isEditing ? 'text' : 'default'
+                        }}
+                        onInput={(e) => {
+                            // Only mark as having unsaved changes, don't update state immediately
+                            if (isEditing) {
+                                setHasUnsavedChanges(true);
+                            }
                         }}
                         onKeyUp={saveSelection}
                         onMouseUp={saveSelection}

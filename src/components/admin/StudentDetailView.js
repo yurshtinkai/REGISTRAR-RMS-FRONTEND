@@ -47,6 +47,7 @@ function StudentDetailView({ enrolledStudents }) {
   const [announcementModalOpen, setAnnouncementModalOpen] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
+  const [announcementSuccessMessage, setAnnouncementSuccessMessage] = useState('');
   const [announcementHistory, setAnnouncementHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [subjectDetailsModalOpen, setSubjectDetailsModalOpen] = useState(false);
@@ -573,9 +574,6 @@ function StudentDetailView({ enrolledStudents }) {
             );
           }
           
-          // Show success message
-          alert('Photo uploaded successfully!');
-          
         } else {
           const errorData = await response.json();
           console.error('❌ Photo upload failed:', errorData);
@@ -678,6 +676,9 @@ function StudentDetailView({ enrolledStudents }) {
       return;
     }
 
+    // Clear any existing success message
+    setAnnouncementSuccessMessage('');
+
 
     try {
       setSendingAnnouncement(true);
@@ -696,11 +697,16 @@ function StudentDetailView({ enrolledStudents }) {
 
       if (response.ok) {
         const result = await response.json();
-        alert('Announcement sent successfully to the student!');
+        setAnnouncementSuccessMessage('Announcement sent successfully to the student!');
         setAnnouncementText('');
-        setAnnouncementModalOpen(false);
         
-        // Refresh announcement historyd
+        // Auto-close modal after 2 seconds
+        setTimeout(() => {
+          setAnnouncementModalOpen(false);
+          setAnnouncementSuccessMessage('');
+        }, 2000);
+        
+        // Refresh announcement history
         await refreshAnnouncementHistory();
       } else {
         const error = await response.json();
@@ -1985,72 +1991,96 @@ function StudentDetailView({ enrolledStudents }) {
 
          {/* Announcement Modal */}
         {announcementModalOpen && (
-          <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header bg-warning text-dark">
-                  <h5 className="modal-title">
-                    <i className="fas fa-bell me-2"></i>
+          <div 
+            className="announcement-modal-overlay"
+            onClick={() => {
+              setAnnouncementModalOpen(false);
+              setAnnouncementSuccessMessage('');
+            }}
+          >
+            <div 
+              className="announcement-modal-dialog"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="announcement-modal-content">
+                <div className="announcement-modal-header">
+                  <h5 className="announcement-modal-title">
+                    <i className="fas fa-bell"></i>
                     Send Announcement to Student
                   </h5>
                   <button 
                     type="button" 
-                    className="btn-close" 
-                    onClick={() => setAnnouncementModalOpen(false)}
-                  ></button>
+                    className="announcement-modal-close" 
+                    onClick={() => {
+                      setAnnouncementModalOpen(false);
+                      setAnnouncementSuccessMessage('');
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label">Student Name</label>
+                <div className="announcement-modal-body">
+                  <div className="announcement-form-group">
+                    <label className="announcement-form-label">Student Name</label>
                     <input
                       type="text"
-                      className="form-control"
+                      className="announcement-form-control"
                       value={`${student.firstName} ${student.lastName}`}
                       readOnly
                     />
                   </div>
                   
-                  <div className="mb-3">
-                    <label className="form-label">Announcement Message *</label>
+                  <div className="announcement-form-group">
+                    <label className="announcement-form-label">Announcement Message *</label>
                     <textarea
-                      className="form-control"
+                      className="announcement-form-control"
                       rows="4"
                       placeholder="Enter your announcement message here..."
                       value={announcementText}
                       onChange={(e) => setAnnouncementText(e.target.value)}
                     ></textarea>
-                    <small className="text-muted">
+                    <small className="announcement-form-text">
                       This message will be sent to the student about their enrollment requirements.
                     </small>
                   </div>
                   
-                  <div className="alert alert-info">
-                    <i className="fas fa-info-circle me-2"></i>
+                  <div className="announcement-alert-info">
+                    <i className="fas fa-info-circle"></i>
                     <strong>Tip:</strong> Be specific about which documents are missing and when they should be submitted.
                   </div>
+                  
+                  {announcementSuccessMessage && (
+                    <div className="announcement-success-message">
+                      <i className="fas fa-check-circle"></i>
+                      {announcementSuccessMessage}
+                    </div>
+                  )}
                 </div>
-                <div className="modal-footer">
+                <div className="announcement-modal-footer">
                   <button 
                     type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setAnnouncementModalOpen(false)}
+                    className="announcement-btn-secondary" 
+                    onClick={() => {
+                      setAnnouncementModalOpen(false);
+                      setAnnouncementSuccessMessage('');
+                    }}
                   >
                     Cancel
                   </button>
                   <button 
                     type="button" 
-                    className="btn btn-warning" 
+                    className="announcement-btn-primary" 
                     onClick={handleSendAnnouncement}
                     disabled={!announcementText.trim() || sendingAnnouncement}
                   >
                     {sendingAnnouncement ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                        <span className="announcement-spinner"></span>
                         Sending...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-paper-plane me-2"></i>
+                        <i className="fas fa-paper-plane"></i>
                         Send Announcement
                       </>
                     )}
@@ -2061,10 +2091,6 @@ function StudentDetailView({ enrolledStudents }) {
           </div>
         )}
 
-        {/* Modal Backdrops */}
-        {announcementModalOpen && (
-          <div className="modal-backdrop fade show"></div>
-        )}
 
       <NewRequestModal 
         isOpen={isRequestModalOpen}
