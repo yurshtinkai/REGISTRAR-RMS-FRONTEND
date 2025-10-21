@@ -120,7 +120,7 @@ function BillingPage() {
                         ) : (
                             <>
                                 <i className="fas fa-question-circle me-2"></i>
-                                Ask About My Balance
+                                Ask Balance
                             </>
                         )}
                     </button>

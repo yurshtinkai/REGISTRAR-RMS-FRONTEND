@@ -418,7 +418,14 @@ function RequestManagementView({ setDocumentModalData }) {
                                                 )}
                                                 {req.status === 'payment_required' && (
                                                     <>
-                                                        <span className="text-warning small">⏳ Awaiting payment</span>
+                                                        <span 
+                                                            className="text-warning small clickable-text" 
+                                                            onClick={() => handleStudentDetailClick(req.student?.idNumber, req.id)}
+                                                            style={{ cursor: 'pointer' }}
+                                                            title="Click to view student details"
+                                                        >
+                                                            ⏳ Awaiting payment
+                                                        </span>
                                                     </>
                                                 )}
                                                 {req.status === 'payment_approved' && (

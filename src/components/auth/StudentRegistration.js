@@ -113,15 +113,25 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         
-        // Apply capitalization to name fields
-        const processedValue = ['firstName', 'lastName', 'middleName'].includes(name) 
-            ? capitalizeWords(value) 
-            : value;
+        // For name fields, only allow letters, spaces, and tilde
+        if (['firstName', 'lastName', 'middleName'].includes(name)) {
+            // Remove any characters that are not letters, spaces, or tilde
+            const filteredValue = value.replace(/[^a-zA-Z\s~]/g, '');
             
-        setFormData(prev => ({
-            ...prev,
-            [name]: processedValue
-        }));
+            // Apply capitalization to name fields
+            const processedValue = capitalizeWords(filteredValue);
+            
+            setFormData(prev => ({
+                ...prev,
+                [name]: processedValue
+            }));
+        } else {
+            // For other fields, use the value as is
+            setFormData(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
 
     // Use useEffect to handle duplicate validation with proper debouncing
@@ -289,6 +299,7 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             placeholder="Enter your first name"
                             required
                         />
+                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                     <div className="form-group">
                         <label htmlFor="lastName">Last Name *</label>
@@ -301,6 +312,7 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             placeholder="Enter your last name"
                             required
                         />
+                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                 </div>
 
@@ -315,6 +327,7 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             onChange={handleInputChange}
                             placeholder="Enter your middle name"
                         />
+                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                 </div>
 
