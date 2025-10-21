@@ -1,3 +1,102 @@
+/* Edit Profile Modal layout tuning - pure CSS (no bootstrap sizing classes) */
+.edit-profile-overlay {
+  position: fixed;
+  inset: 0; /* top/right/bottom/left: 0 */
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.edit-profile-container {
+  width: min(50vw, 1040px);
+  max-width: 1040px;
+}
+
+.edit-profile-content {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  background: #ffffff;
+}
+
+@media (min-width: 1400px) {
+  .edit-profile-container { max-width: 1120px; }
+}
+
+.edit-profile-footer {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Optional: ensure inputs look roomy like screenshot */
+.edit-profile-content .form-control-lg {
+  padding: 10px 14px;
+  height: 44px;
+  font-size: 14px;
+}
+
+/* Force internal layout and visuals to match screenshot (pure CSS overrides) */
+.edit-profile-content .modal-header {
+  background: linear-gradient(180deg,#1e73c9,#1659a7) !important;
+  color: #fff !important;
+  border-bottom: none !important;
+}
+.edit-profile-content .modal-title { font-weight: 700; }
+.edit-profile-content .btn-close-white { filter: invert(1); opacity: 0.85; }
+
+.edit-profile-content .modal-body { padding: 20px 22px !important; background: #fff; }
+.edit-profile-content .row.g-3 > [class^="col-"] { margin-bottom: 12px; }
+.edit-profile-content .form-label { font-weight: 600; color: #2b3d52; margin-bottom: 6px; }
+.edit-profile-content .form-control,
+.edit-profile-content .form-control-lg {
+  background: #f6f9fb !important;
+  border: 1px solid #dfe6ee !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.edit-profile-content .form-control:focus,
+.edit-profile-content .form-control-lg:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(25,118,210,0.15) !important;
+  border-color: #1976d2 !important;
+  background: #fff !important;
+}
+
+.edit-profile-content .alert-info { 
+  background-color: #e8f4fb !important; 
+  border-color: #d4ebf8 !important; 
+  color: #0f6ea8 !important; 
+  border-radius: 8px;
+}
+
+.edit-profile-footer { padding: 12px 20px !important; background: #f7f9fb; border-top: 1px solid #edf1f5; }
+.edit-profile-footer .btn { min-width: 120px; height: 40px; border-radius: 8px; }
+.edit-profile-footer .btn-secondary { background:#6c757d; border-color:#6c757d; }
+.edit-profile-footer .btn-primary { background:#1976d2; border-color:#1976d2; }
+
+.edit-profile-content .modal-header {
+  padding: 14px 20px;
+}
+.edit-profile-content .modal-body {
+  padding: 18px 22px;
+}
+.edit-profile-content .modal-footer {
+  padding: 14px 20px;
+}
+
+.edit-profile-content .form-label {
+  font-weight: 600;
+}
+
+.edit-profile-content .alert-info {
+  background-color: #e7f3fa;
+  border-color: #cfe8f6;
+  color: #0b6aa2;
+}
 /* src/App.css */
 /* Default background color for logged-in views */
 body {
@@ -138,15 +237,17 @@ footer {
 }
 
 /* Styling for the dropdown element to match the new image */
+
+/* Styling for the dropdown element to match the new image */
 .sy-dropdown {
   width: 100%;
   background-color: #f8f9fa; /* Lighter off-white background */
   border: 1px solid #dee2e6;  /* Softer border color */
   color: #212529;             /* Darker text color for better contrast */
-  font-size: 0.85rem;
+  font-size: 1rem !important;           /* Font size for text */
   font-weight: 500;
-  padding: 8px 10px;
-  border-radius: 13px;
+  padding: 1px 15px;        /* Adjust this to change height: first value controls top/bottom padding */
+  border-radius: 18px !important;
   -webkit-appearance: none; /* Removes default browser styling */
   -moz-appearance: none;
   appearance: none;
@@ -198,6 +299,30 @@ footer {
   cursor: pointer;
 }
 
+/* Circle silhouette for empty profile */
+.sidebar-profile-empty {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #6c757d; /* Dark gray background */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 3px solid #dee2e6;
+}
+
+.sidebar-profile-empty i {
+  font-size: 40px;
+  color: #ffffff; /* White user icon */
+}
+
+.sidebar-profile-empty:hover {
+  transform: scale(1.05);
+  background-color: #5a6268; /* Slightly darker on hover */
+}
+
 /* The uploaded profile picture */
 .sidebar .sidebar-profile-pic {
   width: 80px;
@@ -211,9 +336,9 @@ footer {
 
 
 .sidebar .sidebar-profile-pic:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  border-color: #0d6efd;
+  transform: scale(1.00);
+
+
 }
 
 /* The camera icon overlay button */
@@ -221,7 +346,7 @@ footer {
   position: absolute;
   bottom: 0;
   right: 0;
-  background-color: rgba(44, 48, 52, 0.75);
+  background-color: rgba(44, 48, 52, 0.9); /* Darker background for better contrast */
   color: #f8f9fa;
   border-radius: 50%;
   width: 30px;
@@ -232,10 +357,13 @@ footer {
   border: 2px solid #f8f9fa;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Add subtle shadow effect */
+  z-index: 10; /* Ensure it's above the profile picture */
 }
 
 .profile-pic-edit-button:hover {
   background-color: #0d6efd;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4); /* Enhanced shadow on hover */
 }
 
 
@@ -936,3 +1064,241 @@ footer {
   display:flex;
   justify-content: center;
 } */
+
+/* New Request Modal - Pure CSS */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+}
+
+.custom-modal-dialog {
+  max-width: 700px !important;
+  width: 90%;
+  margin-left: auto;
+  margin-right: 29rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.custom-modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.custom-modal-header {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-modal-title {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.custom-modal-title i {
+  margin-right: 0.5rem;
+}
+
+.custom-modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.custom-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.custom-modal-body {
+  padding: 1.5rem;
+}
+
+.custom-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.custom-form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.custom-form-control {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.custom-form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.custom-form-control:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.6;
+}
+
+.custom-form-control-error {
+  border-color: #dc3545;
+}
+
+.custom-form-control-error:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.custom-form-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.custom-form-error {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  color: #dc3545;
+  font-size: 0.875rem;
+}
+
+.custom-form-error i {
+  margin-right: 0.5rem;
+}
+
+.custom-modal-footer {
+  padding: 1rem 1.5rem;
+  background: #f8f9fa;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.custom-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.custom-btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.custom-btn-secondary:hover {
+  background: #5a6268;
+}
+
+.custom-btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.custom-btn-primary:hover {
+  background: #0056b3;
+}
+
+@media (max-width: 768px) {
+  .custom-modal-dialog {
+    margin-right: 1rem;
+  }
+}
+
+/* Password Reset Confirmation Modal Styles */
+.custom-confirm-text {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #333;
+  line-height: 1.5;
+}
+
+.custom-warning-text {
+  display: flex;
+  align-items: center;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 0.75rem;
+  color: #856404;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.custom-warning-text i {
+  margin-right: 0.5rem;
+  color: #f39c12;
+}
+
+/* CustomAlert Cancel Button - Make text white */
+.modal-actions .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: white !important;
+}
+
+.modal-actions .btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+  color: white !important;
+}
+
+/* DocumentApprovalModal Edit Document Button - Make text white */
+.card-footer .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: white !important;
+}
+
+.card-footer .btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+  color: white !important;
+}
+
+/* Reprint Button - Make text white */
+.btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: white !important;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268 !important;
+  border-color: #545b62 !important;
+  color: white !important;
+}

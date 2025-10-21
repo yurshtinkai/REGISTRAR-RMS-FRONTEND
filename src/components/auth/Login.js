@@ -19,11 +19,25 @@ function Login({ onLoginSuccess }) {
     localStorage.setItem('idNumber', result.user.idNumber);
     localStorage.setItem('userId', result.user.id); // Store the actual user ID from database
 
+    // Clear any old cached display names to prevent conflicts
+    try {
+      localStorage.removeItem('displayFullName');
+      localStorage.removeItem(`displayFullName:${result.user.idNumber}`);
+    } catch {}
+
     if (result.user.role === 'student') {
       const fullName = `${result.user.firstName} ${result.user.middleName || ''} ${result.user.lastName}`;
       localStorage.setItem('fullName', fullName.trim());
+      localStorage.setItem('firstName', result.user.firstName || '');
+      localStorage.setItem('lastName', result.user.lastName || '');
+      localStorage.setItem('middleName', result.user.middleName || '');
     } else {
-      localStorage.setItem('fullName', `${result.user.firstName} ${result.user.lastName}`);
+      // For admin/accounting users, include middle name if available
+      const fullName = `${result.user.firstName} ${result.user.middleName || ''} ${result.user.lastName}`;
+      localStorage.setItem('fullName', fullName.trim());
+      localStorage.setItem('firstName', result.user.firstName || '');
+      localStorage.setItem('lastName', result.user.lastName || '');
+      localStorage.setItem('middleName', result.user.middleName || '');
     }
 
     onLoginSuccess(result.user.role);

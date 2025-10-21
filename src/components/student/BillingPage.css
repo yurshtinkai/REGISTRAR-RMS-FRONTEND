@@ -29,16 +29,17 @@
     color: white !important;
 }
 
-/* Ask About My Balance button hover styles */
+/* Ask About My Balance button - Sky blue styling */
 .billing-page .card-header .btn-outline-light {
     transition: all 0.3s ease;
-    border-color: white;
-    color: white;
+    background-color: rgb(46, 184, 238) !important; /* Sky blue background */
+    border-color: #87CEEB !important; /* Sky blue border */
+    color: white !important; /* White text */
 }
 
 .billing-page .card-header .btn-outline-light:hover {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+    background-color: #70B8E6 !important; /* Darker sky blue on hover */
+    border-color: #70B8E6 !important;
     color: white !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

@@ -251,6 +251,14 @@ function StudentRegistrationForm() {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         
+        // Prevent numbers from being entered in name fields
+        if (['firstName', 'middleName', 'lastName', 'fatherName', 'motherName'].includes(name)) {
+            // Check if the value contains any numbers
+            if (/\d/.test(value)) {
+                return; // Don't update the state if numbers are detected
+            }
+        }
+        
         setFormData(prev => {
             const newFormData = {
                 ...prev,

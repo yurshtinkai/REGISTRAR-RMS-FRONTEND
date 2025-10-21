@@ -92,7 +92,6 @@ function BalanceInquiriesView() {
 
             if (response.ok) {
                 const result = await response.json();
-                alert(`Balance updated successfully! New balance: ₱${result.updatedBalance?.toFixed(2) || newBalance}`);
                 fetchBalanceInquiries(); // Refresh the list
             } else {
                 const error = await response.json();
@@ -273,7 +272,7 @@ function BalanceInquiriesView() {
                                                 </small>
                                             </td>
                                             <td>
-                                                <div className="input-group input-group-sm" style={{ minWidth: '200px' }}>
+                                                <div className="input-group input-group-sm" style={{ minWidth: '150px' }}>
                                                     <span className="input-group-text">₱</span>
                                                     <input
                                                         type="number"
@@ -284,8 +283,14 @@ function BalanceInquiriesView() {
                                                         min="0"
                                                         id={`balance-input-${inquiry.id}`}
                                                     />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="d-flex gap-2">
+                                                    {/* Blue Update Balance Button - now on the left */}
                                                     <button 
-                                                        className="btn btn-outline-primary"
+                                                        className="btn btn-outline-primary btn-xs"
+                                                        style={{ fontSize: '1.5rem', padding: '0.25rem 0.5rem' }}
                                                         onClick={(e) => {
                                                             try {
                                                                 // Find the input field using the unique ID
@@ -315,30 +320,30 @@ function BalanceInquiriesView() {
                                                             <i className="fas fa-save"></i>
                                                         )}
                                                     </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {inquiry.status === 'pending' ? (
-                                                    <button 
-                                                        className="btn btn-success btn-sm"
-                                                        onClick={() => markAsResolved(inquiry.id)}
-                                                        disabled={resolvingInquiry === inquiry.id}
-                                                    >
-                                                        {resolvingInquiry === inquiry.id ? (
-                                                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                                        ) : (
-                                                            <>
-                                                                <i className="fas fa-check me-1"></i>
                                                     
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                ) : (
-                                                    <span className="text-muted">
-                                                        <i className="fas fa-check-circle me-1"></i>
-                                                        Resolved
-                                                    </span>
-                                                )}
+                                                    {/* Green Balance Inquiries Button - now on the right */}
+                                                    {inquiry.status === 'pending' ? (
+                                                        <button 
+                                                            className="btn btn-outline-success btn-xs"
+                                                            style={{ fontSize: '1.5rem', padding: '0.25rem 0.5rem' }}
+                                                            onClick={() => markAsResolved(inquiry.id)}
+                                                            disabled={resolvingInquiry === inquiry.id}
+                                                        >
+                                                            {resolvingInquiry === inquiry.id ? (
+                                                                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                                            ) : (
+                                                                <>
+                                                                    <i className="fas fa-check me-1"></i>
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-muted">
+                                                            <i className="fas fa-check-circle me-1"></i>
+                                                            Resolved
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

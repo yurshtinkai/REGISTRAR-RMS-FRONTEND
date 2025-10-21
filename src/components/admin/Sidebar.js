@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import sessionManager from '../../utils/sessionManager';
+import { useProfilePhoto } from '../../contexts/ProfilePhotoContext';
 
 
 function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const location = useLocation();
+    const { profilePic, updateProfilePhoto } = useProfilePhoto();
     const [pendingRequestCount, setPendingRequestCount] = useState(0);
     const [pendingRegistrarCount, setPendingRegistrarCount] = useState(0);
     const [pendingBalanceInquiriesCount, setPendingBalanceInquiriesCount] = useState(0);
@@ -16,16 +18,8 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     const [isManageOpen, setManageOpen] = useState(location.pathname.startsWith('/admin/manage'));
     const [isAssessmentOpen, setAssessmentOpen] = useState(location.pathname.startsWith('/admin/assessment'));
     
-    const [profilePic, setProfilePic] = useState(() => {
-        // Try to get profile pic from localStorage on initial load
-        const cachedProfilePic = localStorage.getItem('adminProfilePic');
-        return cachedProfilePic || null;
-    });
     const [photoPreviewModalOpen, setPhotoPreviewModalOpen] = useState(false);
     const userRole = localStorage.getItem('userRole');
-    console.log('🔍 Sidebar - User role from localStorage:', userRole);
-    console.log('🔍 Sidebar - All localStorage keys:', Object.keys(localStorage));
-    console.log('🔍 Sidebar - Initial profilePic state:', profilePic);
 
     const [schoolYears, setSchoolYears] = useState([]);
     const [selectedSchoolYear, setSelectedSchoolYear] = useState('');
@@ -67,10 +61,12 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                     // Count only online student-initiated requests that still need registrar action
                     // Keep counting through 'pending', 'payment_required', and 'payment_approved'.
                     // Decrease only after registrar approves (status becomes 'approved').
+                    // Also exclude rejected requests from the count
                     const pendingCount = data.filter(req => 
                         req.initiatedBy === 'student' && 
                         req.status !== 'approved' && 
-                        req.status !== 'ready for pick-up'
+                        req.status !== 'ready for pick-up' &&
+                        req.status !== 'rejected'
                     ).length;
                     setPendingRequestCount(pendingCount);
                 }
@@ -133,84 +129,19 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
     }, []);
 
     useEffect(() => {
-        console.log('🔍 Sidebar - profilePic state changed to:', profilePic);
     }, [profilePic]);
 
-    // Function to load profile photo (can be called multiple times)
-    const loadAdminProfilePhoto = async (forceReload = false) => {
-        console.log('🔍 Loading admin profile photo for userRole:', userRole);
-        
-        // Check if user role is admin or accounting (handle different formats)
-        if (userRole !== 'admin' && userRole !== 'accounting') {
-            console.log('🔍 User role is not admin or accounting, skipping profile photo load');
-            return;
-        }
-        
-        // Check if profile photo is already loaded to prevent unnecessary reloads
-        if (profilePic && !forceReload) {
-            console.log('🔍 Profile photo already loaded, skipping reload');
-            return;
-        }
-        
-        try {
-            // Validate and refresh session first
-            const sessionValid = await sessionManager.validateAndRefreshSession();
-            if (!sessionValid) {
-                console.error('Session expired. Please login again.');
-                return;
-            }
-            
-            const sessionToken = sessionManager.getSessionToken();
-            const response = await fetch(`${API_BASE_URL}/admin-photos/profile`, {
-                headers: { 'X-Session-Token': sessionToken }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                console.log('📸 Load profile response data:', data);
-                
-                if (data.profilePhoto) {
-                    // Convert relative URL to full URL
-                    const fullPhotoUrl = data.profilePhoto.startsWith('http') 
-                        ? data.profilePhoto 
-                        : `${API_BASE_URL}${data.profilePhoto}`;
-                    
-                    console.log('📸 Loaded profile photo URL:', fullPhotoUrl);
-                    setProfilePic(fullPhotoUrl);
-                    // Cache the profile photo URL in localStorage
-                    localStorage.setItem('adminProfilePic', fullPhotoUrl);
-                } else {
-                    console.log('📸 No profile photo found in database');
-                    setProfilePic(null);
-                    // Clear cached profile photo
-                    localStorage.removeItem('adminProfilePic');
-                }
-            } else {
-                console.error('Failed to load admin profile photo, status:', response.status);
-                setProfilePic(null);
-            }
-        } catch (error) {
-            console.error('Error loading admin profile photo:', error);
-            setProfilePic(null);
-        }
-    };
-
-    // Single useEffect to load profile photo only once on mount
-    useEffect(() => {
-        loadAdminProfilePhoto();
-    }, []); // Run only once on mount
+    // Profile photo is now managed by ProfilePhotoContext
 
     // Cleanup function to clear profile photo cache when component unmounts
     useEffect(() => {
         return () => {
             // Don't clear the cache on unmount, keep it for next session
-            console.log('🔍 Sidebar unmounting, keeping profile photo cache');
         };
     }, []);
 
     // Debug: Log when userRole changes
     useEffect(() => {
-        console.log('🔍 Sidebar - userRole changed to:', userRole);
     }, [userRole]);
 
     const menuItems = [
@@ -309,24 +240,18 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log('📸 Upload response data:', data);
                 
                 // Convert relative URL to full URL
                 const fullPhotoUrl = data.photoUrl.startsWith('http') 
                     ? data.photoUrl 
                     : `${API_BASE_URL}${data.photoUrl}`;
                 
-                console.log('📸 Full photo URL:', fullPhotoUrl);
-                console.log('📸 Setting profile picture to:', fullPhotoUrl);
-                console.log('📸 API_BASE_URL:', API_BASE_URL);
-                console.log('📸 data.photoUrl:', data.photoUrl);
                 
-                // Set the profile pic immediately and also refresh from server
-                setProfilePic(fullPhotoUrl);
-                // Cache the new profile photo URL in localStorage
-                localStorage.setItem('adminProfilePic', fullPhotoUrl);
-                // Also refresh from server to ensure consistency
-                setTimeout(() => loadAdminProfilePhoto(true), 100);
+                // Update the profile picture state with the new URL using context
+                updateProfilePhoto(fullPhotoUrl);
+                
+                
+                // Show success message
             } else {
                 const errorData = await response.json();
                 alert(`Failed to upload photo: ${errorData.message || 'Unknown error'}`);
@@ -350,7 +275,6 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
         setSelectedSchoolYear(e.target.value);
         // TODO: You might want to update a global state or context here
         // so other parts of your application know the selected SY has changed.
-        console.log("Selected School Year ID:", e.target.value);
     };
     let visibleMenuItems;
 
@@ -387,8 +311,6 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                                     alt="Admin Profile" 
                                     className="sidebar-profile-pic" 
                                     onLoad={(e) => {
-                                        console.log('✅ Profile image loaded successfully:', profilePic);
-                                        console.log('✅ Image element:', e.target);
                                     }}
                                     onError={(e) => {
                                         console.error('❌ Profile image failed to load:', profilePic);
@@ -401,7 +323,9 @@ function Sidebar({ onProfileClick, setStudentToEnroll }) {
                                     }}
                                 />
                             ) : (
-                                <i className="fas fa-user-circle"></i>
+                                <div className="sidebar-profile-empty">
+                                    <i className="fas fa-user"></i>
+                                </div>
                             )}
                         </div>
                         <label htmlFor="profile-pic-upload" className="profile-pic-edit-button" title="Click to upload/change photo"><i className="fas fa-camera"></i></label>
