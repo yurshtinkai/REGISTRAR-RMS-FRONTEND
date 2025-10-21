@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import sessionManager from '../../utils/sessionManager';
 import useDebounce from '../../hooks/useDebounce';
+import CustomAlert from '../../CustomAlert';
 
 // Simple CSS for the modal overlay and centering
 const modalStyles = `
@@ -31,6 +32,9 @@ function RequestManagementView({ setDocumentModalData }) {
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showArchive, setShowArchive] = useState(false);
+    const [showApproveModal, setShowApproveModal] = useState(false);
+    const [showPrintModal, setShowPrintModal] = useState(false);
+    const [selectedRequest, setSelectedRequest] = useState(null);
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const userRole = localStorage.getItem('userRole');
     const isReadOnly = userRole === 'accounting';
@@ -74,23 +78,27 @@ function RequestManagementView({ setDocumentModalData }) {
     useEffect(() => { fetchAllRequests(); }, []);
 
     const handleApprove = async (request) => {
-        if (request.status !== 'payment_approved') {
+        // Check if request is payment approved (handle multiple status variations)
+        const status = request.status?.toLowerCase();
+        const isPaymentApproved = status === 'payment_approved' || 
+                                 status === 'payment approved' ||
+                                 status === 'approved';
+        
+        if (!isPaymentApproved) {
             alert('⚠️ This request must be payment approved before final approval.');
             return;
         }
 
-        const confirmApproval = window.confirm(
-            `Approve document request?\n\n` +
-            `Student: ${request.student?.firstName} ${request.student?.lastName}\n` +
-            `Document: ${request.documentType}\n` +
-            `Amount: ₱${request.amount?.toFixed(2)}\n\n` +
-            `This will mark the request as approved and ready for printing.`
-        );
+        // Set the selected request data for the modal
+        setSelectedRequest(request);
+        setShowApproveModal(true);
+    };
 
-        if (!confirmApproval) return;
+    const confirmApprove = async () => {
+        if (!selectedRequest) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/${request.id}/approve`, {
+            const response = await fetch(`${API_BASE_URL}/requests/${selectedRequest.id}/approve`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -103,7 +111,9 @@ function RequestManagementView({ setDocumentModalData }) {
 
             if (response.ok) {
                 // Navigate to document approval modal for editing and printing
-                navigate(`/admin/requests/approve-document/${request.id}`);
+                navigate(`/admin/requests/approve-document/${selectedRequest.id}`);
+                setShowApproveModal(false);
+                setSelectedRequest(null);
             } else {
                 const error = await response.json();
                 alert(`❌ Failed to approve request: ${error.message}`);
@@ -120,17 +130,16 @@ function RequestManagementView({ setDocumentModalData }) {
             return;
         }
 
-        const confirmPrint = window.confirm(
-            `Print document?\n\n` +
-            `Student: ${request.student?.firstName} ${request.student?.lastName}\n` +
-            `Document: ${request.documentType}\n\n` +
-            `This will mark the document as printed and ready for pickup.`
-        );
+        // Set the selected request data for the modal
+        setSelectedRequest(request);
+        setShowPrintModal(true);
+    };
 
-        if (!confirmPrint) return;
+    const confirmPrint = async () => {
+        if (!selectedRequest) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/requests/${request.id}/print`, {
+            const response = await fetch(`${API_BASE_URL}/requests/${selectedRequest.id}/print`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -139,8 +148,9 @@ function RequestManagementView({ setDocumentModalData }) {
             });
 
             if (response.ok) {
-                alert('✅ Document marked as printed! Student will be notified for pickup.');
                 fetchAllRequests(); // Refresh the list
+                setShowPrintModal(false);
+                setSelectedRequest(null);
             } else {
                 const error = await response.json();
                 alert(`❌ Failed to mark as printed: ${error.message}`);
@@ -205,12 +215,14 @@ function RequestManagementView({ setDocumentModalData }) {
     };
 
     // Separate active requests from archived (printed) requests
+    // Also hide rejected requests from registrar view
     const { activeRequests, archivedRequests } = useMemo(() => {
         const onlineOnly = (requests || []).filter(r => r.initiatedBy === 'student');
         const active = onlineOnly.filter(req => 
             req.status !== 'ready for pick-up' && 
             req.status !== 'printed' && 
-            req.status !== 'completed'
+            req.status !== 'completed' &&
+            req.status !== 'rejected'
         );
         const archived = onlineOnly.filter(req => 
             req.status === 'ready for pick-up' || 
@@ -443,6 +455,99 @@ function RequestManagementView({ setDocumentModalData }) {
                     )}
                 </div>
             </div>
+
+            {/* Approve Confirmation Modal */}
+            <CustomAlert
+                isOpen={showApproveModal}
+                onClose={() => {
+                    setShowApproveModal(false);
+                    setSelectedRequest(null);
+                }}
+                title="Approve Document Request?"
+                hideDefaultButton={true}
+                actions={
+                    <div className="d-flex gap-2">
+                        <button 
+                            className="btn btn-secondary" 
+                            onClick={() => {
+                                setShowApproveModal(false);
+                                setSelectedRequest(null);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="btn btn-primary" 
+                            onClick={confirmApprove}
+                        >
+                            OK
+                        </button>
+                    </div>
+                }
+            >
+                {selectedRequest && (
+                    <div className="text-start">
+                        <div className="mb-3">
+                            <strong>Student:</strong> {selectedRequest.student?.firstName} {selectedRequest.student?.lastName}
+                        </div>
+                        <div className="mb-3">
+                            <strong>Document:</strong> {selectedRequest.documentType}
+                        </div>
+                        <div className="mb-3">
+                            <strong>Amount:</strong> ₱{selectedRequest.amount?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="alert alert-info">
+                            <i className="fas fa-info-circle me-2"></i>
+                            This will mark the request as approved and ready for printing.
+                        </div>
+                    </div>
+                )}
+            </CustomAlert>
+
+            {/* Print Confirmation Modal */}
+            <CustomAlert
+                isOpen={showPrintModal}
+                onClose={() => {
+                    setShowPrintModal(false);
+                    setSelectedRequest(null);
+                }}
+                title="Print Document?"
+                hideDefaultButton={true}
+                actions={
+                    <div className="d-flex gap-2">
+                        <button 
+                            className="btn btn-secondary" 
+                            onClick={() => {
+                                setShowPrintModal(false);
+                                setSelectedRequest(null);
+                            }}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            className="btn btn-primary" 
+                            onClick={confirmPrint}
+                        >
+                            OK
+                        </button>
+                    </div>
+                }
+            >
+                {selectedRequest && (
+                    <div className="text-start">
+                        <div className="mb-3">
+                            <strong>Student:</strong> {selectedRequest.student?.firstName} {selectedRequest.student?.lastName}
+                        </div>
+                        <div className="mb-3">
+                            <strong>Document:</strong> {selectedRequest.documentType}
+                        </div>
+                        <div className="alert alert-info">
+                            <i className="fas fa-info-circle me-2"></i>
+                            This will mark the document as printed and ready for pickup.
+                        </div>
+                    </div>
+                )}
+            </CustomAlert>
 
         </div>
     );

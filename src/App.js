@@ -7,6 +7,7 @@ import { API_BASE_URL, getSessionToken } from './utils/api';
 import { getStudentProfileImage, setStudentProfileImage } from './utils/cleanupProfileImages';
 import { cleanupSharedProfileImages } from './utils/cleanupProfileImages';
 import { FooterProvider } from './contexts/FooterContext';
+import { ProfilePhotoProvider } from './contexts/ProfilePhotoContext';
 
 // Import components
 import Login from './components/auth/Login';
@@ -50,19 +51,46 @@ import SettingsPage from "./components/admin/SettingsPage";
 import BillingPage from './components/student/BillingPage';
 import UploadDocuments from './components/admin/UploadDocuments';
 import DocumentViewer from './components/admin/DocumentViewer';
+import AdminProfile from './components/admin/AdminProfile';
 
 
 const AdminLayout = ({ onProfileClick, setStudentToEnroll }) => (
-  <div className="admin-layout">
-    <Sidebar onProfileClick={onProfileClick} setStudentToEnroll={setStudentToEnroll} />
-    <main className="main-content">
-      <Outlet />
-    </main>
-  </div>
+  <ProfilePhotoProvider>
+    <div className="admin-layout">
+      <Sidebar onProfileClick={onProfileClick} setStudentToEnroll={setStudentToEnroll} />
+      <main className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  </ProfilePhotoProvider>
 );
 
 function App() {
   const [userRole, setUserRole] = useState(getUserRole());
+  const [navbarName, setNavbarName] = useState(() => {
+    const userRole = localStorage.getItem('userRole');
+    
+    // Prefer per-user override (preserves multi-word first names)
+    const currentId = localStorage.getItem('idNumber') || '';
+    const overrideDisplay = (localStorage.getItem(`displayFullName:${currentId}`) || localStorage.getItem('displayFullName') || '').trim();
+    if (overrideDisplay) return overrideDisplay;
+    const f = (localStorage.getItem('firstName') || '').trim();
+    const m = (localStorage.getItem('middleName') || '').trim();
+    const l = (localStorage.getItem('lastName') || '').trim();
+    if (f && l) {
+      const mi = m ? `${m.charAt(0).toUpperCase()}.` : '';
+      return mi ? `${f} ${mi} ${l}` : `${f} ${l}`;
+    }
+
+    // Fallback: use legacy fullName exactly as provided (supports multi-word and middle initials)
+    const fullName = localStorage.getItem('fullName');
+    
+    if (!fullName) return localStorage.getItem('idNumber');
+    try { localStorage.setItem('displayFullName', fullName); } catch {}
+    return fullName;
+    
+    return fullName;
+  });
   const [modalImage, setModalImage] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [documentModalData, setDocumentModalData] = useState(null);
@@ -86,16 +114,12 @@ function App() {
     // Clean up any invalid profile images first
     cleanupSharedProfileImages();
     
-    console.log('🔍 App.js - Current userRole:', userRole);
-    console.log('🔍 App.js - userRole type:', typeof userRole);
     
     if (userRole === 'student') {
       const studentId = localStorage.getItem('idNumber');
-      console.log('🔍 App.js - Initial student ID:', studentId);
       if (studentId) {
         // First try to load from localStorage for immediate display
         const profilePic = getStudentProfileImage(studentId);
-        console.log('🔍 App.js - Initial profile pic from localStorage:', profilePic);
         setStudentProfilePic(profilePic);
         setProfilePicError(false);
         
@@ -104,14 +128,12 @@ function App() {
           try {
             const sessionToken = getSessionToken();
             if (sessionToken) {
-              console.log('🔍 App.js - Fetching student profile photo from server...');
               const response = await fetch(`${API_BASE_URL}/students/profile`, {
                 headers: { 'X-Session-Token': sessionToken }
               });
               
               if (response.ok) {
                 const data = await response.json();
-                console.log('🔍 App.js - Student profile data from server:', data);
                 
                 if (data.profilePhoto) {
                   // Handle different photo URL formats
@@ -125,15 +147,12 @@ function App() {
                     photoUrl = `${API_BASE_URL}${data.profilePhoto}`;
                   }
                   
-                  console.log('🔍 App.js - Loading student profile photo from server:', photoUrl);
                   setStudentProfilePic(photoUrl);
                   setStudentProfileImage(studentId, photoUrl);
                   setProfilePicError(false);
                 } else {
-                  console.log('🔍 App.js - No profile photo found on server');
                 }
               } else {
-                console.log('🔍 App.js - Failed to fetch student profile:', response.status);
               }
             }
           } catch (error) {
@@ -145,8 +164,6 @@ function App() {
       }
     } else if (userRole === 'admin' || userRole === 'accounting') {
       // Load admin profile picture from database
-      console.log('🔍 App.js - Loading admin profile photo for userRole:', userRole);
-      console.log('🔍 App.js - All localStorage keys:', Object.keys(localStorage));
       const loadAdminProfilePhoto = async () => {
         try {
           const sessionToken = getSessionToken();
@@ -157,15 +174,11 @@ function App() {
             
             if (response.ok) {
               const data = await response.json();
-              console.log('🔍 App.js - Load profile response data:', data);
               if (data.profilePhoto) {
                 // Convert relative URL to full URL
                 const fullPhotoUrl = data.profilePhoto.startsWith('http') 
                   ? data.profilePhoto 
                   : `${API_BASE_URL}${data.profilePhoto}`;
-                console.log('📸 App.js - Setting profile picture:', fullPhotoUrl);
-                console.log('📸 App.js - API_BASE_URL:', API_BASE_URL);
-                console.log('📸 App.js - data.profilePhoto:', data.profilePhoto);
                 setStudentProfilePic(fullPhotoUrl);
               } else {
                 setStudentProfilePic(null);
@@ -189,16 +202,12 @@ function App() {
 
   // Function to refresh profile picture in navbar
   const refreshProfilePic = () => {
-    console.log('🔄 App.js - refreshProfilePic called');
-    console.log('🔄 App.js - Current userRole:', userRole);
     
     if (userRole === 'student') {
       const studentId = localStorage.getItem('idNumber');
-      console.log('🔄 App.js - Student ID:', studentId);
       if (studentId) {
         // First try localStorage for immediate display
         const profilePic = getStudentProfileImage(studentId);
-        console.log('🔄 App.js - Refreshed profile pic from localStorage:', profilePic);
         setStudentProfilePic(profilePic);
         setProfilePicError(false);
         
@@ -207,14 +216,12 @@ function App() {
           try {
             const sessionToken = getSessionToken();
             if (sessionToken) {
-              console.log('🔄 App.js - Refreshing student profile photo from server...');
               const response = await fetch(`${API_BASE_URL}/students/profile`, {
                 headers: { 'X-Session-Token': sessionToken }
               });
               
               if (response.ok) {
                 const data = await response.json();
-                console.log('🔄 App.js - Refreshed student profile data from server:', data);
                 
                 if (data.profilePhoto) {
                   // Handle different photo URL formats
@@ -228,15 +235,12 @@ function App() {
                     photoUrl = `${API_BASE_URL}${data.profilePhoto}`;
                   }
                   
-                  console.log('🔄 App.js - Refreshed student profile photo from server:', photoUrl);
                   setStudentProfilePic(photoUrl);
                   setStudentProfileImage(studentId, photoUrl);
                   setProfilePicError(false);
                 } else {
-                  console.log('🔄 App.js - No profile photo found on server during refresh');
                 }
               } else {
-                console.log('🔄 App.js - Failed to refresh student profile:', response.status);
               }
             }
           } catch (error) {
@@ -258,15 +262,11 @@ function App() {
             
             if (response.ok) {
               const data = await response.json();
-              console.log('🔍 App.js - Load profile response data:', data);
               if (data.profilePhoto) {
                 // Convert relative URL to full URL
                 const fullPhotoUrl = data.profilePhoto.startsWith('http') 
                   ? data.profilePhoto 
                   : `${API_BASE_URL}${data.profilePhoto}`;
-                console.log('📸 App.js - Setting profile picture:', fullPhotoUrl);
-                console.log('📸 App.js - API_BASE_URL:', API_BASE_URL);
-                console.log('📸 App.js - data.profilePhoto:', data.profilePhoto);
                 setStudentProfilePic(fullPhotoUrl);
               } else {
                 setStudentProfilePic(null);
@@ -293,13 +293,9 @@ function App() {
   // Function to fetch students from backend
   const fetchStudents = async () => {
     try {
-      console.log('Fetching students from backend...'); // Debug log
-      console.log('API_BASE_URL:', API_BASE_URL); // Debug log
-      console.log('Session Token:', getSessionToken() ? 'Session token exists' : 'No session token'); // Debug log
       
       // Use /api/accounts for admin users to get comprehensive student data
       const endpoint = userRole === 'admin' ? '/accounts' : '/students';
-      console.log('Using endpoint:', endpoint); // Debug log
       
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
@@ -308,13 +304,9 @@ function App() {
         }
       });
 
-      console.log('Response status:', response.status); // Debug log
-      console.log('Response ok:', response.ok); // Debug log
 
       if (response.ok) {
         const students = await response.json();
-        console.log('Raw students data from backend:', students); // Debug log
-        console.log('Number of students returned:', students.length); // Debug log
         
         // Transform the data to match the frontend format
         let transformedStudents;
@@ -359,7 +351,6 @@ function App() {
             academicStatus: student.academicStatus || 'Not registered'
           }));
         }
-        console.log('Transformed students data:', transformedStudents); // Debug log
         setEnrolledStudents(transformedStudents);
       } else {
         const errorText = await response.text();
@@ -398,8 +389,83 @@ function App() {
     };
   }, [modalImage, documentModalData]);
 
+  // Update navbar when userRole changes
+  useEffect(() => {
+    const currentUserRole = localStorage.getItem('userRole');
+    
+    if (currentUserRole === 'admin' || currentUserRole === 'accounting') {
+      // Prefer explicit displayFullName or structured parts for staff roles
+      const currentId = localStorage.getItem('idNumber') || '';
+      const override = (localStorage.getItem(`displayFullName:${currentId}`) || localStorage.getItem('displayFullName') || '').trim();
+      if (override) {
+        setNavbarName(override);
+        return;
+      }
+
+      const f = (localStorage.getItem(`firstName:${currentId}`) || localStorage.getItem('firstName') || '').trim();
+      const m = (localStorage.getItem(`middleName:${currentId}`) || localStorage.getItem('middleName') || '').trim();
+      const l = (localStorage.getItem(`lastName:${currentId}`) || localStorage.getItem('lastName') || '').trim();
+      if (f && l) {
+        const mi = m ? `${m.charAt(0).toUpperCase()}.` : '';
+        setNavbarName(mi ? `${f} ${mi} ${l}` : `${f} ${l}`);
+        return;
+      }
+
+      // Fallback only if we don't have structured parts
+      const fullName = localStorage.getItem('fullName');
+      if (fullName) {
+        setNavbarName(fullName);
+      }
+    }
+  }, [userRole]);
+
+  // Listen for profile updates
+  useEffect(() => {
+    const handleProfileUpdate = (event) => {
+      const { fullName, firstName, middleName, lastName, displayFullName } = event.detail || {};
+      const userRole = localStorage.getItem('userRole');
+      
+      // For Admin/Accounting users, show FirstName + MiddleInitial + LastName using structured values when available
+      const override = (displayFullName || localStorage.getItem('displayFullName') || fullName || '').trim();
+      if (override) {
+        setNavbarName(override);
+        return;
+      }
+      const f = firstName || localStorage.getItem('firstName');
+      const m = middleName || localStorage.getItem('middleName');
+      const l = lastName || localStorage.getItem('lastName');
+      if (f && l) {
+        const mi = (m && m.trim() !== '') ? `${m.trim().charAt(0).toUpperCase()}.` : '';
+        const formatted = mi ? `${f} ${mi} ${l}` : `${f} ${l}`;
+        setNavbarName(formatted);
+        return;
+      }
+      if (fullName) {
+        const nameParts = fullName.split(' ').filter(part => part.trim() !== '');
+        if (nameParts.length >= 3) {
+          const first = nameParts[0];
+          const middleInitial = nameParts[1].charAt(0).toUpperCase() + '.';
+          const last = nameParts[nameParts.length - 1];
+          setNavbarName(`${first} ${middleInitial} ${last}`);
+        } else {
+          setNavbarName(fullName);
+        }
+      }
+    };
+
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
+  }, []);
+
   const handleLoginSuccess = (role) => {
     setUserRole(role);
+    // After login, immediately compute and set navbar from stored values
+    try {
+      const override = (localStorage.getItem('displayFullName') || localStorage.getItem('fullName') || '').trim();
+      if (override) setNavbarName(override);
+    } catch {}
     if (role === 'admin') {
       navigate('/admin/dashboard');
       fetchStudents(); // Fetch students when admin logs in
@@ -657,8 +723,8 @@ function App() {
           <div className="container-fluid">
             <img src="/benedicto2.png" style={logoStyle} alt="bclogo" />
             <div className="d-flex ms-auto align-items-center">
-              <span className="navbar-text me-3">
-                Logged in as: <strong>{localStorage.getItem('idNumber')}</strong> ({userRole})
+              <span className="navbar-text me-3 text-white">
+                <strong>{navbarName}</strong>
               </span>
               <div className="dropdown">
                 <button
@@ -672,10 +738,13 @@ function App() {
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
                   <li>
-                    <button className="dropdown-item" onClick={() => navigate('/admin/settings')}>
-                      <i className="fa-solid fa-sliders fa-sm me-2"></i>
-                      Settings
+                    <button className="dropdown-item" onClick={() => navigate('/admin/settings', { state: { openModule: 'my-account' } })}>
+                      <i className="fa-regular fa-user me-2"></i>
+                      Profile
                     </button>
+                  </li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li>
                     <button className="dropdown-item" onClick={handleLogout}>
                       <i className="fa-solid fa-arrow-right-from-bracket fa-sm me-2"></i>
                       Logout
@@ -710,6 +779,7 @@ function App() {
             }
           >
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<AdminProfile />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="all-students" element={<AllStudentsView enrolledStudents={enrolledStudents} />} />
             <Route path="students/:idNo" element={<StudentDetailView enrolledStudents={enrolledStudents} />} />

@@ -1,12 +1,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import useDebounce from '../../hooks/useDebounce';
+import CustomAlert from '../../CustomAlert';
 
 function RequestFromRegistrarView() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showArchive, setShowArchive] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [successModalData, setSuccessModalData] = useState(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
@@ -68,14 +73,17 @@ function RequestFromRegistrarView() {
   }, [showArchive]);
 
   const handleProcessPayment = async (requestId, amount, studentName) => {
-    const confirmPayment = window.confirm(
-      `Confirm payment processing:\n\n` +
-      `Student: ${studentName}\n` +
-      `Amount: ₱${amount?.toFixed(2)}\n\n` +
-      `Has the student paid this amount in cash?`
-    );
+    // Set the selected request data for the modal
+    setSelectedRequest({
+      id: requestId,
+      amount: amount,
+      studentName: studentName
+    });
+    setShowConfirmModal(true);
+  };
 
-    if (!confirmPayment) return;
+  const confirmPayment = async () => {
+    if (!selectedRequest) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/payments/process`, {
@@ -85,17 +93,25 @@ function RequestFromRegistrarView() {
           'X-Session-Token': getSessionToken()
         },
         body: JSON.stringify({
-          requestId: requestId,
-          amount: amount,
+          requestId: selectedRequest.id,
+          amount: selectedRequest.amount,
           paymentMethod: 'cash',
           receiptNumber: `RCP-${Date.now()}`,
-          remarks: `Payment received from ${studentName} - processed by accounting`
+          remarks: `Payment received from ${selectedRequest.studentName} - processed by accounting`
         })
       });
 
       if (response.ok) {
-        alert(`✅ Payment processed successfully!\n\nReceipt: RCP-${Date.now()}\nStudent: ${studentName}\nAmount: ₱${amount?.toFixed(2)}\n\nThe registrar has been notified.`);
+        // Set success modal data and show it
+        setSuccessModalData({
+          receipt: `RCP-${Date.now()}`,
+          studentName: selectedRequest.studentName,
+          amount: selectedRequest.amount?.toFixed(2) || '0.00'
+        });
+        setShowSuccessModal(true);
         fetchData(); // Refresh the current view
+        setShowConfirmModal(false);
+        setSelectedRequest(null);
       } else {
         const error = await response.json();
         alert(`❌ Failed to process payment: ${error.message}`);
@@ -236,7 +252,7 @@ function RequestFromRegistrarView() {
                     <th>Requested By</th>
                     <th>Date Requested</th>
                     <th>Status</th>
-                    <th>Action</th>
+                    {!showArchive && <th>Action</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -268,22 +284,24 @@ function RequestFromRegistrarView() {
                            req.status}
                         </span>
                       </td>
-                      <td>
-                        {req.status === 'payment_required' ? (
-                          <button 
-                            className="btn btn-success btn-sm" 
-                            onClick={() => handleProcessPayment(
-                              req.id, 
-                              req.amount, 
-                              req.student ? `${req.student.firstName} ${req.student.lastName}` : 'Unknown Student'
-                            )}
-                          >
-                            ✅ Confirm Payment
-                          </button>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
+                      {!showArchive && (
+                        <td>
+                          {req.status === 'payment_required' ? (
+                            <button 
+                              className="btn btn-success btn-sm" 
+                              onClick={() => handleProcessPayment(
+                                req.id, 
+                                req.amount, 
+                                req.student ? `${req.student.firstName} ${req.student.lastName}` : 'Unknown Student'
+                              )}
+                            >
+                              Approve
+                            </button>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -292,6 +310,99 @@ function RequestFromRegistrarView() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <CustomAlert
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setSelectedRequest(null);
+        }}
+        title="Approve Document Request?"
+        hideDefaultButton={true}
+        actions={
+          <div className="d-flex gap-2">
+            <button 
+              className="btn btn-secondary" 
+              onClick={() => {
+                setShowConfirmModal(false);
+                setSelectedRequest(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={confirmPayment}
+            >
+              OK
+            </button>
+          </div>
+        }
+      >
+        {selectedRequest && (
+          <div className="text-start">
+            <div className="mb-3">
+              <strong>Student:</strong> {selectedRequest.studentName}
+            </div>
+            <div className="mb-3">
+              <strong>Document:</strong> Others
+            </div>
+            <div className="mb-3">
+              <strong>Amount:</strong> ₱{selectedRequest.amount?.toFixed(2) || '0.00'}
+            </div>
+            <div className="alert alert-info">
+              <i className="fas fa-info-circle me-2"></i>
+              This will mark the request as approved and ready for printing.
+            </div>
+          </div>
+        )}
+      </CustomAlert>
+
+      {/* Success Modal */}
+      <CustomAlert
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          setSuccessModalData(null);
+        }}
+        title="Payment Processed Successfully!"
+        hideDefaultButton={true}
+        actions={
+          <div className="d-flex justify-content-end">
+            <button 
+              className="btn btn-primary" 
+              onClick={() => {
+                setShowSuccessModal(false);
+                setSuccessModalData(null);
+              }}
+            >
+              OK
+            </button>
+          </div>
+        }
+      >
+        {successModalData && (
+          <div className="text-start">
+            <div className="text-center mb-3">
+              <i className="fas fa-check-circle text-success" style={{ fontSize: '3rem' }}></i>
+            </div>
+            <div className="mb-3">
+              <strong>Receipt:</strong> {successModalData.receipt}
+            </div>
+            <div className="mb-3">
+              <strong>Student:</strong> {successModalData.studentName}
+            </div>
+            <div className="mb-3">
+              <strong>Amount:</strong> ₱{successModalData.amount}
+            </div>
+            <div className="alert alert-success">
+              <i className="fas fa-info-circle me-2"></i>
+              The registrar has been notified.
+            </div>
+          </div>
+        )}
+      </CustomAlert>
     </div>
   );
 }

@@ -29,10 +29,24 @@ const generateDocumentContent = async (request) => {
         { semester: 'First Year, Second Semester', year: '2024-2025', subjects: [ { code: 'IT 121', desc: 'Computer Programming 1', grade: '', units: 3 }, { code: 'IT 122', desc: 'Data Structures and Algorithms', grade: '', units: 3 }, { code: 'GE 5', desc: 'Purposive Communication', grade: '', units: 3 }, { code: 'NSTP 2', desc: 'National Service Training Program 2', grade: '', units: 3 } ]}
     ];
     
+    // Variables to store fetched student data
+    let studentData = null;
+    let enrolledSubjectsData = null;
+    
     // Fetch real student data if studentId is available
     if (request.studentId) {
         try {
             console.log('🔍 Fetching real student data for studentId:', request.studentId);
+            
+            // Fetch basic student data
+            const studentResponse = await fetch(`${API_BASE_URL}/students/${request.studentId}`, {
+                headers: { 'X-Session-Token': getSessionToken() }
+            });
+            
+            if (studentResponse.ok) {
+                studentData = await studentResponse.json();
+                console.log('👤 Student data:', studentData);
+            }
             
             // Fetch student registration data
             const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`, {
@@ -80,14 +94,14 @@ const generateDocumentContent = async (request) => {
                     });
                     
                     if (subjectsResponse.ok) {
-                        const subjectsData = await subjectsResponse.json();
-                        console.log('📚 Subjects data:', subjectsData);
+                        enrolledSubjectsData = await subjectsResponse.json();
+                        console.log('📚 Subjects data:', enrolledSubjectsData);
                         
                         // Transform the data to match the expected format with empty grades for manual input
                         gradesData = [{
                             semester: `${registrationData.yearLevel || 'N/A'}, ${registrationData.semester || 'N/A'}`,
                             year: registrationData.schoolYear || '2024-2025',
-                            subjects: subjectsData.subjects ? subjectsData.subjects.map(subject => ({
+                            subjects: enrolledSubjectsData.subjects ? enrolledSubjectsData.subjects.map(subject => ({
                                 code: subject.courseCode || 'N/A',
                                 desc: subject.courseTitle || 'N/A', 
                                 grade: '', // Empty grade for manual input by registrar
@@ -308,26 +322,18 @@ const generateDocumentContent = async (request) => {
                         </tr>`;
             }).join('');
             
-            // Use real student data if available
+            // Use real student data if available (already fetched above)
             let displayStudentName = studentName;
             let displayStudentId = studentIdNumber;
             let displayCourse = studentCourse;
             let displaySchoolYearSemester = `${currentSemesterGrades.year} / ${currentSemesterGrades.semester}`;
             
-            // If we fetched real data, use it
-            if (request.documentType === 'GRADE SLIP' && request.studentId) {
-                try {
-                    const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${request.studentId}`);
-                    if (registrationResponse.ok) {
-                        const registrationData = await registrationResponse.json();
-                        displayStudentName = `${registrationData.firstName} ${registrationData.middleName || ''} ${registrationData.lastName}`.trim();
-                        displayStudentId = request.student?.idNumber || 'N/A';
-                        displayCourse = registrationData.course || 'Bachelor of Science in Information Technology';
-                        displaySchoolYearSemester = `${registrationData.schoolYear} / ${registrationData.yearLevel}, ${registrationData.semester}`;
-                    }
-                } catch (error) {
-                    console.error('Error fetching student registration for display:', error);
-                }
+            // If we have real student data from the fetch above, use it
+            if (request.studentId && studentData) {
+                displayStudentName = `${studentData.firstName} ${studentData.middleName || ''} ${studentData.lastName}`.trim();
+                displayStudentId = studentData.idNumber || 'N/A';
+                displayCourse = studentData.course || 'Bachelor of Science in Information Technology';
+                displaySchoolYearSemester = `${studentData.schoolYear || '2024-2025'} / ${studentData.yearLevel || 'First'} Year, ${studentData.semester || 'First'} Semester`;
             }
             return `
                 <style>

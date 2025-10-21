@@ -7,8 +7,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
     // Load profilePic from localStorage on mount for persistence
     const studentId = localStorage.getItem('idNumber') || 'unknown';
     const storedProfilePic = getStudentProfileImage(studentId);
-    console.log('📸 StudentProfile - studentId:', studentId);
-    console.log('📸 StudentProfile - storedProfilePic:', storedProfilePic);
     const [profilePic, setProfilePic] = useState(storedProfilePic);
     const [imageError, setImageError] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -21,16 +19,45 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
     const [passwordSuccess, setPasswordSuccess] = useState('');
     const fullName = localStorage.getItem('fullName');
     const [profile, setProfile] = useState(null);
+    
+    // Format display name with middle initial
+    const formatDisplayName = (name) => {
+        if (!name) return 'Student User';
+        
+        const nameParts = name.split(' ').filter(part => part.trim() !== '');
+        
+        if (nameParts.length === 1) {
+            return nameParts[0];
+        } else if (nameParts.length === 2) {
+            return `${nameParts[0]} ${nameParts[1]}`;
+        } else if (nameParts.length >= 3) {
+            // For names like "Lourd Angelou Donque Bufete"
+            // First name: "Lourd Angelou" (all parts except last two)
+            // Middle name: "Donque" (second to last part)
+            // Last name: "Bufete" (last part)
+            const lastName = nameParts[nameParts.length - 1];
+            const middleName = nameParts[nameParts.length - 2];
+            const firstNameParts = nameParts.slice(0, nameParts.length - 2);
+            const firstName = firstNameParts.join(' ');
+            
+            const middleInitial = middleName.charAt(0).toUpperCase() + '.';
+            return `${firstName} ${middleInitial} ${lastName}`;
+        }
+        
+        return name;
+    };
     const [loginHistory, setLoginHistory] = useState([]);
     const [browserInfo, setBrowserInfo] = useState(null);
     const country = 'Philippines';
     
     // Calculate email reactively based on profile state
-    const email = profile?.email || profile?.registration?.email || localStorage.getItem('email') || '';
+    const currentStudentId = localStorage.getItem('idNumber') || '';
+    const scopedEmail = currentStudentId ? localStorage.getItem(`email:${currentStudentId}`) : null;
+    // Only show email if it's from student-specific data, not from global admin email
+    const email = profile?.email || profile?.registration?.email || scopedEmail || '';
 
     // Function to clear profile photo (for logout scenarios)
     const clearProfilePhoto = () => {
-        console.log('📸 Clearing profile photo');
         setProfilePic(null);
         setStudentProfileImage(studentId, null);
         setImageError(false);
@@ -41,7 +68,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
         try {
             const sessionToken = getSessionToken();
             if (!sessionToken) {
-                console.log('📸 No session token, skipping profile photo refresh');
                 return;
             }
 
@@ -50,8 +76,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
             
             if (response.ok) {
                 const profileData = await response.json();
-                console.log('📸 Force refresh - Backend profile data:', profileData);
-                console.log('📸 Force refresh - Backend profilePhoto:', profileData.profilePhoto);
                 
                 if (profileData.profilePhoto) {
                     // Handle different photo URL formats
@@ -65,7 +89,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                         photoUrl = `${API_BASE_URL}${profileData.profilePhoto}`;
                     }
                     
-                    console.log('📸 Force refresh - Setting profile picture to:', photoUrl);
                     setProfilePic(photoUrl);
                     setStudentProfileImage(studentId, photoUrl);
                     setImageError(false);
@@ -75,7 +98,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                         onProfilePicUpdate();
                     }
                 } else {
-                    console.log('📸 Force refresh - No profile photo found in backend');
                 }
             } else {
                 console.error('📸 Force refresh - Failed to fetch profile:', response.status);
@@ -87,14 +109,12 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
 
     // Debug: Log when profilePic state changes
     useEffect(() => {
-        console.log('📸 StudentProfile - profilePic state changed to:', profilePic);
     }, [profilePic]);
 
     // Handle profile photo updates from parent component
     useEffect(() => {
         if (onProfilePicUpdate) {
             // This effect will run when the component mounts, allowing parent to refresh
-            console.log('📸 StudentProfile - onProfilePicUpdate callback available');
         }
     }, [onProfilePicUpdate]);
 
@@ -152,13 +172,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
             lastActive: currentTime,
             isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
         });
-        
-        // Debug log to verify detection
-        console.log('🔍 Browser Detection:', {
-            userAgent: userAgent,
-            detectedBrowser: browser,
-            detectedDevice: device
-        });
     };
 
     // Clean up shared profile images on mount and refresh profile photo if needed
@@ -168,7 +181,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
         
         // Always try to refresh profile photo from server on mount
         // This ensures we have the latest photo even if cached
-        console.log('📸 Component mounted, refreshing profile photo from server...');
         refreshProfilePhotoFromServer();
     }, []);
 
@@ -196,8 +208,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                     setProfile(pJson);
                     
                     // Check if user has a profile photo from backend
-                    console.log('📸 Backend profile data:', pJson);
-                    console.log('📸 Backend profilePhoto:', pJson.profilePhoto);
                     
                     if (pJson.profilePhoto) {
                         // Handle different photo URL formats
@@ -213,21 +223,16 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                             photoUrl = `${API_BASE_URL}${pJson.profilePhoto}`;
                         }
                         
-                        console.log('📸 Loading profile photo from backend:', photoUrl);
-                        console.log('📸 Setting profile picture to:', photoUrl);
                         setProfilePic(photoUrl);
                         setStudentProfileImage(studentId, photoUrl);
                         setImageError(false); // Reset error state when loading from backend
                         
                         // Notify parent component to refresh navbar profile picture
                         if (onProfilePicUpdate) {
-                            console.log('📸 StudentProfile - Calling onProfilePicUpdate callback');
                             onProfilePicUpdate();
                         } else {
-                            console.log('📸 StudentProfile - onProfilePicUpdate callback not provided');
                         }
                     } else {
-                        console.log('📸 No profile photo found in backend response');
                         // Don't clear the existing profile pic, just log
                     }
                 } else {
@@ -320,12 +325,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
         const file = e.target.files[0];
         if (!file) return;
 
-        console.log('📸 Student profile photo upload started');
-        console.log('📸 File details:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
-        });
 
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
@@ -345,8 +344,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
             const studentId = localStorage.getItem('idNumber') || 'unknown';
             const sessionToken = getSessionToken();
             
-            console.log('📸 Student ID:', studentId);
-            console.log('📸 Session token exists:', !!sessionToken);
             
             if (!sessionToken) {
                 alert('Session expired. Please log in again.');
@@ -357,8 +354,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
             const formData = new FormData();
             formData.append('photo', file);
 
-            console.log('📸 Uploading to:', `${API_BASE_URL}/student-photos/upload`);
-            console.log('📸 FormData created with file:', file.name);
 
             // Upload to backend using student photo endpoint
             const response = await fetch(`${API_BASE_URL}/student-photos/upload`, {
@@ -369,12 +364,9 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                 body: formData
             });
 
-            console.log('📸 Upload response status:', response.status);
-            console.log('📸 Upload response headers:', Object.fromEntries(response.headers.entries()));
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('📸 Upload response:', result);
                 
                 // Get the full URL for the uploaded photo
                 let photoUrl;
@@ -388,8 +380,6 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                     // If it doesn't start with /api/, prepend the full API_BASE_URL
                     photoUrl = `${API_BASE_URL}${result.photoUrl}`;
                 }
-                console.log('📸 Profile photo URL:', photoUrl);
-                console.log('📸 Setting profile picture to:', photoUrl);
                 
                 // Update local state
                 setProfilePic(photoUrl);
@@ -398,10 +388,8 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                 
                 // Notify parent component to refresh navbar profile picture
                 if (onProfilePicUpdate) {
-                    console.log('📸 StudentProfile - Upload success, calling onProfilePicUpdate callback');
                     onProfilePicUpdate();
                 } else {
-                    console.log('📸 StudentProfile - Upload success, but onProfilePicUpdate callback not provided');
                 }
             } else {
                 console.error('📸 Upload failed with status:', response.status);
@@ -465,7 +453,7 @@ function StudentProfile({ onProfileClick, onProfilePicUpdate }) {
                     <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePicChange} style={{display:'none'}}/>
                 </div>
                 <div className="student-profile-name-section">
-                    <span className="student-profile-name">{fullName}</span>
+                    <span className="student-profile-name">{formatDisplayName(fullName)}</span>
                 </div>
             </div>
             <div className="student-profile-cards-container">

@@ -62,7 +62,7 @@ function EditStudentDetailView({ onStudentUpdated }) {
                 });
 
                 if (!registrationResponse.ok) {
-                    throw new Error('Could not fetch student registration data.');
+                    throw new Error('This student is not registered. Please complete the student registration process first before editing student details.');
                 }
 
                 const registrationData = await registrationResponse.json();

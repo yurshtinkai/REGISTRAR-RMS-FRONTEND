@@ -8,6 +8,8 @@ const getApiUrl = () => {
   };
   
   export const API_BASE_URL = getApiUrl();
+
+// export const API_BASE_URL = 'http://localhost:5000/api';
   
   export const getSessionToken = () => localStorage.getItem('sessionToken');
   export const getUserRole = () => localStorage.getItem('userRole');

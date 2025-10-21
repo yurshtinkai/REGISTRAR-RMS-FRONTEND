@@ -11,6 +11,10 @@ function AccountManagementView() {
     // This state will now hold the info for the reset password modal
     const [resetInfo, setResetInfo] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // State for confirmation modal
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [accountToReset, setAccountToReset] = useState(null);
 
     useEffect(() => {
         const fetchAccounts = async () => {
@@ -80,14 +84,17 @@ function AccountManagementView() {
     }, []);
 
     // --- START: This function now handles resetting the password ---
-    const handleResetPassword = async (account) => {
-        // Confirm before resetting
-        if (!window.confirm(`Are you sure you want to reset the password for ${account.idNumber}?`)) {
-            return;
-        }
+    const handleResetPassword = (account) => {
+        // Show confirmation modal instead of browser alert
+        setAccountToReset(account);
+        setShowConfirmModal(true);
+    };
+
+    const confirmPasswordReset = async () => {
+        if (!accountToReset) return;
 
         try {
-            const response = await fetch(`${API_BASE_URL}/accounts/${account.id}/reset-password`, {
+            const response = await fetch(`${API_BASE_URL}/accounts/${accountToReset.id}/reset-password`, {
                 method: 'PATCH',
                 headers: { 'X-Session-Token': getSessionToken() },
             });
@@ -104,9 +111,18 @@ function AccountManagementView() {
                 password: data.newPassword,
             });
 
+            // Close confirmation modal
+            setShowConfirmModal(false);
+            setAccountToReset(null);
+
         } catch (err) {
             alert(`Error: ${err.message}`);
         }
+    };
+
+    const cancelPasswordReset = () => {
+        setShowConfirmModal(false);
+        setAccountToReset(null);
     };
     // --- END: This function now handles resetting the password ---
     
@@ -308,6 +324,45 @@ function AccountManagementView() {
             </div>
 
             {/* --- START: Updated modal to show new password --- */}
+            {/* Confirmation Modal */}
+            {showConfirmModal && (
+                <div className="custom-modal-overlay" onClick={cancelPasswordReset}>
+                    <div className="custom-modal-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="custom-modal-content">
+                            <div className="custom-modal-header">
+                                <div className="custom-modal-title">
+                                    <i className="fas fa-key"></i>
+                                    <span>Confirm Password Reset</span>
+                                </div>
+                                <button className="custom-modal-close" onClick={cancelPasswordReset}>
+                                    <i className="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div className="custom-modal-body">
+                                <div className="custom-form-group">
+                                    <p className="custom-confirm-text">
+                                        Are you sure you want to reset the password for <strong>{accountToReset?.idNumber}</strong>?
+                                    </p>
+                                    <p className="custom-warning-text">
+                                        <i className="fas fa-exclamation-triangle"></i>
+                                        This action cannot be undone. The student will need to use the new password to log in.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="custom-modal-footer">
+                                <button className="custom-btn custom-btn-secondary" onClick={cancelPasswordReset}>
+                                    Cancel
+                                </button>
+                                <button className="custom-btn custom-btn-primary" onClick={confirmPasswordReset}>
+                                    Reset Password
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Success Modal */}
             {resetInfo && (
                 <div className="modal-overlay" onClick={() => setResetInfo(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>

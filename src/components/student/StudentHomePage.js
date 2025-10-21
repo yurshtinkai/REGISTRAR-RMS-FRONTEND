@@ -35,6 +35,54 @@ function StudentHomePage() {
     const [profilePic, setProfilePic] = useState(null);
     const [profilePicError, setProfilePicError] = useState(false);
 
+    // Format display name with middle initial
+    const formatDisplayName = (name) => {
+        if (!name) return 'Student User';
+        
+        const nameParts = name.split(' ').filter(part => part.trim() !== '');
+        
+        if (nameParts.length === 1) {
+            return nameParts[0];
+        } else if (nameParts.length === 2) {
+            return `${nameParts[0]} ${nameParts[1]}`;
+        } else if (nameParts.length >= 3) {
+            // For names like "Lourd Angelou Donque Bufete"
+            // First name: "Lourd Angelou" (all parts except last two)
+            // Middle name: "Donque" (second to last part)
+            // Last name: "Bufete" (last part)
+            const lastName = nameParts[nameParts.length - 1];
+            const middleName = nameParts[nameParts.length - 2];
+            const firstNameParts = nameParts.slice(0, nameParts.length - 2);
+            const firstName = firstNameParts.join(' ');
+            
+            const middleInitial = middleName.charAt(0).toUpperCase() + '.';
+            return `${firstName} ${middleInitial} ${lastName}`;
+        }
+        
+        return name;
+    };
+
+    // Fix name order if it's wrong (for cases where middle and last names are swapped)
+    const fixNameOrder = (name) => {
+        if (!name) return name;
+        
+        const nameParts = name.split(' ').filter(part => part.trim() !== '');
+        
+        // If we have 4 parts like "Lourd Angelou Bufete Donque", 
+        // we need to swap the last two to get "Lourd Angelou Donque Bufete"
+        if (nameParts.length === 4) {
+            const firstName = nameParts[0];
+            const secondName = nameParts[1];
+            const thirdName = nameParts[2];  // This should be middle name
+            const fourthName = nameParts[3]; // This should be last name
+            
+            // Swap third and fourth to get correct order
+            return `${firstName} ${secondName} ${fourthName} ${thirdName}`;
+        }
+        
+        return name;
+    };
+
     // Load profile picture for dashboard
     useEffect(() => {
         // Clear any old profile images first to ensure clean state
@@ -76,13 +124,19 @@ function StudentHomePage() {
 
                 if (response.ok) {
                     const data = await response.json();
+                    // Construct fullName with correct order: firstName + middleName + lastName
+                    let fullName = data.fullName || `${data.firstName} ${data.middleName || ''} ${data.lastName}`.trim();
+                    // Fix name order if it's wrong
+                    fullName = fixNameOrder(fullName);
                     setUserData({
-                        fullName: data.fullName || `${data.firstName} ${data.lastName}`,
+                        fullName: fullName,
                         studentId: data.studentNumber || data.idNumber
                     });
                 } else {
                     // Fallback to localStorage if API fails
-                    const fallbackName = localStorage.getItem('fullName') || 'Student';
+                    let fallbackName = localStorage.getItem('fullName') || 'Student';
+                    // Fix name order if it's wrong
+                    fallbackName = fixNameOrder(fallbackName);
                     const fallbackId = localStorage.getItem('idNumber') || 'N/A';
                     setUserData({
                         fullName: fallbackName,
@@ -91,8 +145,10 @@ function StudentHomePage() {
                 }
             } catch (err) {
                 console.error('Error fetching user data:', err);
-                // Fallback to localStorage
-                const fallbackName = localStorage.getItem('fullName') || 'Student';
+                // Fallback to localStorage - but we need to check if it has the right order
+                let fallbackName = localStorage.getItem('fullName') || 'Student';
+                // Fix name order if it's wrong
+                fallbackName = fixNameOrder(fallbackName);
                 const fallbackId = localStorage.getItem('idNumber') || 'N/A';
                 setUserData({
                     fullName: fallbackName,
@@ -451,7 +507,7 @@ function StudentHomePage() {
             >
                 <div style={{ lineHeight: 1.7 }}>
                     <p style={{ marginBottom: 12, fontWeight: 800 }}>
-                        {`Welcome ${localStorage.getItem('registeredStudentName') || userData.fullName}.`}
+                        {`Welcome ${formatDisplayName(localStorage.getItem('registeredStudentName') || userData.fullName)}.`}
                     </p>
                     <p style={{ marginBottom: 12 }}>
                         To complete your student onboarding, please open the Registration Form and provide your permanent student record.
@@ -481,7 +537,11 @@ function StudentHomePage() {
                 <div className="container">
                     <div className="row align-items-center">
                         <div className="col-md-8">
-                            <h1 className="welcome-title">Welcome back, {userData.fullName}</h1>
+                            <h1 className="welcome-title">Welcome back, {formatDisplayName(userData.fullName)}</h1>
+                            {/* Debug info */}
+                            <div style={{fontSize: '0.8rem', color: '#666', marginTop: '5px'}}>
+                                Debug: userData.fullName = "{userData.fullName}" | formatted = "{formatDisplayName(userData.fullName)}" | fixed = "{fixNameOrder(userData.fullName)}"
+                            </div>
                             <p className="welcome-subtitle">Student ID: {userData.studentId}</p>
                             <p className="welcome-description">
                                 Access your academic information and manage your student account

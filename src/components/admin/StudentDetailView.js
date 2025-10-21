@@ -7,6 +7,7 @@ import NewRequestModal from './NewRequestModal';
 import { API_BASE_URL, getSessionToken } from '../../utils/api';
 import { getStudentAvatar } from '../../utils/avatarUtils';
 import GradeSlipContent from './GradeSlipContent'; // Make sure this file exists and is exported
+import CustomAlert from '../../CustomAlert';
 import ActivityLogs from './ActivityLogs';
 
 function StudentDetailView({ enrolledStudents }) {
@@ -18,10 +19,8 @@ function StudentDetailView({ enrolledStudents }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [documentRequests, setDocumentRequests] = useState([]);
-  const [photoUploadModalOpen, setPhotoUploadModalOpen] = useState(false);
   const [photoPreviewModalOpen, setPhotoPreviewModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [forceRerender, setForceRerender] = useState(0);
   const [studentProfilePic, setStudentProfilePic] = useState(null);
@@ -34,6 +33,9 @@ function StudentDetailView({ enrolledStudents }) {
   const [isBalanceModalOpen, setBalanceModalOpen] = useState(false);
   const [newBalance, setNewBalance] = useState('');
   const [updatingBalance, setUpdatingBalance] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [requestToCancel, setRequestToCancel] = useState(null);
+  const [cancelWarning, setCancelWarning] = useState('');
   
   // Requirements state
   const [requirements, setRequirements] = useState({
@@ -114,7 +116,6 @@ function StudentDetailView({ enrolledStudents }) {
           form137: false,
           idPicture: false
         });
-        console.log('✅ Requirements status fetched:', data.requirements);
       } else {
         console.error('Failed to fetch requirements status');
       }
@@ -133,17 +134,12 @@ function StudentDetailView({ enrolledStudents }) {
         // First try to find student in enrolledStudents prop
         let enrolledStudent = null;
         if (enrolledStudents && enrolledStudents.length > 0) {
-          console.log('🔍 Searching in enrolledStudents prop:', enrolledStudents.length, 'students');
-          console.log('🔍 Looking for idNo:', idNo);
           enrolledStudent = enrolledStudents.find(s => s.idNumber === idNo);
-          console.log('🔍 Found in prop:', enrolledStudent ? 'YES' : 'NO');
         } else {
-          console.log('🔍 enrolledStudents prop is empty or undefined');
         }
         
         // If not found in prop, fetch directly from backend
         if (!enrolledStudent) {
-          console.log('🔍 Student not found in enrolledStudents prop, fetching from backend...');
           
           const sessionToken = getSessionToken();
           if (!sessionToken) {
@@ -162,7 +158,6 @@ function StudentDetailView({ enrolledStudents }) {
 
           if (response.ok) {
             const studentData = await response.json();
-            console.log('🔍 Fetched student from backend:', studentData);
             
             // Transform the data to match expected format
             enrolledStudent = {
@@ -186,9 +181,6 @@ function StudentDetailView({ enrolledStudents }) {
         }
 
         // Use the student data (either from prop or backend)
-        console.log('🔍 Frontend - Setting student:', enrolledStudent);
-        console.log('🔍 Frontend - student.id:', enrolledStudent.id);
-        console.log('🔍 Frontend - student.idNumber:', enrolledStudent.idNumber);
         setStudent(enrolledStudent);
 
         // Fetch login history for this student
@@ -205,8 +197,6 @@ function StudentDetailView({ enrolledStudents }) {
           
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            console.log('📸 Raw userData from server:', userData);
-            console.log('📸 Raw profilePhoto from server:', userData.profilePhoto);
             
             if (userData.profilePhoto) {
               // Construct full URL if needed
@@ -222,7 +212,6 @@ function StudentDetailView({ enrolledStudents }) {
                 fullPhotoUrl = `${API_BASE_URL}${userData.profilePhoto}`;
               }
               
-              console.log('📸 Constructed full photo URL:', fullPhotoUrl);
               
               // Always update student with fresh server data (overwrites enrolledStudents data)
               setStudent(prev => ({
@@ -234,11 +223,7 @@ function StudentDetailView({ enrolledStudents }) {
               localStorage.setItem(`studentProfilePic_${enrolledStudent.idNumber}`, fullPhotoUrl);
               setStudentProfilePic(fullPhotoUrl);
               
-              console.log('📸 Fetched existing photo URL from server:', fullPhotoUrl);
-              console.log('📸 Updated student state with server data');
-              console.log('📸 Saved to localStorage for persistence');
             } else {
-              console.log('📸 No profilePhoto found in userData from server');
               // Clear any existing photo data if server says there's no photo
               setStudent(prev => ({
                 ...prev,
@@ -256,20 +241,14 @@ function StudentDetailView({ enrolledStudents }) {
 
         // --- START: Fetch student registration data for personal details ---
         try {
-          console.log('🔍 Fetching registration data for student ID:', enrolledStudent.id);
-          console.log('🔗 API URL:', `${API_BASE_URL}/students/registration/${enrolledStudent.id}`);
-          console.log('🔑 Session Token:', getSessionToken() ? 'EXISTS' : 'MISSING');
           
           const registrationResponse = await fetch(`${API_BASE_URL}/students/registration/${enrolledStudent.id}`, {
               headers: { 'X-Session-Token': getSessionToken() }
           });
           
-          console.log('📡 Registration Response Status:', registrationResponse.status);
-          console.log('📡 Registration Response OK:', registrationResponse.ok);
           
           if (registrationResponse.ok) {
               const registrationData = await registrationResponse.json();
-              console.log('📋 Registration Data Received:', registrationData);
               setStudentRegistration(registrationData);
           } else {
               const errorText = await registrationResponse.text();
@@ -283,14 +262,12 @@ function StudentDetailView({ enrolledStudents }) {
 
         // --- START: Fetch enrolled subjects for this student ---
         try {
-          console.log('📚 Fetching enrolled subjects for student ID:', enrolledStudent.id);
           const subjectsResponse = await fetch(`${API_BASE_URL}/students/enrolled-subjects/${enrolledStudent.id}`, {
               headers: { 'X-Session-Token': getSessionToken() }
           });
           
           if (subjectsResponse.ok) {
               const subjectsData = await subjectsResponse.json();
-              console.log('📋 Enrolled Subjects Data:', subjectsData);
               // Set the entire subjects data (includes yearLevel, semester, totalUnits, subjects array)
               setEnrolledSubjects(subjectsData);
               // Automatically set the current semester when data loads
@@ -375,17 +352,12 @@ function StudentDetailView({ enrolledStudents }) {
       const savedPic = localStorage.getItem(`studentProfilePic_${student.idNumber}`);
       if (savedPic) {
         setStudentProfilePic(savedPic);
-        console.log('📸 Loaded student profile pic from localStorage (fallback):', savedPic);
       }
     }
   }, [student?.idNumber, student?.profilePhoto]);
 
   // Debug: Monitor student state changes
   useEffect(() => {
-    console.log('🔍 Student state changed:', student);
-    console.log('🔍 Student profilePhoto:', student?.profilePhoto);
-    console.log('🔍 StudentProfilePic from localStorage:', studentProfilePic);
-    console.log('🔍 Force rerender triggered');
     setForceRerender(prev => prev + 1);
   }, [student?.profilePhoto, studentProfilePic]);
 
@@ -425,12 +397,16 @@ function StudentDetailView({ enrolledStudents }) {
   const [isCurriculumModalOpen, setCurriculumModalOpen] = useState(false);
 
   // Only show requests after registrar takes action for online submissions
+  // Also hide rejected requests from registrar view
   const visibleDocumentRequests = useMemo(() => {
     return (documentRequests || []).filter(r => {
       // Always show registrar-initiated (walk-in) requests
       if (r.initiatedBy === 'registrar') return true;
       // Hide online requests while still pending; show once registrar acts
-      return r.status && r.status.toLowerCase() !== 'pending';
+      if (r.status && r.status.toLowerCase() === 'pending') return false;
+      // Hide rejected requests from registrar view
+      if (r.status && r.status.toLowerCase() === 'rejected') return false;
+      return true;
     });
   }, [documentRequests]);
 
@@ -525,7 +501,7 @@ function StudentDetailView({ enrolledStudents }) {
   };
 
   // Photo upload functions
-  const handlePhotoSelect = (event) => {
+  const handlePhotoSelect = async (event) => {
     const file = event.target.files[0];
     if (file) {
       // Validate file type
@@ -542,95 +518,80 @@ function StudentDetailView({ enrolledStudents }) {
 
       setSelectedPhoto(file);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPhotoPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-    const handlePhotoUpload = async () => {
-    if (!selectedPhoto) return;
-
-    try {
-      setUploadingPhoto(true);
-      
-      const formData = new FormData();
-      formData.append('photo', selectedPhoto);
-
-      const response = await fetch(`${API_BASE_URL}/photos/upload/${student.idNumber}`, {
-        method: 'POST',
-        headers: { 'X-Session-Token': getSessionToken() },
-        body: formData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
+      // Automatically upload the photo
+      try {
+        setUploadingPhoto(true);
         
-        console.log('📸 Photo upload successful:', result);
-        console.log('📸 New photo URL:', result.photoUrl);
-        
-        // Construct full URL if needed
-        let fullPhotoUrl;
-        if (result.photoUrl.startsWith('http')) {
-          fullPhotoUrl = result.photoUrl;
-        } else if (result.photoUrl.startsWith('/api/')) {
-          // If the photo URL already starts with /api/, just prepend the base URL without /api
-          const baseUrl = API_BASE_URL.replace('/api', '');
-          fullPhotoUrl = `${baseUrl}${result.photoUrl}`;
+        const formData = new FormData();
+        formData.append('photo', file);
+
+        const response = await fetch(`${API_BASE_URL}/photos/upload/${student.idNumber}`, {
+          method: 'POST',
+          headers: { 'X-Session-Token': getSessionToken() },
+          body: formData
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          
+          
+          // Construct full URL if needed
+          let fullPhotoUrl;
+          if (result.photoUrl.startsWith('http')) {
+            fullPhotoUrl = result.photoUrl;
+          } else {
+            fullPhotoUrl = `${API_BASE_URL}${result.photoUrl}`;
+          }
+          
+          // Add cache busting parameter to ensure fresh image
+          const cacheBuster = `?t=${Date.now()}`;
+          fullPhotoUrl = fullPhotoUrl + cacheBuster;
+          
+          // Update student profile picture
+          setStudentProfilePic(fullPhotoUrl);
+          
+          // Also update the student object's profilePhoto property
+          setStudent(prev => ({
+            ...prev,
+            profilePhoto: fullPhotoUrl
+          }));
+          
+          // Save to localStorage for persistence
+          localStorage.setItem(`studentProfilePic_${student.idNumber}`, fullPhotoUrl);
+          
+          // Force re-render to show new photo
+          setForceRerender(prev => prev + 1);
+          
+          // Update the enrolledStudents array in the parent component
+          if (window.updateEnrolledStudents) {
+            window.updateEnrolledStudents(prev => 
+              prev.map(s => 
+                s.idNumber === student.idNumber 
+                  ? { ...s, profilePhoto: fullPhotoUrl }
+                  : s
+              )
+            );
+          }
+          
+          // Show success message
+          alert('Photo uploaded successfully!');
+          
         } else {
-          // If it doesn't start with /api/, prepend the full API_BASE_URL
-          fullPhotoUrl = `${API_BASE_URL}${result.photoUrl}`;
+          const errorData = await response.json();
+          console.error('❌ Photo upload failed:', errorData);
+          alert(`Photo upload failed: ${errorData.message || 'Unknown error'}`);
         }
-        
-        console.log('📸 Full photo URL:', fullPhotoUrl);
-        
-        // Create a blob URL from the selected photo for immediate display
-        const blobUrl = URL.createObjectURL(selectedPhoto);
-        console.log('📸 Blob URL created:', blobUrl);
-        
-        // Update state immediately with blob URL for instant display
-        setStudent(prev => ({
-          ...prev,
-          profilePhoto: blobUrl
-        }));
-        
-        // Save the server URL to localStorage for persistence (not blob URL)
-        localStorage.setItem(`studentProfilePic_${student.idNumber}`, fullPhotoUrl);
-        setStudentProfilePic(fullPhotoUrl);
-        console.log('📸 Saved server URL to localStorage for persistence:', fullPhotoUrl);
-        
-        // Force component re-render
-        setForceRerender(prev => prev + 1);
-        
-        // Close modal and reset states
-        setPhotoUploadModalOpen(false);
-        setSelectedPhoto(null);
-        setPhotoPreview(null);
-        
-        // Update the enrolledStudents array in the parent component
-        if (window.updateEnrolledStudents) {
-          window.updateEnrolledStudents(prev => 
-            prev.map(s => 
-              s.idNumber === student.idNumber 
-                ? { ...s, profilePhoto: fullPhotoUrl }
-                : s
-            )
-          );
-        }
-      } else {
-        const error = await response.json();
-        alert(`Upload failed: ${error.message}`);
+      } catch (error) {
+        console.error('❌ Photo upload error:', error);
+        alert('Photo upload failed. Please try again.');
+      } finally {
+        setUploadingPhoto(false);
+        // Clear the file input
+        event.target.value = '';
       }
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      alert('Upload failed. Please try again.');
-    } finally {
-      setUploadingPhoto(false);
     }
   };
+
 
   const handleDeletePhoto = async () => {
     if (!student.profilePhoto) return;
@@ -717,10 +678,6 @@ function StudentDetailView({ enrolledStudents }) {
       return;
     }
 
-    console.log('🔍 Frontend - About to send announcement');
-    console.log('🔍 Frontend - Student object:', student);
-    console.log('🔍 Frontend - Student ID being sent:', student.id);
-    console.log('🔍 Frontend - Announcement text:', announcementText);
 
     try {
       setSendingAnnouncement(true);
@@ -739,7 +696,6 @@ function StudentDetailView({ enrolledStudents }) {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Frontend - Announcement sent successfully:', result);
         alert('Announcement sent successfully to the student!');
         setAnnouncementText('');
         setAnnouncementModalOpen(false);
@@ -748,7 +704,6 @@ function StudentDetailView({ enrolledStudents }) {
         await refreshAnnouncementHistory();
       } else {
         const error = await response.json();
-        console.log('❌ Frontend - Failed to send announcement:', error);
         alert(`Failed to send announcement: ${error.message}`);
       }
     } catch (error) {
@@ -767,14 +722,99 @@ function StudentDetailView({ enrolledStudents }) {
       return;
     }
 
-    // Only allow navigation to approval/edit view when payment has been approved
-    if (request.status !== 'payment_approved' && request.status !== 'approved') {
-      alert('This request cannot be printed yet. Ensure payment is approved and the request is approved.');
+    // Check if request can be printed (handle multiple status variations)
+    const status = request.status?.toLowerCase();
+    const displayStatus = getDisplayStatus(request.status)?.toLowerCase();
+    
+    // Allow printing for various approved statuses
+    const canPrint = status === 'payment_approved' || 
+                    status === 'payment approved' ||
+                    status === 'approved' ||
+                    displayStatus === 'payment approved' ||
+                    displayStatus === 'approved';
+
+    if (!canPrint) {
+      setCancelWarning('⚠️ This request cannot be printed yet. Wait for the payment approval by accounting');
+      // Clear warning after 5 seconds
+      setTimeout(() => {
+        setCancelWarning('');
+      }, 5000);
       return;
     }
 
     // Go to the approval/edit view for any document type
     navigate(`/admin/requests/approve-document/${request.id}`);
+  };
+
+  const handleCancelRequest = (request) => {
+    
+    // Check if request is already payment approved (multiple variations)
+    const status = request.status?.toLowerCase();
+    const displayStatus = getDisplayStatus(request.status)?.toLowerCase();
+    const badgeClass = getStatusBadge(request.status);
+    
+    if (status === 'payment_approved' || 
+        status === 'payment approved' || 
+        displayStatus === 'payment approved' ||
+        status === 'approved' ||
+        displayStatus === 'approved' ||
+        badgeClass === 'bg-success') {
+      // Clear any existing modal state
+      setShowCancelModal(false);
+      setRequestToCancel(null);
+      setCancelWarning(`The ${request.documentType} request is already payment approved and cannot be cancelled.`);
+      // Clear warning after 5 seconds
+      setTimeout(() => {
+        setCancelWarning('');
+      }, 5000);
+      return;
+    }
+
+    // For other statuses, proceed with normal cancellation
+    setRequestToCancel(request);
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelRequest = async () => {
+    if (!requestToCancel) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/requests/${requestToCancel.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Token': getSessionToken()
+        }
+      });
+
+      if (response.ok) {
+        setCancelWarning('✅ Request cancelled successfully!');
+        // Refresh the document requests
+        if (student) {
+          await refreshStudentRequests(student.id);
+        }
+        setShowCancelModal(false);
+        setRequestToCancel(null);
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setCancelWarning('');
+        }, 3000);
+      } else {
+        const error = await response.json();
+        setCancelWarning(`❌ Failed to cancel request: ${error.message}`);
+        // Clear error message after 5 seconds
+        setTimeout(() => {
+          setCancelWarning('');
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      setCancelWarning('❌ Error cancelling request. Please try again.');
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        setCancelWarning('');
+      }, 5000);
+    }
   };
 
   // Refresh requests from server so UI updates immediately after registrar action
@@ -794,18 +834,14 @@ function StudentDetailView({ enrolledStudents }) {
 
   const handleConfirmRequest = async (requestData) => {
     try {
-      console.log('🔍 StudentDetailView - handleConfirmRequest called');
-      console.log('🔍 requestData:', requestData);
       
       // Get the requestId from URL parameters
       const params = new URLSearchParams(window.location.search);
       let existingRequestId = params.get('requestId');
       
-      console.log('🔍 existingRequestId from URL:', existingRequestId);
       
       // If there's no existing request (e.g., registrar initiates directly), create one first
       if (!existingRequestId) {
-        console.log('ℹ️ No existing requestId found. Creating registrar-initiated request...');
         if (!student?.id) {
           throw new Error('Missing student information');
         }
@@ -831,7 +867,6 @@ function StudentDetailView({ enrolledStudents }) {
 
         const created = await createResponse.json();
         existingRequestId = String(created?.id || created?.request?.id);
-        console.log('✅ Created new request with ID:', existingRequestId);
 
         // Optimistically add to local list as pending
         if (existingRequestId) {
@@ -852,18 +887,12 @@ function StudentDetailView({ enrolledStudents }) {
 
       // Find the specific request by ID to get its document type
       const specificRequest = documentRequests.find(r => r.id === Number(existingRequestId));
-      console.log('🔍 specificRequest found:', specificRequest);
-      console.log('🔍 specificRequest.documentType:', specificRequest?.documentType);
-      console.log('🔍 requestData.documentType:', requestData.documentType);
-      console.log('🔍 Are they equal?', specificRequest?.documentType === requestData.documentType);
       
       if (specificRequest && specificRequest.documentType !== requestData.documentType) {
-        console.log('❌ Validation failed in handleConfirmRequest');
         alert(`Your request is incorrect because student requested ${specificRequest.documentType} not ${requestData.documentType}.`);
         return;
       }
       
-      console.log('✅ Validation passed in handleConfirmRequest');
 
       // Request the document from accounting for the existing student request
 
@@ -1008,17 +1037,11 @@ function StudentDetailView({ enrolledStudents }) {
                     title="Click photo to view, click camera to upload"
                   >
                                        {(() => {
-                                         console.log('🔍 Avatar display - student:', student);
-                                         console.log('🔍 Avatar display - profilePhoto:', student?.profilePhoto);
-                                         console.log('🔍 Avatar display - studentProfilePic:', studentProfilePic);
-                                         console.log('🔍 Force rerender count:', forceRerender);
                                          
                                          // Show uploaded photo if exists (prioritize student.profilePhoto)
                                          const photoToShow = student?.profilePhoto || studentProfilePic;
-                                         console.log('🔍 Photo to show:', photoToShow);
                                          
                                          if (photoToShow) {
-                                           console.log('📸 Displaying uploaded photo:', photoToShow);
                                            return (
                                              <img 
                                                key={`photo-${student.id}-${forceRerender}`}
@@ -1028,25 +1051,22 @@ function StudentDetailView({ enrolledStudents }) {
                                                onClick={handlePhotoPreview}
                                                title="Click to view photo in full screen"
                                                style={{
-                                                 width: '150px',
-                                                 height: '150px',
+                                                 width: '300px',
+                                                 height: '300px',
                                                  borderRadius: '50%',
                                                  objectFit: 'cover',
                                                  cursor: 'pointer'
                                                }}
                                                onLoad={() => {
-                                                 console.log('✅ Photo loaded successfully:', photoToShow);
                                                }}
                                                onError={(e) => {
-                                                 console.log('❌ Photo failed to load:', e.target.src);
-                                                 console.log('❌ Error details:', e);
                                                  // If photo fails to load, show generic avatar
                                                  e.target.style.display = 'none';
                                                  const fallbackAvatar = document.createElement('div');
                                                  fallbackAvatar.className = 'fallback-avatar';
                                                  fallbackAvatar.style.cssText = `
-                                                   width: 150px;
-                                                   height: 150px;
+                                                   width: 300px;
+                                                   height: 300px;
                                                    border-radius: 50%;
                                                    background-color: #6c757d;
                                                    display: flex;
@@ -1060,7 +1080,7 @@ function StudentDetailView({ enrolledStudents }) {
                                                  const personIcon = document.createElement('i');
                                                  personIcon.className = 'fas fa-user';
                                                  personIcon.style.cssText = `
-                                                   font-size: 60px;
+                                                   font-size: 80px;
                                                    color: white;
                                                    opacity: 0.7;
                                                  `;
@@ -1073,15 +1093,14 @@ function StudentDetailView({ enrolledStudents }) {
                                            );
                                          }
                                          
-                                         console.log('📸 Displaying generic avatar');
                                          // Show generic grey avatar with person silhouette
                                          return (
                                            <div 
                                              key={`avatar-${student?.id}-${forceRerender}`}
                                              className="fallback-avatar"
                                              style={{
-                                               width: '150px',
-                                               height: '150px',
+                                               width: '300px',
+                                               height: '300px',
                                                borderRadius: '50%',
                                                backgroundColor: '#6c757d',
                                                display: 'flex',
@@ -1094,7 +1113,7 @@ function StudentDetailView({ enrolledStudents }) {
                                              title="Click to view avatar in full screen"
                                            >
                                              <i className="fas fa-user" style={{
-                                               fontSize: '60px',
+                                               fontSize: '80px',
                                                color: 'white',
                                                opacity: 0.7
                                              }}></i>
@@ -1103,13 +1122,20 @@ function StudentDetailView({ enrolledStudents }) {
                                        })()}
                     <div 
                       className="photo-upload-overlay"
-                      onClick={() => setPhotoUploadModalOpen(true)}
+                      onClick={() => document.getElementById('photoInput').click()}
                       style={{ cursor: 'pointer', pointerEvents: 'auto' }}
                       title="Click to upload/change photo"
                     >
                       <i className="fas fa-camera fa-2x"></i>
                       <span>Upload Photo</span>
                     </div>
+                    <input
+                      id="photoInput"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoSelect}
+                      style={{ display: 'none' }}
+                    />
                  </div>
                </div>
               <h4 className="mb-1">{`${user.lastName}, ${user.firstName} ${user.middleName || ''}`.trim()}</h4>
@@ -1158,9 +1184,30 @@ function StudentDetailView({ enrolledStudents }) {
       <button className="btn btn-sm btn-outline-primary" onClick={() => setIsRequestModalOpen(true)}>
                 <i className="fas fa-plus me-1"></i> New Request
               </button>
-    </div>
-    <div className="card-body">
-      <div className="table-responsive">
+      </div>
+      <div className="card-body">
+        {/* Warning message for payment approved requests */}
+        {cancelWarning && (
+          <div className={`alert alert-dismissible fade show mb-3 ${
+            cancelWarning.includes('✅') ? 'alert-success' : 
+            cancelWarning.includes('❌') ? 'alert-danger' : 
+            'alert-warning'
+          }`} role="alert">
+            <i className={`fas me-2 ${
+              cancelWarning.includes('✅') ? 'fa-check-circle' : 
+              cancelWarning.includes('❌') ? 'fa-times-circle' : 
+              'fa-exclamation-triangle'
+            }`}></i>
+            {cancelWarning}
+            <button 
+              type="button" 
+              className="btn-close" 
+              onClick={() => setCancelWarning('')}
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
+        <div className="table-responsive">
         <table className="table table-hover table-sm">
           <thead>
             <tr>
@@ -1197,13 +1244,13 @@ function StudentDetailView({ enrolledStudents }) {
                                                 <i className="fas fa-print fa-fw me-2"></i>Print
                                             </button>
                                         </li>
-                                        <li>
+                                        {/* <li>
                                             <button className="dropdown-item" onClick={() => alert('Marking as complete!')}>
                                                 <i className="fas fa-check fa-fw me-2"></i>Mark as Complete
                                             </button>
-                                        </li>
+                                        </li> */}
                                         <li>
-                                            <button className="dropdown-item text-danger" onClick={() => alert('Cancelling request!')}>
+                                            <button className="dropdown-item text-danger" onClick={() => handleCancelRequest(req)}>
                                                 <i className="fas fa-times fa-fw me-2"></i>Cancel Request
                                             </button>
                                         </li>
@@ -1334,7 +1381,7 @@ function StudentDetailView({ enrolledStudents }) {
           {/* Message Tracker */}
           <div className="mt-4">
             <div className="d-flex justify-content-between align-items-center mb-3">
-              <h6 className="text-primary mb-0">Message Trackerrrrr</h6>
+              <h6 className="text-primary mb-0">Message Tracker</h6>
               <button 
                 className="btn btn-outline-primary btn-sm"
                 onClick={refreshAnnouncementHistory}
@@ -1846,108 +1893,7 @@ function StudentDetailView({ enrolledStudents }) {
          />
        )}
 
-       {/* Photo Upload Modal */}
-       {photoUploadModalOpen && (
-         <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-           <div className="modal-dialog modal-dialog-centered">
-             <div className="modal-content">
-               <div className="modal-header">
-                 <h5 className="modal-title">
-                   <i className="fas fa-camera me-2"></i>
-                   Upload Student Photo
-                 </h5>
-                 <button 
-                   type="button" 
-                   className="btn-close" 
-                   onClick={() => setPhotoUploadModalOpen(false)}
-                 ></button>
-               </div>
-               <div className="modal-body">
-                 <div className="text-center mb-3">
-                   <label htmlFor="photoInput" className="btn btn-outline-primary btn-lg">
-                     <i className="fas fa-upload me-2"></i>
-                     Choose Photo from Library
-                   </label>
-                   <input
-                     id="photoInput"
-                     type="file"
-                     accept="image/*"
-                     onChange={handlePhotoSelect}
-                     style={{ display: 'none' }}
-                   />
-                 </div>
-                 
-                 {photoPreview && (
-                   <div className="text-center">
-                     <h6>Photo Preview:</h6>
-                     <img 
-                       src={photoPreview} 
-                       alt="Preview" 
-                       className="img-fluid rounded mb-3"
-                       style={{ maxHeight: '200px' }}
-                     />
-                   </div>
-                 )}
 
-                 <div className="text-center mb-3">
-                   <h6>Current Avatar:</h6>
-                   <div 
-                     className="fallback-avatar mx-auto mb-2"
-                     style={{
-                       width: '150px',
-                       height: '150px',
-                       borderRadius: '50%',
-                       backgroundColor: '#6c757d',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'center'
-                     }}
-                   >
-                     <i className="fas fa-user" style={{
-                       fontSize: '60px',
-                       color: 'white',
-                       opacity: 0.7
-                     }}></i>
-                   </div>
-                   <small className="text-muted">Registrar can upload photos for students</small>
-                 </div>
-               </div>
-               <div className="modal-footer">
-                 <button 
-                   type="button" 
-                   className="btn btn-secondary" 
-                   onClick={() => setPhotoUploadModalOpen(false)}
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   type="button" 
-                   className="btn btn-primary" 
-                   onClick={handlePhotoUpload}
-                   disabled={!selectedPhoto || uploadingPhoto}
-                 >
-                   {uploadingPhoto ? (
-                     <>
-                       <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                       Uploading...
-                     </>
-                   ) : (
-                     <>
-                       <i className="fas fa-upload me-2"></i>
-                       Upload Photo
-                     </>
-                   )}
-                 </button>
-               </div>
-             </div>
-           </div>
-         </div>
-       )}
-
-               {/* Modal Backdrop */}
-        {photoUploadModalOpen && (
-          <div className="modal-backdrop fade show"></div>
-        )}
 
         {/* Photo Preview Modal */}
         {photoPreviewModalOpen && (
@@ -2020,7 +1966,7 @@ function StudentDetailView({ enrolledStudents }) {
                     className="btn btn-primary" 
                     onClick={() => {
                       setPhotoPreviewModalOpen(false);
-                      setPhotoUploadModalOpen(true);
+                      document.getElementById('photoInput').click();
                     }}
                   >
                     <i className="fas fa-edit me-2"></i>
@@ -2127,15 +2073,10 @@ function StudentDetailView({ enrolledStudents }) {
         expectedDocumentType={(() => {
           const params = new URLSearchParams(window.location.search);
           const requestId = params.get('requestId');
-          console.log('🔍 StudentDetailView - URL params:', window.location.search);
-          console.log('🔍 StudentDetailView - requestId from URL:', requestId);
-          console.log('🔍 StudentDetailView - documentRequests:', documentRequests);
           
           if (requestId) {
             const specificRequest = documentRequests.find(r => r.id === Number(requestId));
-            console.log('🔍 StudentDetailView - specificRequest found:', specificRequest);
             const expectedType = specificRequest ? specificRequest.documentType : null;
-            console.log('🔍 StudentDetailView - expectedDocumentType:', expectedType);
             return expectedType;
           }
           return null;
@@ -2258,6 +2199,54 @@ function StudentDetailView({ enrolledStudents }) {
           </div>
         </div>
       )}
+
+      {/* Cancel Request Confirmation Modal */}
+      <CustomAlert
+        isOpen={showCancelModal && !cancelWarning}
+        onClose={() => {
+          setShowCancelModal(false);
+          setRequestToCancel(null);
+        }}
+        title="Cancel Document Request?"
+        hideDefaultButton={true}
+        actions={
+          <div className="d-flex gap-2">
+            <button 
+              className="btn btn-secondary" 
+              onClick={() => {
+                setShowCancelModal(false);
+                setRequestToCancel(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-danger" 
+              onClick={confirmCancelRequest}
+            >
+              Yes, Cancel Request
+            </button>
+          </div>
+        }
+      >
+        {requestToCancel && (
+          <div className="text-start">
+            <div className="mb-3">
+              <strong>Student:</strong> {student ? `${student.firstName} ${student.lastName}` : 'Unknown'}
+            </div>
+            <div className="mb-3">
+              <strong>Document:</strong> {requestToCancel.documentType}
+            </div>
+            <div className="mb-3">
+              <strong>Amount:</strong> ₱{requestToCancel.amount?.toFixed(2) || '0.00'}
+            </div>
+            <div className="alert alert-warning">
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              This action cannot be undone. The request will be permanently cancelled.
+            </div>
+          </div>
+        )}
+      </CustomAlert>
      </div>
    );
  }
