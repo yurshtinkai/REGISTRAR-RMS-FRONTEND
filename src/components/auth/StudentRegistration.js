@@ -299,7 +299,6 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             placeholder="Enter your first name"
                             required
                         />
-                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                     <div className="form-group">
                         <label htmlFor="lastName">Last Name *</label>
@@ -312,7 +311,6 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             placeholder="Enter your last name"
                             required
                         />
-                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                 </div>
 
@@ -327,7 +325,6 @@ function StudentRegistration({ onRegistrationSuccess, onSwitchToLogin }) {
                             onChange={handleInputChange}
                             placeholder="Enter your middle name"
                         />
-                        <small className="text-muted">Only letters, spaces, and ~ allowed</small>
                     </div>
                 </div>
 
