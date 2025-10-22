@@ -538,10 +538,6 @@ function StudentHomePage() {
                     <div className="row align-items-center">
                         <div className="col-md-8">
                             <h1 className="welcome-title">Welcome back, {formatDisplayName(userData.fullName)}</h1>
-                            {/* Debug info */}
-                            <div style={{fontSize: '0.8rem', color: '#666', marginTop: '5px'}}>
-                                Debug: userData.fullName = "{userData.fullName}" | formatted = "{formatDisplayName(userData.fullName)}" | fixed = "{fixNameOrder(userData.fullName)}"
-                            </div>
                             <p className="welcome-subtitle">Student ID: {userData.studentId}</p>
                             <p className="welcome-description">
                                 Access your academic information and manage your student account
